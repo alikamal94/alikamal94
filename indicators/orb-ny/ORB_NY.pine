@@ -178,13 +178,21 @@ if state == 0 and canSignal
     float  L = na
     string n = ""
     if useHL and close > hi and close[1] <= hi
-        d := 1,  L := hi, n := "ORB High"
+        d := 1
+        L := hi
+        n := "ORB High"
     else if useHL and close < lo and close[1] >= lo
-        d := -1, L := lo, n := "ORB Low"
+        d := -1
+        L := lo
+        n := "ORB Low"
     else if useMid and close > md and close[1] <= md and close <= hi
-        d := 1,  L := md, n := "ORB 50%"
+        d := 1
+        L := md
+        n := "ORB 50%"
     else if useMid and close < md and close[1] >= md and close >= lo
-        d := -1, L := md, n := "ORB 50%"
+        d := -1
+        L := md
+        n := "ORB 50%"
     if d != 0
         state   := 1
         dir     := d
@@ -205,9 +213,13 @@ else if state == 1 and bar_index > brkBar
     // Track the first FVG printed by the breakout leg
     if na(fvgTop)
         if dir == 1 and low > high[2]
-            fvgTop := low,     fvgBot := high[2], fvgBar := bar_index
+            fvgTop := low
+            fvgBot := high[2]
+            fvgBar := bar_index
         else if dir == -1 and high < low[2]
-            fvgTop := low[2],  fvgBot := high,    fvgBar := bar_index
+            fvgTop := low[2]
+            fvgBot := high
+            fvgBar := bar_index
         if not na(fvgTop) and showFVG
             box.new(bar_index - 2, fvgTop, bar_index + 5, fvgBot, border_color = na,
                  bgcolor = color.new(dir == 1 ? color.teal : color.maroon, 80), text = "FVG", text_size = size.tiny,
