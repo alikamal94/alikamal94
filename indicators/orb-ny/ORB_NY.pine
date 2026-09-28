@@ -96,10 +96,7 @@ method mid(ORB this) =>
 fits(int mins) =>
     tfSec <= mins * 60 and (mins * 60) % tfSec == 0
 
-var array<ORB> orbs = array.from(
-     ORB.new(1,  col1,  show1,  fits(1)),
-     ORB.new(5,  col5,  show5,  fits(5)),
-     ORB.new(15, col15, show15, fits(15)))
+var array<ORB> orbs = array.from(ORB.new(1, col1, show1, fits(1)), ORB.new(5, col5, show5, fits(5)), ORB.new(15, col15, show15, fits(15)))
 
 for o in orbs
     if o.valid
