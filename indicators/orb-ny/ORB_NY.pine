@@ -1,0 +1,307 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © alikamal94
+//
+// ORB NY — New York Opening Range Breakout + Retest
+//  1) Builds the NY opening range on the 1, 5 and 15 minute windows (09:30 ET by default).
+//  2) Watches for a breakout of the ORB High, ORB Low or the 50% level (candle CLOSE beyond the level).
+//  3) Confirms the entry on the retest with a Fair Value Gap, a level (High/Low) retest, or a strong rejection candle.
+//
+// Chart timeframe note: an ORB window can only be built when the chart timeframe fits inside it.
+//  1m chart  -> 1m, 5m and 15m ORB
+//  5m chart  -> 5m and 15m ORB
+//  15m chart -> 15m ORB
+
+//@version=6
+indicator("ORB NY — Opening Range Breakout + Retest", "ORB NY", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
+
+// ───────────────────────────── Inputs ─────────────────────────────
+const string G_SES = "New York session"
+tz          = input.string("America/New_York", "Timezone", group = G_SES)
+openH       = input.int(9,  "Open hour",   0, 23, group = G_SES, inline = "o")
+openM       = input.int(30, "minute",      0, 59, group = G_SES, inline = "o")
+sigEndH     = input.int(12, "Stop new signals at hour", 0, 23, group = G_SES, inline = "s")
+sigEndM     = input.int(0,  "minute",      0, 59, group = G_SES, inline = "s")
+lvlEndH     = input.int(16, "Levels / trades end hour", 0, 23, group = G_SES, inline = "l")
+lvlEndM     = input.int(0,  "minute",      0, 59, group = G_SES, inline = "l")
+
+const string G_ORB = "Opening ranges"
+show1       = input.bool(true, "1m ORB",  group = G_ORB, inline = "1")
+col1        = input.color(color.new(#FFB300, 0), "", group = G_ORB, inline = "1")
+show5       = input.bool(true, "5m ORB",  group = G_ORB, inline = "5")
+col5        = input.color(color.new(#2196F3, 0), "", group = G_ORB, inline = "5")
+show15      = input.bool(true, "15m ORB", group = G_ORB, inline = "15")
+col15       = input.color(color.new(#AB47BC, 0), "", group = G_ORB, inline = "15")
+showMid     = input.bool(true, "Show 50% level", group = G_ORB)
+showBox     = input.bool(true, "Shade range box", group = G_ORB)
+signalTF    = input.string("Auto", "ORB used for signals", options = ["Auto", "1", "5", "15"], group = G_ORB,
+               tooltip = "Auto = same as the chart timeframe when it is 1/5/15 minutes, otherwise the 15m ORB.")
+
+const string G_BRK = "Breakout"
+useHL       = input.bool(true, "Trade ORB High / Low breakouts", group = G_BRK)
+useMid      = input.bool(true, "Trade 50% level breakouts", group = G_BRK)
+tolATR      = input.float(0.25, "Retest tolerance (× ATR)", minval = 0, step = 0.05, group = G_BRK,
+               tooltip = "How close price must come back to the broken level to count as a retest. Also the buffer used to invalidate a breakout.")
+maxWait     = input.int(30, "Max bars to wait for the retest", minval = 1, group = G_BRK)
+maxTrades   = input.int(2, "Max signals per day", minval = 1, group = G_BRK)
+showBreaks  = input.bool(true, "Label breakouts / invalidations", group = G_BRK)
+
+const string G_CNF = "Entry confirmation (any enabled one confirms)"
+cFVG        = input.bool(true, "Fair Value Gap retest", group = G_CNF)
+cLvl        = input.bool(true, "High / Low level retest (close holds the level)", group = G_CNF)
+cRej        = input.bool(true, "Strong rejection candle (pin bar / engulfing)", group = G_CNF)
+wickPct     = input.float(0.5, "Rejection: min wick as % of candle", minval = 0.1, maxval = 0.9, step = 0.05, group = G_CNF)
+showFVG     = input.bool(true, "Draw breakout FVG", group = G_CNF)
+
+const string G_RSK = "Risk"
+slMode      = input.string("Retest candle", "Stop loss", options = ["Retest candle", "ORB 50%", "Opposite ORB side"], group = G_RSK)
+slBufATR    = input.float(0.1, "SL buffer (× ATR)", minval = 0, step = 0.05, group = G_RSK)
+rr          = input.float(2.0, "Take profit (R multiple)", minval = 0.1, step = 0.25, group = G_RSK)
+showTrade   = input.bool(true, "Draw entry / SL / TP", group = G_RSK)
+showTable   = input.bool(true, "Show info table", group = G_RSK)
+
+// ───────────────────────────── Time ─────────────────────────────
+atr       = ta.atr(14)
+tfSec     = timeframe.in_seconds()
+yy        = year(time, tz)
+mm        = month(time, tz)
+dd        = dayofmonth(time, tz)
+sessStart = timestamp(tz, yy, mm, dd, openH, openM)
+sigEnd    = timestamp(tz, yy, mm, dd, sigEndH, sigEndM)
+lvlEnd    = timestamp(tz, yy, mm, dd, lvlEndH, lvlEndM)
+newSess   = time >= sessStart and (na(time[1]) or time[1] < sessStart)
+inDay     = time >= sessStart and time < lvlEnd
+
+// ───────────────────────────── ORB object ─────────────────────────────
+type ORB
+    int   mins
+    color col
+    bool  show
+    bool  valid
+    float hi       = na
+    float lo       = na
+    int   endT     = na
+    int   startBar = na
+    int   readyBar = na
+    bool  building = false
+    bool  ready    = false
+    box   bx
+    line  lnHi
+    line  lnLo
+    line  lnMid
+    label lbl
+
+method mid(ORB this) =>
+    (this.hi + this.lo) / 2
+
+fits(int mins) =>
+    tfSec <= mins * 60 and (mins * 60) % tfSec == 0
+
+var array<ORB> orbs = array.from(
+     ORB.new(1,  col1,  show1,  fits(1)),
+     ORB.new(5,  col5,  show5,  fits(5)),
+     ORB.new(15, col15, show15, fits(15)))
+
+for o in orbs
+    if o.valid
+        if newSess
+            o.hi       := high
+            o.lo       := low
+            o.endT     := sessStart + o.mins * 60000
+            o.startBar := bar_index
+            o.building := true
+            o.ready    := false
+        else if o.building
+            o.hi := math.max(o.hi, high)
+            o.lo := math.min(o.lo, low)
+
+        if o.building and time_close >= o.endT
+            o.building := false
+            o.ready    := true
+            o.readyBar := bar_index
+            if o.show
+                if showBox
+                    o.bx := box.new(o.startBar, o.hi, bar_index, o.lo, border_color = color.new(o.col, 60), bgcolor = color.new(o.col, 88))
+                o.lnHi  := line.new(o.startBar, o.hi, bar_index, o.hi, color = o.col, width = 2)
+                o.lnLo  := line.new(o.startBar, o.lo, bar_index, o.lo, color = o.col, width = 2)
+                o.lnMid := showMid ? line.new(o.startBar, o.mid(), bar_index, o.mid(), color = color.new(o.col, 30), style = line.style_dashed) : na
+                o.lbl   := label.new(bar_index, o.hi, str.tostring(o.mins) + "m ORB", style = label.style_label_left,
+                                     color = color.new(color.black, 100), textcolor = o.col, size = size.small)
+        else if o.ready and o.show and inDay
+            line.set_x2(o.lnHi, bar_index)
+            line.set_x2(o.lnLo, bar_index)
+            if not na(o.lnMid)
+                line.set_x2(o.lnMid, bar_index)
+            label.set_x(o.lbl, bar_index)
+
+// ───────────────────────────── Signal ORB ─────────────────────────────
+selMins = switch signalTF
+    "1"  => 1
+    "5"  => 5
+    "15" => 15
+    =>      tfSec == 60 ? 1 : tfSec == 300 ? 5 : 15
+sig = selMins == 1 ? orbs.get(0) : selMins == 5 ? orbs.get(1) : orbs.get(2)
+
+// ───────────────────────────── State machine ─────────────────────────────
+// state: 0 = watching for breakout, 1 = breakout, waiting for retest confirmation, 2 = in trade
+var int    state   = 0
+var int    dir     = 0
+var float  lvl     = na
+var string lvlName = ""
+var int    brkBar  = na
+var float  fvgTop  = na
+var float  fvgBot  = na
+var int    fvgBar  = na
+var int    trades  = 0
+var float  entry   = na
+var float  sl      = na
+var float  tp      = na
+var int    entryBar = na
+var line   lnE     = na
+var line   lnS     = na
+var line   lnT     = na
+
+longSig  = false
+shortSig = false
+tol      = atr * tolATR
+buf      = atr * slBufATR
+tkr      = syminfo.ticker
+
+if newSess
+    state  := 0
+    trades := 0
+
+canSignal = sig.valid and sig.ready and bar_index > sig.readyBar and time >= sessStart and time < sigEnd and trades < maxTrades
+
+// 1) Breakout detection (candle close through the level)
+if state == 0 and canSignal
+    hi = sig.hi
+    lo = sig.lo
+    md = sig.mid()
+    int    d = 0
+    float  L = na
+    string n = ""
+    if useHL and close > hi and close[1] <= hi
+        d := 1,  L := hi, n := "ORB High"
+    else if useHL and close < lo and close[1] >= lo
+        d := -1, L := lo, n := "ORB Low"
+    else if useMid and close > md and close[1] <= md and close <= hi
+        d := 1,  L := md, n := "ORB 50%"
+    else if useMid and close < md and close[1] >= md and close >= lo
+        d := -1, L := md, n := "ORB 50%"
+    if d != 0
+        state   := 1
+        dir     := d
+        lvl     := L
+        lvlName := n
+        brkBar  := bar_index
+        fvgTop  := na
+        fvgBot  := na
+        fvgBar  := na
+        if showBreaks
+            label.new(bar_index, d == 1 ? high : low, (d == 1 ? "↑ " : "↓ ") + n + " break",
+                      style = d == 1 ? label.style_label_down : label.style_label_up,
+                      color = color.new(d == 1 ? color.teal : color.maroon, 20), textcolor = color.white, size = size.tiny)
+        alert(tkr + " ORB NY: " + (d == 1 ? "bullish" : "bearish") + " breakout of " + n + " (" + str.tostring(L, format.mintick) + ") — waiting for retest", alert.freq_once_per_bar_close)
+
+// 2) Retest + confirmation
+else if state == 1 and bar_index > brkBar
+    // Track the first FVG printed by the breakout leg
+    if na(fvgTop)
+        if dir == 1 and low > high[2]
+            fvgTop := low,     fvgBot := high[2], fvgBar := bar_index
+        else if dir == -1 and high < low[2]
+            fvgTop := low[2],  fvgBot := high,    fvgBar := bar_index
+        if not na(fvgTop) and showFVG
+            box.new(bar_index - 2, fvgTop, bar_index + 5, fvgBot, border_color = na,
+                 bgcolor = color.new(dir == 1 ? color.teal : color.maroon, 80), text = "FVG", text_size = size.tiny,
+                 text_color = color.new(color.gray, 20), text_halign = text.align_right)
+
+    rng       = high - low
+    touchLvl  = dir == 1 ? low <= lvl + tol : high >= lvl - tol
+    hold      = dir == 1 ? close > lvl : close < lvl
+    dirCandle = dir == 1 ? close > open : close < open
+    wick      = dir == 1 ? math.min(open, close) - low : high - math.max(open, close)
+    closePos  = rng > 0 ? (dir == 1 ? close - low : high - close) / rng : 0.0
+    pinBar    = rng > 0 and wick >= wickPct * rng and closePos >= 0.6
+    engulf    = dir == 1 ? close > open and close[1] < open[1] and close >= open[1] and open <= close[1] :
+                           close < open and close[1] > open[1] and close <= open[1] and open >= close[1]
+    touchFVG  = not na(fvgTop) and bar_index > fvgBar and (dir == 1 ? low <= fvgTop and close > fvgBot : high >= fvgBot and close < fvgTop)
+
+    okFVG = cFVG and touchFVG and hold and dirCandle
+    okRej = cRej and touchLvl and hold and (pinBar or engulf)
+    okLvl = cLvl and touchLvl and hold and dirCandle
+    invalid = dir == 1 ? close < lvl - tol : close > lvl + tol
+
+    if invalid or bar_index - brkBar > maxWait or time >= sigEnd
+        state := 0
+        if showBreaks
+            label.new(bar_index, dir == 1 ? low : high, invalid ? "✕ failed" : "✕ no retest",
+                      style = dir == 1 ? label.style_label_up : label.style_label_down,
+                      color = color.new(color.gray, 40), textcolor = color.white, size = size.tiny)
+    else if okFVG or okRej or okLvl
+        how = okFVG ? "FVG retest" : okRej ? (pinBar ? "Rejection wick" : "Engulfing") : "Level retest"
+        trades   += 1
+        state    := 2
+        entry    := close
+        entryBar := bar_index
+        swingSL   = dir == 1 ? math.min(low, low[1]) - buf : math.max(high, high[1]) + buf
+        sl := switch slMode
+            "ORB 50%"           => dir == 1 ? sig.mid() - buf : sig.mid() + buf
+            "Opposite ORB side" => dir == 1 ? sig.lo - buf    : sig.hi + buf
+            =>                     swingSL
+        if (dir == 1 and sl >= entry) or (dir == -1 and sl <= entry)
+            sl := swingSL
+        tp := entry + dir * rr * math.abs(entry - sl)
+        longSig  := dir == 1
+        shortSig := dir == -1
+        label.new(bar_index, dir == 1 ? low : high, (dir == 1 ? "LONG" : "SHORT") + "\n" + lvlName + "\n" + how,
+                  style = dir == 1 ? label.style_label_up : label.style_label_down,
+                  color = dir == 1 ? color.new(color.green, 0) : color.new(color.red, 0), textcolor = color.white, size = size.small)
+        if showTrade
+            lnE := line.new(bar_index, entry, bar_index + 1, entry, color = color.gray, width = 2)
+            lnS := line.new(bar_index, sl,    bar_index + 1, sl,    color = color.red,  width = 2)
+            lnT := line.new(bar_index, tp,    bar_index + 1, tp,    color = color.green, width = 2)
+        alert(tkr + " ORB NY: " + (dir == 1 ? "LONG" : "SHORT") + " @ " + str.tostring(entry, format.mintick) + " | " + lvlName + " " + how +
+              " | SL " + str.tostring(sl, format.mintick) + " | TP " + str.tostring(tp, format.mintick), alert.freq_once_per_bar_close)
+
+// 3) Trade management (SL is checked first when both are hit in the same bar)
+else if state == 2 and bar_index > entryBar
+    hitSL  = dir == 1 ? low <= sl : high >= sl
+    hitTP  = dir == 1 ? high >= tp : low <= tp
+    timeUp = time_close >= lvlEnd
+    if showTrade
+        line.set_x2(lnE, bar_index)
+        line.set_x2(lnS, bar_index)
+        line.set_x2(lnT, bar_index)
+    if hitSL or hitTP or timeUp
+        state := 0
+        res = hitSL ? "SL" : hitTP ? "TP " + str.tostring(rr) + "R" : "Time exit"
+        label.new(bar_index, hitSL ? sl : hitTP ? tp : close, res, style = label.style_label_left,
+                  color = color.new(hitSL ? color.red : hitTP ? color.green : color.gray, 30), textcolor = color.white, size = size.tiny)
+        alert(tkr + " ORB NY: " + res, alert.freq_once_per_bar_close)
+
+alertcondition(longSig,  "ORB NY Long",  "ORB NY: LONG entry confirmed on retest")
+alertcondition(shortSig, "ORB NY Short", "ORB NY: SHORT entry confirmed on retest")
+
+// ───────────────────────────── Info table ─────────────────────────────
+var table tb = table.new(position.top_right, 4, 5, bgcolor = color.new(color.black, 20), border_width = 1, border_color = color.new(color.gray, 70))
+if barstate.isfirst
+    table.merge_cells(tb, 0, 4, 3, 4)
+if showTable and barstate.islast
+    txt = color.white
+    table.cell(tb, 0, 0, "ORB",  text_color = txt, text_size = size.small)
+    table.cell(tb, 1, 0, "High", text_color = txt, text_size = size.small)
+    table.cell(tb, 2, 0, "50%",  text_color = txt, text_size = size.small)
+    table.cell(tb, 3, 0, "Low",  text_color = txt, text_size = size.small)
+    for [i, o] in orbs
+        r   = i + 1
+        has = o.valid and o.ready
+        table.cell(tb, 0, r, str.tostring(o.mins) + "m" + (o.mins == selMins ? " ★" : ""), text_color = o.col, text_size = size.small)
+        table.cell(tb, 1, r, has ? str.tostring(o.hi,    format.mintick) : o.valid ? "…" : "n/a", text_color = txt, text_size = size.small)
+        table.cell(tb, 2, r, has ? str.tostring(o.mid(), format.mintick) : o.valid ? "…" : "n/a", text_color = txt, text_size = size.small)
+        table.cell(tb, 3, r, has ? str.tostring(o.lo,    format.mintick) : o.valid ? "…" : "n/a", text_color = txt, text_size = size.small)
+    status = not sig.valid ? "Chart TF too high for " + str.tostring(selMins) + "m ORB" :
+             state == 1 ? (dir == 1 ? "↑ " : "↓ ") + lvlName + " broken — waiting for retest" :
+             state == 2 ? (dir == 1 ? "In LONG" : "In SHORT") + " | SL " + str.tostring(sl, format.mintick) + " | TP " + str.tostring(tp, format.mintick) :
+             "Watching for breakout (" + str.tostring(trades) + "/" + str.tostring(maxTrades) + " today)"
+    table.cell(tb, 0, 4, status, text_color = txt, text_size = size.small)
