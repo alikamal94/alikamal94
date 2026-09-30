@@ -1,46 +1,67 @@
 //@version=6
 // ─────────────────────────────────────────────────────────────────────────────
-//  IFVG Sniper Model
-//  1. Liquidity sweep   – price wicks through a resting swing high/low and closes back inside
+//  IFVG Sniper Model  (defaults tuned for the 15-minute chart)
+//  1. Liquidity sweep   – price wicks through a swing / previous-day high-low and closes back inside
 //  2. V-shape recovery  – fast displacement away from the sweep extreme (× ATR)
 //  3. CISD              – close through the open of the delivery series that made the extreme
-//  4. IFVG              – an opposing FVG is closed through (inverted) → sniper entry zone
+//  4. IFVG              – an opposing FVG is closed through by a displacement candle → sniper zone
 //  5. Retest + sweep    – price returns into the IFVG, sweeps minor liquidity and holds → entry
-//  6. Draw on liquidity – TP1 / TP2 = nearest untouched swing liquidity in trade direction
+//  6. Targets           – fixed 1R / 2R (default) with a draw on liquidity required beyond TP1
+//  Filters              – higher-timeframe bias, London / New York killzones, max stop size
 // ─────────────────────────────────────────────────────────────────────────────
 indicator("IFVG Sniper Model", "IFVG Sniper", overlay = true, max_bars_back = 500,
      max_lines_count = 500, max_labels_count = 500, max_boxes_count = 500)
 
 // ───────────────────────── Inputs ─────────────────────────
+const string G0 = "0 · High-Probability Filters"
+useHtf    = input.bool(true, "Trade with higher-timeframe bias", group = G0,
+     tooltip = "Longs only when the HTF close is above a rising EMA, shorts only below a falling EMA (last closed HTF bar, no repaint).")
+htfTf     = input.timeframe("60", "HTF", group = G0, inline = "htf")
+htfEmaLen = input.int(50, "EMA", minval = 1, group = G0, inline = "htf")
+useKz     = input.bool(true, "Entries only inside killzones", group = G0)
+kz1       = input.session("0200-0500", "London", group = G0, inline = "kz")
+kz2       = input.session("0700-1100", "New York", group = G0, inline = "kz")
+kzTz      = input.string("America/New_York", "Killzone timezone", group = G0)
+dispBody  = input.float(0.5, "Min body % of IFVG inversion candle", minval = 0, maxval = 1, step = 0.05, group = G0,
+     tooltip = "The candle that closes through the FVG must be a displacement candle (body / range). 0 disables.")
+maxSlAtr  = input.float(2.0, "Skip entry if stop > N × ATR", minval = 0.2, step = 0.1, group = G0)
+minSlAtr  = input.float(0.3, "Minimum stop size (× ATR)", minval = 0, step = 0.05, group = G0,
+     tooltip = "Stops tighter than this get widened so normal noise does not tag them.")
+
 const string G1 = "1 · Liquidity Sweep"
-swingLen  = input.int(5, "Liquidity swing length", minval = 2, group = G1,
-     tooltip = "Bars on each side that define a swing high/low (a resting liquidity pool).")
+swingLen  = input.int(8, "Liquidity swing length", minval = 2, group = G1,
+     tooltip = "Bars on each side that define a swing high/low (a resting liquidity pool). Higher = only major liquidity.")
+usePdl    = input.bool(true, "Add previous-day high / low as liquidity", group = G1)
 maxPools  = input.int(30, "Max pools tracked per side", minval = 5, maxval = 100, group = G1)
 showPools = input.bool(true, "Show resting liquidity levels", group = G1)
 
 const string G2 = "2 · V-Shape Recovery"
-vMaxBars  = input.int(8, "Max bars from extreme → recovery", minval = 1, group = G2)
+vMaxBars  = input.int(6, "Max bars from extreme → recovery", minval = 1, group = G2)
 vAtrMult  = input.float(1.5, "Recovery displacement (× ATR)", minval = 0.1, step = 0.1, group = G2)
 atrLen    = input.int(14, "ATR length", minval = 1, group = G2)
 
 const string G3 = "3 · CISD + IFVG"
-alignBars = input.int(15, "Max bars sweep → CISD & IFVG", minval = 1, group = G3)
+alignBars = input.int(12, "Max bars sweep → CISD & IFVG", minval = 1, group = G3)
 cisdScan  = input.int(15, "CISD candle scan depth", minval = 1, maxval = 100, group = G3)
-fvgLook   = input.int(30, "FVG may form up to N bars before sweep", minval = 1, group = G3)
-fvgMinAtr = input.float(0.05, "Min FVG size (× ATR)", minval = 0, step = 0.05, group = G3)
+fvgLook   = input.int(20, "FVG may form up to N bars before sweep", minval = 1, group = G3)
+fvgMinAtr = input.float(0.1, "Min FVG size (× ATR)", minval = 0, step = 0.05, group = G3)
 
 const string G4 = "4 · Retest + Second Sweep"
-retestMax = input.int(30, "Max bars to wait for retest", minval = 1, group = G4)
+retestMax = input.int(16, "Max bars to wait for retest", minval = 1, group = G4)
 minorLen  = input.int(3, "Retest sweep lookback (bars)", minval = 1, group = G4,
      tooltip = "On the retest, price must take the low (bull) / high (bear) of the previous N bars and close back.")
 
-const string G5 = "5 · Targets (Draw on Liquidity)"
+const string G5 = "5 · Targets & Management"
+tpMode     = input.string("Fixed R:R", "Target mode", options = ["Fixed R:R", "Liquidity (capped at R:R)"], group = G5,
+     tooltip = "Fixed R:R: TP1 / TP2 exactly at the R multiples below.\nLiquidity (capped): nearest draw on liquidity, never further than the R multiples.")
+rr1        = input.float(1.0, "TP1 (R)", minval = 0.25, step = 0.25, group = G5, inline = "rr")
+rr2        = input.float(2.0, "TP2 (R)", minval = 0.5, step = 0.25, group = G5, inline = "rr")
+requireDol = input.bool(true, "Require draw on liquidity beyond TP1", group = G5,
+     tooltip = "Only enter when an untouched liquidity pool sits at least TP1 away in the trade direction.")
 slBuf      = input.float(0.1, "SL buffer (× ATR)", minval = 0, step = 0.05, group = G5)
-minRR      = input.float(1.0, "Min R for TP1 liquidity", minval = 0, step = 0.25, group = G5)
-fbRR1      = input.float(2.0, "Fallback TP1 (R) if no liquidity", minval = 0.5, step = 0.25, group = G5)
-fbRR2      = input.float(4.0, "Fallback TP2 (R) if no liquidity", minval = 0.5, step = 0.25, group = G5)
+partialPct = input.float(50, "Close % at TP1", minval = 0, maxval = 100, step = 5, group = G5)
 beAfterTp1 = input.bool(true, "Move SL to entry after TP1", group = G5)
-tradeMax   = input.int(300, "Max bars to manage a trade", minval = 1, group = G5)
+tradeMax   = input.int(96, "Close trade after N bars", minval = 1, group = G5)
 
 const string G6 = "Display"
 showBull  = input.bool(true, "Bullish setups", group = G6, inline = "d")
@@ -57,6 +78,22 @@ minorLow  = ta.lowest(low, minorLen)[1]
 minorHigh = ta.highest(high, minorLen)[1]
 ph        = ta.pivothigh(high, swingLen, swingLen)
 pl        = ta.pivotlow(low, swingLen, swingLen)
+
+// Higher-timeframe bias from the last CLOSED HTF bar (lookahead + [1] = no repaint)
+htfData() =>
+    float e = ta.ema(close, htfEmaLen)
+    [close[1], e[1], e[2]]
+[htfClose, htfEma, htfEmaPrev] = request.security(syminfo.tickerid, htfTf, htfData(), lookahead = barmerge.lookahead_on)
+bool bullBias = not useHtf or (htfClose > htfEma and htfEma > htfEmaPrev)
+bool bearBias = not useHtf or (htfClose < htfEma and htfEma < htfEmaPrev)
+
+// Killzones
+bool inKz = not useKz or not na(time(timeframe.period, kz1, kzTz)) or not na(time(timeframe.period, kz2, kzTz))
+
+// Displacement candle (body share of range) for the IFVG inversion
+float rng     = high - low
+bool  bullDisp = close > open and rng > 0 and (close - open) / rng >= dispBody
+bool  bearDisp = close < open and rng > 0 and (open - close) / rng >= dispBody
 
 // ───────────────────────── Liquidity pools ─────────────────────────
 var array<float> bslPx  = array.new<float>()   // buy-side liquidity (swing highs)
@@ -156,13 +193,13 @@ cisdLevel(int d) =>
             break
     [lvl, lb]
 
-// Draw on liquidity: nearest two untouched pools in trade direction, at least minRR away.
-findTargets(int d, float entry, float risk) =>
+// Draw on liquidity: nearest two untouched pools in trade direction, at least minDist away.
+findTargets(int d, float entry, float minDist) =>
     array<float> pools = d == 1 ? bslPx : sslPx
     float t1 = na
     float t2 = na
     for p in pools
-        if d * (p - entry) >= minRR * risk
+        if d * (p - entry) >= minDist
             if na(t1) or d * (t1 - p) > 0
                 t2 := t1
                 t1 := p
@@ -196,6 +233,9 @@ type Setup
     float sl
     float tp1
     float tp2
+    float risk
+    float r1
+    float r2
     bool  tp1Hit   = false
     int   entryBar
     box   zBox
@@ -250,7 +290,8 @@ method setTradeX(Setup s, int x) =>
     label.set_x(s.bT2, x)
     true
 
-method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar) =>
+// bias: HTF bias agrees with this direction · kz: bar is inside a killzone
+method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar, bool bias, bool kz) =>
     int   d   = s.dir
     color c   = d == 1 ? bullCol : bearCol
     float adv = d == 1 ? low : high
@@ -261,6 +302,8 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar)
     bool evTp2   = false
     bool evSl    = false
     bool evBe    = false
+    float resR   = na     // realised R when the trade closes on this bar
+    float part   = partialPct / 100
 
     if s.st == 1
         // New extreme → any partial confirmation is void, rebuild from the new low/high
@@ -318,38 +361,54 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar)
                 box.set_border_color(s.zBox, color.gray)
                 box.set_text_color(s.zBox, color.gray)
                 s.reset()
-            else if touched and sweep2 and holds
-                s.st       := 3
-                s.entryBar := bar_index
-                s.entry    := close
-                s.sl       := adv - d * slBuf * atrV
-                float risk = math.abs(s.entry - s.sl)
-                [t1, t2] = findTargets(d, s.entry, risk)
-                s.tp1 := na(t1) ? s.entry + d * fbRR1 * risk : t1
-                s.tp2 := na(t2) ? s.entry + d * math.max(fbRR2 * risk, math.abs(s.tp1 - s.entry) + risk) : t2
-                evEntry := true
+            else if touched and sweep2 and holds and bias and kz
+                float entry = close
+                float risk  = math.max(math.abs(entry - (adv - d * slBuf * atrV)), minSlAtr * atrV)
+                [dol, dol2] = findTargets(d, entry, rr1 * risk)
+                bool okSize = risk <= maxSlAtr * atrV
+                bool okDol  = not requireDol or not na(dol)
+                // A retest that fails the stop-size / DOL filters is skipped; the zone stays armed.
+                if okSize and okDol
+                    s.st       := 3
+                    s.entryBar := bar_index
+                    s.entry    := entry
+                    s.risk     := risk
+                    s.sl       := entry - d * risk
+                    float cap1 = entry + d * rr1 * risk
+                    float cap2 = entry + d * rr2 * risk
+                    if tpMode == "Fixed R:R"
+                        s.tp1 := cap1
+                        s.tp2 := cap2
+                    else
+                        [t1, t2] = findTargets(d, entry, 0.5 * risk)
+                        s.tp1 := na(t1) or d * (t1 - cap1) > 0 ? cap1 : t1
+                        s.tp2 := na(t2) or d * (t2 - cap2) > 0 ? cap2 : t2
+                        if d * (s.tp2 - s.tp1) <= 0
+                            s.tp2 := entry + d * math.max(rr2 * risk, math.abs(s.tp1 - entry) + 0.5 * risk)
+                    s.r1 := math.abs(s.tp1 - entry) / risk
+                    s.r2 := math.abs(s.tp2 - entry) / risk
+                    evEntry := true
 
-                int x2 = bar_index + 5
-                string tip = "Entry " + str.tostring(s.entry, format.mintick) +
-                     "\nSL " + str.tostring(s.sl, format.mintick) +
-                     "\nTP1 " + str.tostring(s.tp1, format.mintick) + (na(t1) ? " (fallback R)" : " (DOL)") +
-                     "\nTP2 " + str.tostring(s.tp2, format.mintick) + (na(t2) ? " (fallback R)" : " (DOL)") +
-                     "\nR:R TP1 " + str.tostring(math.abs(s.tp1 - s.entry) / risk, "#.##") +
-                     " · TP2 " + str.tostring(math.abs(s.tp2 - s.entry) / risk, "#.##")
-                label.new(bar_index, adv, d == 1 ? "BUY\nretest sweep" : "SELL\nretest sweep", color = c,
-                     textcolor = color.white, style = d == 1 ? label.style_label_up : label.style_label_down,
-                     size = size.small, tooltip = tip)
-                box.set_border_width(s.zBox, 2)
-                s.lE  := line.new(bar_index, s.entry, x2, s.entry, color = c, width = 2)
-                s.lS  := line.new(bar_index, s.sl, x2, s.sl, color = slCol, style = line.style_dashed)
-                s.lT1 := line.new(bar_index, s.tp1, x2, s.tp1, color = tgtCol, style = line.style_dashed)
-                s.lT2 := line.new(bar_index, s.tp2, x2, s.tp2, color = tgtCol)
-                s.bS  := label.new(x2, s.sl, "SL", color = color(na), textcolor = slCol,
-                     style = label.style_label_left, size = size.small)
-                s.bT1 := label.new(x2, s.tp1, "TP1 · DOL", color = color(na), textcolor = tgtCol,
-                     style = label.style_label_left, size = size.small)
-                s.bT2 := label.new(x2, s.tp2, "TP2 · DOL", color = color(na), textcolor = tgtCol,
-                     style = label.style_label_left, size = size.small)
+                    int x2 = bar_index + 5
+                    string tip = "Entry " + str.tostring(s.entry, format.mintick) +
+                         "\nSL " + str.tostring(s.sl, format.mintick) +
+                         "\nTP1 " + str.tostring(s.tp1, format.mintick) + " (" + str.tostring(s.r1, "#.##") + "R)" +
+                         "\nTP2 " + str.tostring(s.tp2, format.mintick) + " (" + str.tostring(s.r2, "#.##") + "R)" +
+                         "\nDraw on liquidity " + (na(dol) ? "none beyond TP1" : str.tostring(dol, format.mintick))
+                    label.new(bar_index, adv, d == 1 ? "BUY" : "SELL", color = c,
+                         textcolor = color.white, style = d == 1 ? label.style_label_up : label.style_label_down,
+                         size = size.small, tooltip = tip)
+                    box.set_border_width(s.zBox, 2)
+                    s.lE  := line.new(bar_index, s.entry, x2, s.entry, color = c, width = 2)
+                    s.lS  := line.new(bar_index, s.sl, x2, s.sl, color = slCol, style = line.style_dashed)
+                    s.lT1 := line.new(bar_index, s.tp1, x2, s.tp1, color = tgtCol, style = line.style_dashed)
+                    s.lT2 := line.new(bar_index, s.tp2, x2, s.tp2, color = tgtCol)
+                    s.bS  := label.new(x2, s.sl, "SL", color = color(na), textcolor = slCol,
+                         style = label.style_label_left, size = size.small)
+                    s.bT1 := label.new(x2, s.tp1, "TP1 " + str.tostring(s.r1, "#.#") + "R", color = color(na),
+                         textcolor = tgtCol, style = label.style_label_left, size = size.small)
+                    s.bT2 := label.new(x2, s.tp2, "TP2 " + str.tostring(s.r2, "#.#") + "R", color = color(na),
+                         textcolor = tgtCol, style = label.style_label_left, size = size.small)
 
     else if s.st == 3
         if bar_index > s.entryBar
@@ -361,8 +420,10 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar)
             if hitSl
                 if s.tp1Hit
                     evBe := true
+                    resR := part * s.r1 + (1 - part) * d * (s.sl - s.entry) / s.risk
                 else
                     evSl := true
+                    resR := -1.0
                 label.new(bar_index, adv, s.tp1Hit ? (beAfterTp1 ? "BE" : "SL after TP1") : "SL ✕", color = color(na),
                      textcolor = slCol, style = d == 1 ? label.style_label_up : label.style_label_down, size = size.small)
                 s.setTradeX(bar_index)
@@ -371,6 +432,7 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar)
                 if not s.tp1Hit
                     evTp1 := true
                 evTp2 := true
+                resR  := part * s.r1 + (1 - part) * s.r2
                 label.new(bar_index, s.tp2, "TP2 ✓", color = color(na), textcolor = tgtCol,
                      style = d == 1 ? label.style_label_down : label.style_label_up, size = size.small)
                 s.setTradeX(bar_index)
@@ -387,11 +449,15 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar)
                         line.set_y2(s.lS, s.entry)
                         label.set_y(s.bS, s.entry)
                         label.set_text(s.bS, "SL → BE")
-                if bar_index - s.entryBar > tradeMax
+                if bar_index - s.entryBar >= tradeMax
+                    float openR = d * (close - s.entry) / s.risk
+                    resR := s.tp1Hit ? part * s.r1 + (1 - part) * openR : openR
+                    label.new(bar_index, close, "Time exit " + str.tostring(resR, "#.##") + "R", color = color(na),
+                         textcolor = color.gray, style = label.style_label_left, size = size.small)
                     s.setTradeX(bar_index)
                     s.reset()
 
-    [evArm, evEntry, evTp1, evTp2, evSl, evBe]
+    [evArm, evEntry, evTp1, evTp2, evSl, evBe, resR]
 
 // ───────────────────────── Engine ─────────────────────────
 var Setup bull = Setup.new(1)
@@ -403,17 +469,38 @@ if not na(ph)
 if not na(pl)
     addPool(sslPx, sslBar, sslLn, pl, bar_index - swingLen)
 
+// previous-day high / low become liquidity pools at the start of each new day
+var float dH  = na
+var float dL  = na
+var int   dHB = na
+var int   dLB = na
+if timeframe.change("D")
+    if usePdl and not na(dH)
+        addPool(bslPx, bslBar, bslLn, dH, dHB)
+        addPool(sslPx, sslBar, sslLn, dL, dLB)
+    dH  := high
+    dHB := bar_index
+    dL  := low
+    dLB := bar_index
+else
+    if na(dH) or high > dH
+        dH  := high
+        dHB := bar_index
+    if na(dL) or low < dL
+        dL  := low
+        dLB := bar_index
+
 // 2 · liquidity sweeps start (or deepen) a setup
 [sslLvl, sslB] = scanSweeps(sslPx, sslBar, sslLn, 1)
 [bslLvl, bslB] = scanSweeps(bslPx, bslBar, bslLn, -1)
-if showBull and not na(sslLvl)
+if showBull and bullBias and not na(sslLvl)
     bull.start(sslLvl, sslB)
-if showBear and not na(bslLvl)
+if showBear and bearBias and not na(bslLvl)
     bear.start(bslLvl, bslB)
 
-// 3 · FVG inversions (only FVGs formed around the sweep qualify)
-int bullMin = bull.st == 1 ? bull.sweepBar - fvgLook : bar_index + 1
-int bearMin = bear.st == 1 ? bear.sweepBar - fvgLook : bar_index + 1
+// 3 · FVG inversions (only FVGs formed around the sweep, inverted by a displacement candle)
+int bullMin = bull.st == 1 and bullDisp ? bull.sweepBar - fvgLook : bar_index + 1
+int bearMin = bear.st == 1 and bearDisp ? bear.sweepBar - fvgLook : bar_index + 1
 [bzt, bzb, bzbar] = scanInversions(bearFvgTop, bearFvgBot, bearFvgBar, 1, bullMin)
 [szt, szb, szbar] = scanInversions(bullFvgTop, bullFvgBot, bullFvgBar, -1, bearMin)
 
@@ -423,34 +510,45 @@ if low > high[2] and low - high[2] >= fvgMinAtr * atr
     addFvg(bullFvgTop, bullFvgBot, bullFvgBar, low, high[2], bar_index - 1)
 
 // 4 · advance state machines
-[bArm, bEntry, bTp1, bTp2, bSl, bBe] = bull.update(atr, minorLow, bzt, bzb, bzbar)
-[sArm, sEntry, sTp1, sTp2, sSl, sBe] = bear.update(atr, minorHigh, szt, szb, szbar)
+[bArm, bEntry, bTp1, bTp2, bSl, bBe, bR] = bull.update(atr, minorLow, bzt, bzb, bzbar, bullBias, inKz)
+[sArm, sEntry, sTp1, sTp2, sSl, sBe, sR] = bear.update(atr, minorHigh, szt, szb, szbar, bearBias, inKz)
 
 // ───────────────────────── Stats ─────────────────────────
-var int nTrades = 0
-var int nTp1    = 0
-var int nTp2    = 0
-var int nLoss   = 0
+var int   nTrades = 0
+var int   nClosed = 0
+var int   nWin    = 0
+var int   nTp1    = 0
+var int   nTp2    = 0
+var int   nLoss   = 0
+var float netR    = 0.0
 nTrades += (bEntry ? 1 : 0) + (sEntry ? 1 : 0)
 nTp1    += (bTp1 ? 1 : 0) + (sTp1 ? 1 : 0)
 nTp2    += (bTp2 ? 1 : 0) + (sTp2 ? 1 : 0)
 nLoss   += (bSl ? 1 : 0) + (sSl ? 1 : 0)
+for r in array.from(bR, sR)
+    if not na(r)
+        nClosed += 1
+        nWin    += r > 0 ? 1 : 0
+        netR    += r
 
-var table stats = table.new(position.top_right, 2, 5, bgcolor = color.new(#131722, 10), border_width = 1)
+statRow(table t, int row, string k, string v, color c) =>
+    table.cell(t, 0, row, k, text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+    table.cell(t, 1, row, v, text_color = c, text_size = size.small, text_halign = text.align_right)
+
+pct(int a, int b) => b > 0 ? str.tostring(100.0 * a / b, "#") + "%" : "–"
+
+var table stats = table.new(position.top_right, 2, 8, bgcolor = color.new(#131722, 10), border_width = 1)
 if showStats and barstate.islast
-    int decided = nTp1 + nLoss
-    table.cell(stats, 0, 0, "IFVG Sniper", text_color = color.white, text_size = size.small)
-    table.cell(stats, 1, 0, "", text_size = size.small)
-    table.cell(stats, 0, 1, "Entries", text_color = color.silver, text_size = size.small)
-    table.cell(stats, 1, 1, str.tostring(nTrades), text_color = color.white, text_size = size.small)
-    table.cell(stats, 0, 2, "TP1 hit", text_color = color.silver, text_size = size.small)
-    table.cell(stats, 1, 2, str.tostring(nTp1) + (decided > 0 ? " (" + str.tostring(100.0 * nTp1 / decided, "#") + "%)" : ""),
-         text_color = tgtCol, text_size = size.small)
-    table.cell(stats, 0, 3, "TP2 hit", text_color = color.silver, text_size = size.small)
-    table.cell(stats, 1, 3, str.tostring(nTp2) + (decided > 0 ? " (" + str.tostring(100.0 * nTp2 / decided, "#") + "%)" : ""),
-         text_color = tgtCol, text_size = size.small)
-    table.cell(stats, 0, 4, "Stopped", text_color = color.silver, text_size = size.small)
-    table.cell(stats, 1, 4, str.tostring(nLoss), text_color = slCol, text_size = size.small)
+    table.cell(stats, 0, 0, "IFVG Sniper · " + timeframe.period + (timeframe.period == "15" ? "" : "  (tuned for 15)"),
+         text_color = color.white, text_size = size.small)
+    table.merge_cells(stats, 0, 0, 1, 0)
+    statRow(stats, 1, "Trades closed", str.tostring(nClosed) + " / " + str.tostring(nTrades), color.white)
+    statRow(stats, 2, "Win rate (R > 0)", pct(nWin, nClosed), tgtCol)
+    statRow(stats, 3, "TP1 reached", pct(nTp1, nClosed), tgtCol)
+    statRow(stats, 4, "TP2 reached", pct(nTp2, nClosed), tgtCol)
+    statRow(stats, 5, "Stopped before TP1", pct(nLoss, nClosed), slCol)
+    statRow(stats, 6, "Net R", str.tostring(netR, "#.##"), netR >= 0 ? tgtCol : slCol)
+    statRow(stats, 7, "Avg R / trade", nClosed > 0 ? str.tostring(netR / nClosed, "#.##") : "–", netR >= 0 ? tgtCol : slCol)
 
 // ───────────────────────── Data window ─────────────────────────
 plot(bull.st == 3 ? bull.entry : na, "Bull entry", bullCol, display = display.data_window)
