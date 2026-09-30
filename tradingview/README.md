@@ -41,7 +41,7 @@ Cancelled IFVG boxes turn grey. Trades still open after 96 bars (one day on 15M)
 - **SSL / BSL sweep, V, CISD:** labels placed after the fact on the bars that confirmed each step.
 - **⌖ IFVG box:** the sniper entry zone. Its border gets thicker when the retest fires.
 - **BUY / SELL label:** the confirmed entry. Hover over it to see entry, SL, TP1, TP2 and R:R.
-- **Entry / SL / TP1 · DOL / TP2 · DOL lines:** these follow the trade until it ends. If `Move SL to entry after TP1` is on, the SL moves to break-even once TP1 is hit.
+- **Entry / SL / TP1 / TP2 lines (labelled with their R):** these follow the trade until it ends. If `Move SL to entry after TP1` is on, the SL moves to break-even once TP1 is hit.
 - **Stats table (top right):** closed trades, win rate (R > 0), TP1 and TP2 hit rates, stops before TP1, net R and average R per trade. These are for the bars loaded on your chart.
 
 ## Tuning tips
