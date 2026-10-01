@@ -120,3 +120,20 @@ Dashed lines mean the level is pending, and solid lines mean filled or hit. Canc
 - Use **Bar Magnifier** (Premium) so the intrabar SL/TP order gets resolved correctly.
 - Test at least 200 trades and use walk-forward testing: tune on one year and validate on the next. Don't optimize every input on the same data.
 - Turn on **"Show rejected setups"** to see *why* trades were skipped while tuning.
+
+---
+
+## 6. Tuning workflow (profiles + statistics)
+
+**A 5-trade backtest is noise.** One win in five can easily happen with a strategy that is profitable over 200 trades, and the reverse is also true. Never tune on fewer than ~50–100 trades.
+
+1. **Get a sample.** Set **Profile = Aggressive** and use the longest history you can (Deep Backtesting, or a 1H chart with 4H zones). Run it on several symbols, e.g. XAUUSD, EURUSD, GBPUSD and NQ.
+2. **Read the Setup Funnel** (bottom-left). It shows how many zone taps turned into MSS, then accepted, then filled setups, and how many each filter killed (`✕ RSI`, `✕ HTF bias`, `✕ outside killzone`, `✕ no retest` …). If one filter kills 80% of setups, that filter is the bottleneck.
+3. **Read the Performance table** (bottom-right). It shows trades, win %, average R and total R, broken down by score, entry type (Unicorn/FVG/iFVG/OB), session and direction. Keep what has a positive avg R across symbols and switch off what doesn't. For example: raise *Min score* if Score 1–2 trades are negative, or untick NY PM if it loses.
+4. **Lock it in.** Switch to **Custom**, set the inputs marked **(P)** to what the data showed, and validate on a period or symbol you did NOT tune on.
+
+| Profile | HTF BOS / displacement | LTF displacement | RSI filter (OS/OB) | Min score | Room |
+|---|---|---|---|---|---|
+| Strict A+ | 15 bars / 1.5 ATR | 1.2 ATR, body 65% | Zone + Momentum (30/70) | 3 | 2R |
+| Balanced | 8 bars / 1.0 ATR | 0.8 ATR, body 55% | Zone (35/65) | 2 | 1R |
+| Aggressive | 5 bars / 0.8 ATR | 0.6 ATR, body 50% | Momentum 50-line (40/60) | 1 | off |

@@ -48,15 +48,22 @@ strategy(title = "Supply & Demand Confluence Pro [HTF + MSS + RSI]",
 // ════════════════════════════════════════════════════════════════════════════════════
 // INPUTS
 // ════════════════════════════════════════════════════════════════════════════════════
+grpP      = "⓪ Profile"
+profile   = input.string("Balanced", "Strategy profile", group = grpP,
+     options = ["Balanced", "Strict A+", "Aggressive", "Custom"],
+     tooltip = "Presets for the detection / filter thresholds marked (P) below.\nStrict A+: few, high-quality trades.\nBalanced: recommended starting point.\nAggressive: many trades, for building a sample and studying the stats.\nCustom: uses your own values from the (P) inputs.")
+rsiLook   = input.int(10, "RSI exhaustion look-back at zone tap (bars)", minval = 1, maxval = 50, group = grpP,
+     tooltip = "RSI often bottoms a few bars BEFORE price reaches the zone. The zone RSI signal counts if RSI hit OS/OB within this many bars before the tap.")
+
 grpTF     = "① Timeframes"
 autoHtf   = input.bool(true, "Auto-select HTF", group = grpTF,
      tooltip = "1m–5m chart → 1H zones · 15m–1H chart → 4H zones · 4H chart → Daily zones")
 htfManual = input.timeframe("240", "Manual HTF (when Auto is off)", group = grpTF)
 
 grpZ      = "② HTF Supply & Demand Zones"
-zSwing    = input.int(10, "HTF structure lookback (bars)", minval = 3, maxval = 50, group = grpZ,
+zSwingIn  = input.int(10, "HTF structure lookback (bars) (P)", minval = 3, maxval = 50, group = grpZ,
      tooltip = "The displacement candle must close beyond the highest high / lowest low of this many prior HTF bars (break of structure).")
-zDisp     = input.float(1.2, "HTF displacement body (× ATR)", minval = 0.5, step = 0.1, group = grpZ)
+zDispIn   = input.float(1.2, "HTF displacement body (× ATR) (P)", minval = 0.5, step = 0.1, group = grpZ)
 zBody     = input.float(0.55, "HTF body / range ratio", minval = 0.3, maxval = 0.95, step = 0.05, group = grpZ)
 zObLook   = input.int(5, "Order Block search depth (HTF bars)", minval = 1, maxval = 20, group = grpZ)
 zMaxH     = input.float(2.5, "Max zone height (× HTF ATR)", minval = 0.5, step = 0.1, group = grpZ,
@@ -67,30 +74,30 @@ zTouches  = input.int(2, "Max tradable touches per zone", minval = 1, maxval = 5
 zMaxAge   = input.int(1500, "Zone expiry (chart bars)", minval = 100, group = grpZ)
 
 grpC      = "③ LTF Confirmation"
-pivLen    = input.int(3, "Minor swing pivot length", minval = 1, maxval = 10, group = grpC)
-setupExp  = input.int(40, "Setup expiry after zone tap (bars)", minval = 5, maxval = 200, group = grpC)
-dDisp     = input.float(1.0, "Displacement body (× ATR)", minval = 0.3, step = 0.1, group = grpC)
-dBody     = input.float(0.6, "Displacement body / range ratio", minval = 0.3, maxval = 0.95, step = 0.05, group = grpC)
+pivLenIn  = input.int(3, "Minor swing pivot length (P)", minval = 1, maxval = 10, group = grpC)
+setupExpIn= input.int(40, "Setup expiry after zone tap (bars) (P)", minval = 5, maxval = 200, group = grpC)
+dDispIn   = input.float(1.0, "Displacement body (× ATR) (P)", minval = 0.3, step = 0.1, group = grpC)
+dBodyIn   = input.float(0.6, "Displacement body / range ratio (P)", minval = 0.3, maxval = 0.95, step = 0.05, group = grpC)
 dVol      = input.float(1.5, "…or relative volume ≥", minval = 1.0, step = 0.1, group = grpC,
      tooltip = "A candle with a strong body-to-range ratio qualifies when its body is ≥ the ATR multiple OR its volume is ≥ this multiple of the 20-bar average (FX uses tick volume).")
-dLook     = input.int(1, "Displacement may precede MSS by (bars)", minval = 0, maxval = 5, group = grpC)
+dLookIn   = input.int(1, "Displacement may precede MSS by (bars) (P)", minval = 0, maxval = 5, group = grpC)
 fvgMin    = input.float(0.1, "Min FVG size (× ATR)", minval = 0.0, step = 0.05, group = grpC)
 
 grpR      = "④ RSI Confluence"
 rsiLen    = input.int(14, "RSI length", minval = 2, group = grpR)
-rsiMode   = input.string("Zone: OS/OB or Divergence", "RSI filter", group = grpR,
+rsiModeIn = input.string("Zone: OS/OB or Divergence", "RSI filter (P)", group = grpR,
      options = ["Off", "Zone: OS/OB or Divergence", "Momentum: 50-line", "Zone + Momentum"],
      tooltip = "Zone: while price is inside the HTF zone RSI must reach oversold/overbought or diverge from price.\nMomentum: RSI must be on the right side of 50 on the MSS candle.")
-rsiOS     = input.int(30, "Oversold", minval = 5, maxval = 50, group = grpR, inline = "rsi")
-rsiOB     = input.int(70, "Overbought", minval = 50, maxval = 95, group = grpR, inline = "rsi")
+rsiOSIn   = input.int(30, "Oversold (P)", minval = 5, maxval = 50, group = grpR, inline = "rsi")
+rsiOBIn   = input.int(70, "Overbought (P)", minval = 50, maxval = 95, group = grpR, inline = "rsi")
 
 grpF      = "⑤ Filters & Scoring"
 biasMode  = input.string("HTF structure", "HTF bias filter", group = grpF,
      options = ["Off", "HTF structure", "HTF EMA", "Structure + EMA"])
 biasEma   = input.int(50, "HTF EMA length", minval = 5, group = grpF)
-minScore  = input.int(2, "Min confluence score (0–5)", minval = 0, maxval = 5, group = grpF,
+minScoreIn= input.int(2, "Min confluence score (0–5) (P)", minval = 0, maxval = 5, group = grpF,
      tooltip = "+1 liquidity sweep · +1 RSI zone signal · +1 RSI momentum · +1 FVG/iFVG entry · +1 Unicorn")
-minRoom   = input.float(1.5, "Min room to opposing HTF zone (R)", minval = 0.0, step = 0.25, group = grpF,
+minRoomIn = input.float(1.5, "Min room to opposing HTF zone (R) (P)", minval = 0.0, step = 0.25, group = grpF,
      tooltip = "Skip the trade if an opposing HTF zone sits closer than this many R from entry. 0 = off.")
 maxDay    = input.int(2, "Max trades per day", minval = 1, maxval = 20, group = grpF)
 
@@ -154,6 +161,31 @@ slCol     = input.color(#f23645, "Stop", group = grpV, inline = "tcol")
 tpCol     = input.color(#089981, "Target", group = grpV, inline = "tcol")
 demandCol = input.color(#089981, "Demand", group = grpV, inline = "col")
 supplyCol = input.color(#f23645, "Supply", group = grpV, inline = "col")
+
+// ── Profile resolution: effective values used by the whole script ──
+pickF(float custom, float strict, float bal, float aggr) =>
+    profile == "Custom" ? custom : profile == "Strict A+" ? strict : profile == "Aggressive" ? aggr : bal
+pickI(int custom, int strict, int bal, int aggr) =>
+    profile == "Custom" ? custom : profile == "Strict A+" ? strict : profile == "Aggressive" ? aggr : bal
+pickS(string custom, string strict, string bal, string aggr) =>
+    profile == "Custom" ? custom : profile == "Strict A+" ? strict : profile == "Aggressive" ? aggr : bal
+
+zSwing   = pickI(zSwingIn,   15,   8,    5)
+zDisp    = pickF(zDispIn,    1.5,  1.0,  0.8)
+pivLen   = pickI(pivLenIn,   3,    2,    2)
+setupExp = pickI(setupExpIn, 30,   48,   60)
+dDisp    = pickF(dDispIn,    1.2,  0.8,  0.6)
+dBody    = pickF(dBodyIn,    0.65, 0.55, 0.5)
+dLook    = pickI(dLookIn,    1,    2,    3)
+rsiMode  = pickS(rsiModeIn,  "Zone + Momentum", "Zone: OS/OB or Divergence", "Momentum: 50-line")
+rsiOS    = pickI(rsiOSIn,    30,   35,   40)
+rsiOB    = pickI(rsiOBIn,    70,   65,   60)
+minScore = pickI(minScoreIn, 3,    2,    1)
+minRoom  = pickF(minRoomIn,  2.0,  1.0,  0.0)
+
+grpS      = "⑪ Statistics"
+showFun   = input.bool(true, "Setup funnel table (where setups die)", group = grpS)
+showPerf  = input.bool(true, "Performance breakdown table", group = grpS)
 
 strategy.risk.max_intraday_loss(maxDD > 0 ? maxDD : 100.0, strategy.percent_of_equity)
 
@@ -235,6 +267,8 @@ htfEngine() =>
 // ════════════════════════════════════════════════════════════════════════════════════
 float atrL   = ta.atr(14)
 float rsi    = ta.rsi(close, rsiLen)
+float rsiLo  = ta.lowest(rsi, rsiLook)
+float rsiHi  = ta.highest(rsi, rsiLook)
 float bodyL  = math.abs(close - open)
 float rngL   = math.max(high - low, syminfo.mintick)
 float volSma = ta.sma(volume, 20)
@@ -457,7 +491,7 @@ method arm(Setup this, float zt, float zb, float refP, float refR) =>
     this.refPiv     := refP
     this.refRsi     := refR
     this.swept      := false
-    this.rsiExh     := this.dir == 1 ? rsi <= rsiOS : rsi >= rsiOB
+    this.rsiExh     := this.dir == 1 ? rsiLo <= rsiOS : rsiHi >= rsiOB
     this
 
 sweptLevel(float lvl, bool isLong) =>
@@ -595,6 +629,25 @@ int   pct3    = tpCount == 3 ? 100 - tp1Pct - tp2Pct : 0
 fmt(float p) => str.tostring(p, format.mintick)
 
 // ════════════════════════════════════════════════════════════════════════════════════
+// STATISTICS — setup funnel counts and closed-trade results grouped by attribute
+// ════════════════════════════════════════════════════════════════════════════════════
+var map<string, int>   fun = map.new<string, int>()
+var map<string, float> stN = map.new<string, float>()
+var map<string, float> stW = map.new<string, float>()
+var map<string, float> stR = map.new<string, float>()
+
+bump(string k) =>
+    map.put(fun, k, nz(map.get(fun, k)) + 1)
+
+addStat(string k, float r) =>
+    map.put(stN, k, nz(map.get(stN, k)) + 1)
+    map.put(stW, k, nz(map.get(stW, k)) + (r > 0.05 ? 1 : 0))
+    map.put(stR, k, nz(map.get(stR, k)) + r)
+
+sessName() =>
+    inSess(kzLon) ? "London" : inSess(kzNyA) ? "NY AM" : inSess(kzNyP) ? "NY PM" : inSess(kzAsia) ? "Asia" : "Off-session"
+
+// ════════════════════════════════════════════════════════════════════════════════════
 // TRADE OBJECT — holds the plan, the live state and every drawing of one trade
 // state: 0 waiting for confirmation candle · 1 order working · 2 in position
 //        3 closed · 4 cancelled
@@ -606,6 +659,7 @@ type Trade
     float  zTop
     float  zBot
     string ezName   = ""
+    string sess     = ""
     float  entry
     float  sl
     float  stop
@@ -855,6 +909,7 @@ if not na(tr)
     else if tr.state == 1
         if posOpen or closedNow
             tr.state := 2
+            bump("4 Filled")
         else if expired or kzOver or ranAway
             strategy.cancel_all()
             endWhy := expired ? "not filled" : kzOver ? "killzone ended" : "missed (ran to TP1)"
@@ -885,8 +940,14 @@ if doClose
     tr.stopped := not finalHit
     tr.note    := (rRes >= 0 ? "+" : "") + str.tostring(rRes, "#.##") + "R" + (rRes > 0.05 ? "  ✔" : rRes < -0.05 ? "  ✖" : "  (BE)")
     tr.state   := 3
+    addStat("All trades", rRes)
+    addStat("Score " + str.tostring(tr.score), rRes)
+    addStat("Entry " + tr.ezName, rRes)
+    addStat(tr.sess, rRes)
+    addStat(tr.dir == 1 ? "Longs" : "Shorts", rRes)
 
 if endWhy != ""
+    bump("✕ " + endWhy)
     tr.note  := "✕ cancelled · " + endWhy
     tr.state := 4
 
@@ -909,6 +970,7 @@ for s in setups
 
     bool  tap  = isLong ? dTap : sTap
     if tap and not s.active
+        bump("1 Zone taps")
         s.arm(isLong ? dTapTop : sTapTop, isLong ? dTapBot : sTapBot, isLong ? lastPL : lastPH, isLong ? lastPLRsi : lastPHRsi)
         if alertArm
             alert('{"event":"setup_armed","side":"' + (isLong ? "buy" : "sell") + '","ticker":"' + syminfo.tickerid
@@ -921,6 +983,7 @@ for s in setups
 
     if mss
         s.active := false   // a setup is consumed by its first MSS, traded or not
+        bump("2 MSS + displacement")
         [entry, sl, risk, score, tags, ezTop, ezBot, ezName, mkt, rsiZone, rsiMom] = plan(s)
         bool  rsiPass = rsiMode == "Off" ? true : rsiMode == "Zone: OS/OB or Divergence" ? rsiZone : rsiMode == "Momentum: 50-line" ? rsiMom : (rsiZone and rsiMom)
         float q       = calcQty(risk)
@@ -948,8 +1011,9 @@ for s in setups
             why := "size rounds to 0"
 
         color c = isLong ? demandCol : supplyCol
+        bump(why == "" ? "3 Accepted" : "✕ " + (str.startswith(why, "score") ? "score too low" : why))
         if why == ""
-            Trade t = Trade.new(dir = s.dir, sigBar = bar_index, zTop = ezTop, zBot = ezBot, ezName = ezName, sl = sl, stop = sl, score = score)
+            Trade t = Trade.new(dir = s.dir, sigBar = bar_index, zTop = ezTop, zBot = ezBot, ezName = ezName, sl = sl, stop = sl, score = score, sess = sessName())
             t.setLevels(entry)
             if entryMode != "Confirmation candle at retest"
                 t.qty := q
@@ -1014,3 +1078,57 @@ if showDash and barstate.islast
     cell(8, "Trade", stateTxt, stateCol)
     cell(9, "Entry / Stop", lvlTxt, color.white)
     cell(10, "Targets", tpTxt, tpCol)
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// STATISTICS TABLES
+// ════════════════════════════════════════════════════════════════════════════════════
+var table funTbl  = table.new(position.bottom_left, 2, 24, bgcolor = color.new(#131722, 12),
+     border_color = color.new(color.gray, 75), border_width = 1, frame_color = color.new(color.gray, 60), frame_width = 1)
+var table perfTbl = table.new(position.bottom_right, 5, 24, bgcolor = color.new(#131722, 12),
+     border_color = color.new(color.gray, 75), border_width = 1, frame_color = color.new(color.gray, 60), frame_width = 1)
+
+tcell(table tb, int c, int r, string txt, color tc) =>
+    table.cell(tb, c, r, txt, text_color = tc, text_size = size.small, text_halign = c == 0 ? text.align_left : text.align_right)
+
+if barstate.islast
+    if showFun
+        tcell(funTbl, 0, 0, "SETUP FUNNEL · " + profile, color.white)
+        tcell(funTbl, 1, 0, "count", color.new(color.white, 40))
+        array<string> stages = array.from("1 Zone taps", "2 MSS + displacement", "3 Accepted", "4 Filled")
+        int row = 1
+        for k in stages
+            tcell(funTbl, 0, row, k, color.white)
+            tcell(funTbl, 1, row, str.tostring(nz(map.get(fun, k))), color.white)
+            row += 1
+        // Every rejection / cancellation reason seen so far, in first-seen order
+        array<string> ks = map.keys(fun)
+        for k in ks
+            if str.startswith(k, "✕") and row < 24
+                tcell(funTbl, 0, row, k, color.new(supplyCol, 10))
+                tcell(funTbl, 1, row, str.tostring(map.get(fun, k)), color.new(supplyCol, 10))
+                row += 1
+    if showPerf
+        tcell(perfTbl, 0, 0, "PERFORMANCE (R)", color.white)
+        tcell(perfTbl, 1, 0, "trades", color.new(color.white, 40))
+        tcell(perfTbl, 2, 0, "win %", color.new(color.white, 40))
+        tcell(perfTbl, 3, 0, "avg R", color.new(color.white, 40))
+        tcell(perfTbl, 4, 0, "total R", color.new(color.white, 40))
+        array<string> groups = array.from("All trades", "Longs", "Shorts",
+             "Score 1", "Score 2", "Score 3", "Score 4", "Score 5",
+             "Entry Unicorn", "Entry FVG", "Entry iFVG", "Entry OB",
+             "London", "NY AM", "NY PM", "Asia", "Off-session")
+        int row = 1
+        for g in groups
+            float n = nz(map.get(stN, g))
+            if n > 0 and row < 24
+                float w  = nz(map.get(stW, g)) / n * 100
+                float sr = nz(map.get(stR, g))
+                color rc = sr > 0 ? tpCol : sr < 0 ? slCol : color.white
+                tcell(perfTbl, 0, row, g, color.white)
+                tcell(perfTbl, 1, row, str.tostring(n, "#"), color.white)
+                tcell(perfTbl, 2, row, str.tostring(w, "#") + "%", color.white)
+                tcell(perfTbl, 3, row, str.tostring(sr / n, "#.##"), rc)
+                tcell(perfTbl, 4, row, str.tostring(sr, "#.#"), rc)
+                row += 1
+        if row == 1
+            tcell(perfTbl, 0, 1, "No closed trades yet", color.gray)
