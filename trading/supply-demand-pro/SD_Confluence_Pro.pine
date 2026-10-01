@@ -1,0 +1,731 @@
+//@version=5
+// ════════════════════════════════════════════════════════════════════════════════════
+//  SUPPLY & DEMAND CONFLUENCE PRO
+//  HTF Zones → Liquidity Sweep → RSI → MSS + Displacement → FVG / iFVG / Unicorn / OB retest
+//  Built for 5m–15m execution on 1H–4H zones (also runs 1H→4H and 4H→Daily).
+// ────────────────────────────────────────────────────────────────────────────────────
+//  TRADE MODEL (long shown, shorts are the mirror image)
+//   1. CONTEXT  HTF demand = last bearish candle before an HTF displacement candle that
+//               broke HTF structure (Order Block). Read only from CONFIRMED HTF bars.
+//   2. TAP      LTF price wicks into a fresh demand zone → long setup is "armed".
+//   3. RSI      While armed, RSI reaches oversold OR prints bullish divergence.
+//   4. SWEEP    (+score) a wick takes a minor swing low and closes back above it.
+//   5. MSS      A displacement candle closes above the last minor swing high.
+//   6. ENTRY    Limit at the retest of the reversal leg's Unicorn / FVG / iFVG / OB.
+//   7. RISK     SL beyond the sweep extreme + ATR buffer. Rejected if too wide/tight.
+//               Size = equity × risk% ÷ (SL distance × point value × FX conversion).
+//   8. EXIT     TP at 1.5R / 2R / 3R, optional break-even.
+//  Filters: killzones (New York time), HTF bias, room to the opposing zone,
+//           confluence score, max trades/day, max intraday loss.
+// ════════════════════════════════════════════════════════════════════════════════════
+strategy(title = "Supply & Demand Confluence Pro [HTF + MSS + RSI]",
+     shorttitle            = "S&D Pro",
+     overlay               = true,
+     initial_capital       = 10000,
+     currency              = currency.USD,
+     pyramiding            = 0,
+     // "recalc_on_order_fills" does not exist in Pine; the real flag is calc_on_order_fills.
+     // It is kept OFF on purpose: with process_orders_on_close it only re-runs the bar after a
+     // fill, which can double-fire logic and inflate backtests.
+     calc_on_order_fills   = false,
+     process_orders_on_close = true,
+     margin_long           = 2,     // 1:50 leverage — the default 100% margin would block FX/NQ sizing
+     margin_short          = 2,
+     slippage              = 2,
+     commission_type       = strategy.commission.percent,
+     commission_value      = 0.0,   // set a per-asset commission/spread in Properties
+     max_boxes_count       = 200,
+     max_lines_count       = 100,
+     max_labels_count      = 150,
+     max_bars_back         = 500)
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// INPUTS
+// ════════════════════════════════════════════════════════════════════════════════════
+grpTF     = "① Timeframes"
+autoHtf   = input.bool(true, "Auto-select HTF", group = grpTF,
+     tooltip = "1m–5m chart → 1H zones · 15m–1H chart → 4H zones · 4H chart → Daily zones")
+htfManual = input.timeframe("240", "Manual HTF (when Auto is off)", group = grpTF)
+
+grpZ      = "② HTF Supply & Demand Zones"
+zSwing    = input.int(10, "HTF structure lookback (bars)", minval = 3, maxval = 50, group = grpZ,
+     tooltip = "The displacement candle must close beyond the highest high / lowest low of this many prior HTF bars (break of structure).")
+zDisp     = input.float(1.2, "HTF displacement body (× ATR)", minval = 0.5, step = 0.1, group = grpZ)
+zBody     = input.float(0.55, "HTF body / range ratio", minval = 0.3, maxval = 0.95, step = 0.05, group = grpZ)
+zObLook   = input.int(5, "Order Block search depth (HTF bars)", minval = 1, maxval = 20, group = grpZ)
+zMaxH     = input.float(2.5, "Max zone height (× HTF ATR)", minval = 0.5, step = 0.1, group = grpZ,
+     tooltip = "Oversized zones give unusable stops and are skipped.")
+zMax      = input.int(4, "Max zones shown per side", minval = 1, maxval = 15, group = grpZ)
+zTouches  = input.int(2, "Max tradable touches per zone", minval = 1, maxval = 5, group = grpZ,
+     tooltip = "1 = fresh (untested) zones only. Zones weaken every time they are revisited.")
+zMaxAge   = input.int(1500, "Zone expiry (chart bars)", minval = 100, group = grpZ)
+
+grpC      = "③ LTF Confirmation"
+pivLen    = input.int(3, "Minor swing pivot length", minval = 1, maxval = 10, group = grpC)
+setupExp  = input.int(40, "Setup expiry after zone tap (bars)", minval = 5, maxval = 200, group = grpC)
+dDisp     = input.float(1.0, "Displacement body (× ATR)", minval = 0.3, step = 0.1, group = grpC)
+dBody     = input.float(0.6, "Displacement body / range ratio", minval = 0.3, maxval = 0.95, step = 0.05, group = grpC)
+dVol      = input.float(1.5, "…or relative volume ≥", minval = 1.0, step = 0.1, group = grpC,
+     tooltip = "A candle with a strong body-to-range ratio qualifies when its body is ≥ the ATR multiple OR its volume is ≥ this multiple of the 20-bar average (FX uses tick volume).")
+dLook     = input.int(1, "Displacement may precede MSS by (bars)", minval = 0, maxval = 5, group = grpC)
+fvgMin    = input.float(0.1, "Min FVG size (× ATR)", minval = 0.0, step = 0.05, group = grpC)
+
+grpR      = "④ RSI Confluence"
+rsiLen    = input.int(14, "RSI length", minval = 2, group = grpR)
+rsiMode   = input.string("Zone: OS/OB or Divergence", "RSI filter", group = grpR,
+     options = ["Off", "Zone: OS/OB or Divergence", "Momentum: 50-line", "Zone + Momentum"],
+     tooltip = "Zone: while price is inside the HTF zone RSI must reach oversold/overbought or diverge from price.\nMomentum: RSI must be on the right side of 50 on the MSS candle.")
+rsiOS     = input.int(30, "Oversold", minval = 5, maxval = 50, group = grpR, inline = "rsi")
+rsiOB     = input.int(70, "Overbought", minval = 50, maxval = 95, group = grpR, inline = "rsi")
+
+grpF      = "⑤ Filters & Scoring"
+biasMode  = input.string("HTF structure", "HTF bias filter", group = grpF,
+     options = ["Off", "HTF structure", "HTF EMA", "Structure + EMA"])
+biasEma   = input.int(50, "HTF EMA length", minval = 5, group = grpF)
+minScore  = input.int(2, "Min confluence score (0–5)", minval = 0, maxval = 5, group = grpF,
+     tooltip = "+1 liquidity sweep · +1 RSI zone signal · +1 RSI momentum · +1 FVG/iFVG entry · +1 Unicorn")
+minRoom   = input.float(1.5, "Min room to opposing HTF zone (R)", minval = 0.0, step = 0.25, group = grpF,
+     tooltip = "Skip the trade if an opposing HTF zone sits closer than this many R from entry. 0 = off.")
+maxDay    = input.int(2, "Max trades per day", minval = 1, maxval = 20, group = grpF)
+
+grpK      = "⑥ Killzones (New York time)"
+useKZ     = input.bool(true, "Only open trades inside killzones", group = grpK)
+kzSubHour = input.bool(true, "Apply killzones only on charts below 1H", group = grpK,
+     tooltip = "A 1H/4H bar is too wide for session timing; filtering there just removes valid trades.")
+kzLonOn   = input.bool(true, "", group = grpK, inline = "lon")
+kzLon     = input.session("0200-0500", "London", group = grpK, inline = "lon")
+kzNyAOn   = input.bool(true, "", group = grpK, inline = "nya")
+kzNyA     = input.session("0830-1100", "NY AM", group = grpK, inline = "nya")
+kzNyPOn   = input.bool(true, "", group = grpK, inline = "nyp")
+kzNyP     = input.session("1330-1600", "NY PM", group = grpK, inline = "nyp")
+kzAsiaOn  = input.bool(false, "", group = grpK, inline = "asia")
+kzAsia    = input.session("2000-2359", "Asia", group = grpK, inline = "asia")
+cancelKZ  = input.bool(true, "Cancel unfilled limits when killzone ends", group = grpK)
+
+grpE      = "⑦ Entry, Risk & Exits"
+entryMode = input.string("Limit @ FVG/OB retest", "Entry mode", group = grpE,
+     options = ["Limit @ FVG/OB retest", "Market on MSS close"])
+fvgLevel  = input.string("Proximal edge", "FVG entry level", group = grpE, options = ["Proximal edge", "50% (CE)"])
+limitExp  = input.int(12, "Cancel unfilled limit after (bars)", minval = 1, maxval = 100, group = grpE)
+slMode    = input.string("Beyond sweep extreme", "Stop-loss anchor", group = grpE,
+     options = ["Beyond sweep extreme", "Beyond zone distal"])
+slBuf     = input.float(0.25, "SL buffer (× ATR)", minval = 0.0, step = 0.05, group = grpE)
+minSl     = input.float(0.5, "Min SL distance (× ATR)", minval = 0.0, step = 0.1, group = grpE)
+maxSl     = input.float(4.0, "Max SL distance (× ATR)", minval = 0.5, step = 0.25, group = grpE)
+rr        = input.float(2.0, "Risk : Reward", options = [1.5, 2.0, 3.0], group = grpE)
+beAt      = input.float(1.0, "Move SL to break-even at (R) — 0 = off", minval = 0.0, step = 0.25, group = grpE)
+riskPct   = input.float(1.0, "Risk per trade (% equity)", minval = 0.1, maxval = 5.0, step = 0.25, group = grpE)
+qtyStep   = input.float(0.01, "Quantity step", minval = 0.0001, group = grpE,
+     tooltip = "Rounding unit for position size. FX/Gold: 1 (units/oz) or 1000 (micro lots). NQ futures: 1 contract.")
+maxDD     = input.float(3.0, "Max intraday loss (% equity) — 0 = off", minval = 0.0, step = 0.5, group = grpE)
+
+grpA      = "⑧ Alerts (webhook JSON)"
+jsonExt   = input.bool(true, "Add extended fields to JSON", group = grpA,
+     tooltip = "Adds qty, event, side, rr, score, interval, time after the 5 required keys.")
+alertArm  = input.bool(false, "Also alert when a setup arms (zone tap)", group = grpA)
+
+grpV      = "⑨ Visuals"
+showDash  = input.bool(true, "Dashboard", group = grpV)
+showMss   = input.bool(true, "MSS lines & trade labels", group = grpV)
+showRej   = input.bool(false, "Show rejected setups (tuning)", group = grpV)
+showKZ    = input.bool(true, "Shade killzones", group = grpV)
+demandCol = input.color(#089981, "Demand", group = grpV, inline = "col")
+supplyCol = input.color(#f23645, "Supply", group = grpV, inline = "col")
+
+strategy.risk.max_intraday_loss(maxDD > 0 ? maxDD : 100.0, strategy.percent_of_equity)
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// TIMEFRAME RESOLUTION & VALIDATION
+// ════════════════════════════════════════════════════════════════════════════════════
+int    tfSec = timeframe.in_seconds()
+string htf   = autoHtf ? (tfSec <= 300 ? "60" : tfSec <= 3600 ? "240" : "D") : htfManual
+
+if timeframe.in_seconds(htf) <= tfSec
+    runtime.error("HTF (" + htf + ") must be HIGHER than the chart timeframe (" + timeframe.period + ").")
+
+tfLabel(string tf) =>
+    int s = timeframe.in_seconds(tf)
+    s >= 86400 ? tf : s >= 3600 ? str.tostring(s / 3600, "#") + "H" : str.tostring(s / 60, "#") + "m"
+
+string htfName = tfLabel(htf)
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// HTF ENGINE — runs inside request.security on the HTF series
+// Every returned value is offset by [1] and requested with lookahead_on: this is
+// TradingView's documented non-repainting pattern. It only ever exposes the LAST
+// CLOSED HTF bar (lookahead_off alone repaints in realtime because it exposes the
+// still-forming HTF bar).
+// ════════════════════════════════════════════════════════════════════════════════════
+htfEngine() =>
+    float atrH   = ta.atr(14)
+    float body   = math.abs(close - open)
+    float rng    = math.max(high - low, syminfo.mintick)
+    bool  strong = body >= atrH * zDisp and body / rng >= zBody
+    float hiRef  = ta.highest(high, zSwing)[1]
+    float loRef  = ta.lowest(low, zSwing)[1]
+    var float dTop = na
+    var float dBot = na
+    var int   dT   = na
+    var float sTop = na
+    var float sBot = na
+    var int   sT   = na
+    var int   bos  = 0
+    // Bullish BOS → demand OB = last bearish candle before the displacement
+    if strong and close > open and close > hiRef
+        bos := 1
+        float leg = low
+        for i = 1 to zObLook
+            leg := math.min(leg, low[i])
+            if close[i] < open[i]
+                if high[i] - leg <= atrH * zMaxH
+                    dTop := high[i]
+                    dBot := leg
+                    dT   := time[i]
+                break
+    // Bearish BOS → supply OB = last bullish candle before the displacement
+    if strong and close < open and close < loRef
+        bos := -1
+        float leg = high
+        for i = 1 to zObLook
+            leg := math.max(leg, high[i])
+            if close[i] > open[i]
+                if leg - low[i] <= atrH * zMaxH
+                    sTop := leg
+                    sBot := low[i]
+                    sT   := time[i]
+                break
+    float ema     = ta.ema(close, biasEma)
+    int   emaBias = close > ema ? 1 : -1
+    [dTop[1], dBot[1], dT[1], sTop[1], sBot[1], sT[1], bos[1], emaBias[1], ta.rsi(close, rsiLen)[1]]
+
+[hDTop, hDBot, hDT, hSTop, hSBot, hST, hBos, hEmaBias, hRsi] = request.security(syminfo.tickerid, htf, htfEngine(), lookahead = barmerge.lookahead_on)
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// LTF CORE SERIES
+// ════════════════════════════════════════════════════════════════════════════════════
+float atrL   = ta.atr(14)
+float rsi    = ta.rsi(close, rsiLen)
+float bodyL  = math.abs(close - open)
+float rngL   = math.max(high - low, syminfo.mintick)
+float volSma = ta.sma(volume, 20)
+float relVol = volSma > 0 ? volume / volSma : 0.0
+
+// Displacement: institutional body-to-range AND (large body OR volume surge)
+bool dispUp   = close > open and bodyL / rngL >= dBody and (bodyL >= atrL * dDisp or relVol >= dVol)
+bool dispDn   = close < open and bodyL / rngL >= dBody and (bodyL >= atrL * dDisp or relVol >= dVol)
+int  bsUp     = ta.barssince(dispUp)
+int  bsDn     = ta.barssince(dispDn)
+bool dispUpOk = not na(bsUp) and bsUp <= dLook
+bool dispDnOk = not na(bsDn) and bsDn <= dLook
+
+// Minor swing points (confirmed pivots — no repaint)
+float ph = ta.pivothigh(high, pivLen, pivLen)
+float pl = ta.pivotlow(low, pivLen, pivLen)
+var float lastPH    = na
+var int   lastPHBar = na
+var float lastPHRsi = na
+var float lastPL    = na
+var int   lastPLBar = na
+var float lastPLRsi = na
+if not na(ph)
+    lastPH    := ph
+    lastPHBar := bar_index - pivLen
+    lastPHRsi := rsi[pivLen]
+if not na(pl)
+    lastPL    := pl
+    lastPLBar := bar_index - pivLen
+    lastPLRsi := rsi[pivLen]
+
+// Killzones
+inSess(string s) => not na(time(timeframe.period, s, "America/New_York"))
+bool inLon    = kzLonOn  and inSess(kzLon)
+bool inNyA    = kzNyAOn  and inSess(kzNyA)
+bool inNyP    = kzNyPOn  and inSess(kzNyP)
+bool inAsia   = kzAsiaOn and inSess(kzAsia)
+bool inKZ     = inLon or inNyA or inNyP or inAsia
+bool kzActive = useKZ and (not kzSubHour or tfSec < 3600)
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// LTF FAIR VALUE GAPS & INVERSIONS
+// ════════════════════════════════════════════════════════════════════════════════════
+type Gap
+    float top
+    float bot
+    int   bar
+
+var array<Gap> bullGaps = array.new<Gap>()
+var array<Gap> bearGaps = array.new<Gap>()
+
+// Latest gaps (bf = bullish FVG, sf = bearish FVG, bi = bullish iFVG, si = bearish iFVG)
+var float bfTop = na
+var float bfBot = na
+var int   bfBar = na
+var float sfTop = na
+var float sfBot = na
+var int   sfBar = na
+var float biTop = na
+var float biBot = na
+var int   biBar = na
+var float siTop = na
+var float siBot = na
+var int   siBar = na
+
+// Inversion: a body CLOSE through an opposite FVG flips its polarity (iFVG)
+if array.size(bearGaps) > 0
+    bool first = true
+    for i = array.size(bearGaps) - 1 to 0
+        Gap g = array.get(bearGaps, i)
+        if close > g.top
+            if first or g.top > biTop
+                biTop := g.top
+                biBot := g.bot
+                biBar := bar_index
+                first := false
+            array.remove(bearGaps, i)
+        else if bar_index - g.bar > 300
+            array.remove(bearGaps, i)
+if array.size(bullGaps) > 0
+    bool first = true
+    for i = array.size(bullGaps) - 1 to 0
+        Gap g = array.get(bullGaps, i)
+        if close < g.bot
+            if first or g.bot < siBot
+                siTop := g.top
+                siBot := g.bot
+                siBar := bar_index
+                first := false
+            array.remove(bullGaps, i)
+        else if bar_index - g.bar > 300
+            array.remove(bullGaps, i)
+
+// New 3-candle imbalances (middle candle must be in the gap's direction)
+if low > high[2] and close[1] > open[1] and low - high[2] >= atrL * fvgMin
+    bfTop := low
+    bfBot := high[2]
+    bfBar := bar_index
+    array.push(bullGaps, Gap.new(low, high[2], bar_index))
+    if array.size(bullGaps) > 15
+        array.shift(bullGaps)
+if high < low[2] and close[1] < open[1] and low[2] - high >= atrL * fvgMin
+    sfTop := low[2]
+    sfBot := high
+    sfBar := bar_index
+    array.push(bearGaps, Gap.new(low[2], high, bar_index))
+    if array.size(bearGaps) > 15
+        array.shift(bearGaps)
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// HTF ZONE BOOK
+// ════════════════════════════════════════════════════════════════════════════════════
+type Zone
+    float top
+    float bot
+    int   dir       //  1 = demand, -1 = supply
+    int   t         // HTF OB candle time
+    int   born      // chart bar the zone became known
+    int   touches = 0
+    box   bx
+
+var array<Zone> zones = array.new<Zone>()
+
+addZone(float top, float bot, int dir, int t) =>
+    // A newer zone replaces any older overlapping zone on the same side
+    if array.size(zones) > 0
+        for i = array.size(zones) - 1 to 0
+            Zone z = array.get(zones, i)
+            if z.dir == dir and top >= z.bot and bot <= z.top
+                box.delete(z.bx)
+                array.remove(zones, i)
+    color c  = dir == 1 ? demandCol : supplyCol
+    box   bx = box.new(t, top, time, bot, xloc = xloc.bar_time, bgcolor = color.new(c, 84),
+         border_color = color.new(c, 45), text = (dir == 1 ? "Demand " : "Supply ") + htfName,
+         text_size = size.tiny, text_halign = text.align_right, text_valign = text.align_center,
+         text_color = color.new(c, 25))
+    array.push(zones, Zone.new(top, bot, dir, t, bar_index, 0, bx))
+    // Cap visible zones per side (drop the oldest)
+    int cnt = 0
+    for z in zones
+        if z.dir == dir
+            cnt += 1
+    if cnt > zMax
+        for i = 0 to array.size(zones) - 1
+            Zone z = array.get(zones, i)
+            if z.dir == dir
+                box.delete(z.bx)
+                array.remove(zones, i)
+                break
+
+var int lastDT = na
+var int lastST = na
+if not na(hDT) and hDT != nz(lastDT, -1)
+    lastDT := hDT
+    addZone(hDTop, hDBot, 1, hDT)
+if not na(hST) and hST != nz(lastST, -1)
+    lastST := hST
+    addZone(hSTop, hSBot, -1, hST)
+
+// Maintain zones, detect taps (new entry INTO the zone) and invalidations (close through)
+bool  dTap    = false
+float dTapTop = na
+float dTapBot = na
+bool  sTap    = false
+float sTapTop = na
+float sTapBot = na
+if array.size(zones) > 0
+    for i = array.size(zones) - 1 to 0
+        Zone z   = array.get(zones, i)
+        bool isD = z.dir == 1
+        bool broken = isD ? close < z.bot : close > z.top
+        if broken or bar_index - z.born > zMaxAge
+            box.delete(z.bx)
+            array.remove(zones, i)
+        else
+            box.set_right(z.bx, time)
+            bool touch = isD ? (low <= z.top and low[1] > z.top) : (high >= z.bot and high[1] < z.bot)
+            if touch
+                z.touches := z.touches + 1
+                if z.touches <= zTouches
+                    if isD and (not dTap or z.top > dTapTop)
+                        dTap    := true
+                        dTapTop := z.top
+                        dTapBot := z.bot
+                    else if not isD and (not sTap or z.bot < sTapBot)
+                        sTap    := true
+                        sTapTop := z.top
+                        sTapBot := z.bot
+                box.set_bgcolor(z.bx, color.new(isD ? demandCol : supplyCol, z.touches >= zTouches ? 94 : 88))
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// SETUP STATE MACHINE (one per side)
+// ════════════════════════════════════════════════════════════════════════════════════
+type Setup
+    int   dir
+    bool  active = false
+    int   tapBar
+    float zTop
+    float zBot
+    float ext            // sweep extreme since the tap (lowest low / highest high)
+    int   extBar
+    float extRsi
+    float prevExt        // previous swing extreme inside the setup (for divergence & sweeps)
+    float prevExtRsi
+    float refPiv         // last minor swing before the tap (external liquidity)
+    float refRsi
+    bool  swept  = false
+    bool  rsiExh = false
+
+method arm(Setup this, float zt, float zb, float refP, float refR) =>
+    this.active     := true
+    this.tapBar     := bar_index
+    this.zTop       := zt
+    this.zBot       := zb
+    this.ext        := this.dir == 1 ? low : high
+    this.extBar     := bar_index
+    this.extRsi     := rsi
+    this.prevExt    := na
+    this.prevExtRsi := na
+    this.refPiv     := refP
+    this.refRsi     := refR
+    this.swept      := false
+    this.rsiExh     := this.dir == 1 ? rsi <= rsiOS : rsi >= rsiOB
+    this
+
+sweptLevel(float lvl, bool isLong) =>
+    not na(lvl) and (isLong ? (low < lvl and close > lvl) : (high > lvl and close < lvl))
+
+method track(Setup this) =>
+    if this.active
+        bool  isLong = this.dir == 1
+        float x      = isLong ? low : high
+        if isLong ? x < this.ext : x > this.ext
+            // Previous extreme was its own swing → keep it for divergence / sweep checks
+            if bar_index - this.extBar > pivLen
+                this.prevExt    := this.ext
+                this.prevExtRsi := this.extRsi
+            this.ext    := x
+            this.extBar := bar_index
+            this.extRsi := rsi
+        if isLong ? rsi <= rsiOS : rsi >= rsiOB
+            this.rsiExh := true
+        if sweptLevel(this.refPiv, isLong) or sweptLevel(this.prevExt, isLong)
+            this.swept := true
+        bool dead = isLong ? close < this.zBot : close > this.zTop
+        if dead or bar_index - this.tapBar > setupExp
+            this.active := false
+    this
+
+// Regular divergence: price makes a more extreme swing, RSI does not
+method rsiDiv(Setup this) =>
+    bool  hasPrev = not na(this.prevExt)
+    float p = hasPrev ? this.prevExt : this.refPiv
+    float r = hasPrev ? this.prevExtRsi : this.refRsi
+    na(p) or na(r) ? false : this.dir == 1 ? (this.ext < p and this.extRsi > r) : (this.ext > p and this.extRsi < r)
+
+var Setup L = Setup.new(1)
+var Setup S = Setup.new(-1)
+var array<Setup> setups = array.new<Setup>()
+if barstate.isfirst
+    array.push(setups, L)
+    array.push(setups, S)
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// TRADE PLAN — entry array, SL, TP and confluence score for a confirmed MSS
+// ════════════════════════════════════════════════════════════════════════════════════
+plan(Setup s) =>
+    bool  isLong = s.dir == 1
+    bool  hasFvg = isLong ? (not na(bfBar) and bfBar >= s.extBar) : (not na(sfBar) and sfBar >= s.extBar)
+    float fTop   = isLong ? bfTop : sfTop
+    float fBot   = isLong ? bfBot : sfBot
+    bool  hasInv = isLong ? (not na(biBar) and biBar >= s.extBar) : (not na(siBar) and siBar >= s.extBar)
+    float iTop   = isLong ? biTop : siTop
+    float iBot   = isLong ? biBot : siBot
+    // Breaker: last opposite-colour candle before the sweep extreme, now closed through
+    float bTop = na
+    float bBot = na
+    int   o0   = bar_index - s.extBar + 1
+    for k = o0 to o0 + 15
+        if isLong ? close[k] > open[k] : close[k] < open[k]
+            bTop := high[k]
+            bBot := low[k]
+            break
+    bool brk     = not na(bTop) and (isLong ? close > bTop : close < bBot)
+    bool unicorn = hasFvg and brk and fBot < bTop and fTop > bBot
+    // Entry array priority: Unicorn → FVG → iFVG → LTF Order Block
+    float zTop  = na
+    float zBot  = na
+    string zName = "OB"
+    if unicorn
+        zTop  := math.min(fTop, bTop)
+        zBot  := math.max(fBot, bBot)
+        zName := "Unicorn"
+    else if hasFvg
+        zTop  := fTop
+        zBot  := fBot
+        zName := "FVG"
+    else if hasInv
+        zTop  := iTop
+        zBot  := iBot
+        zName := "iFVG"
+    else
+        int span = bar_index - s.extBar
+        int kOb  = span
+        if span >= 1
+            for k = 1 to span
+                if isLong ? close[k] < open[k] : close[k] > open[k]
+                    kOb := k
+                    break
+        zTop := high[kOb]
+        zBot := low[kOb]
+    float prox  = isLong ? zTop : zBot
+    float lvl   = fvgLevel == "50% (CE)" and zName != "OB" ? (zTop + zBot) / 2 : prox
+    bool  mkt   = entryMode == "Market on MSS close" or (isLong ? lvl >= close : lvl <= close)
+    float entry = mkt ? close : lvl
+    float anchor = slMode == "Beyond zone distal" ? (isLong ? math.min(s.ext, s.zBot) : math.max(s.ext, s.zTop)) : s.ext
+    float sl    = isLong ? anchor - atrL * slBuf : anchor + atrL * slBuf
+    float risk  = isLong ? entry - sl : sl - entry
+    float tp    = isLong ? entry + risk * rr : entry - risk * rr
+    // Confluence
+    bool div     = s.rsiDiv()
+    bool rsiZone = s.rsiExh or div
+    bool rsiMom  = isLong ? rsi > 50 : rsi < 50
+    int  score   = (s.swept ? 1 : 0) + (rsiZone ? 1 : 0) + (rsiMom ? 1 : 0) + (zName != "OB" ? 1 : 0) + (unicorn ? 1 : 0)
+    string tags  = (s.swept ? "Sweep · " : "") + (div ? "RSI div · " : s.rsiExh ? (isLong ? "RSI OS · " : "RSI OB · ") : "") + (rsiMom ? "RSI mom · " : "")
+    [entry, sl, tp, risk, score, tags, zTop, zBot, zName, mkt, rsiZone, rsiMom]
+
+biasOk(int dir) =>
+    bool s = hBos == dir
+    bool e = hEmaBias == dir
+    biasMode == "Off" ? true : biasMode == "HTF structure" ? s : biasMode == "HTF EMA" ? e : (s and e)
+
+// Reject if an opposing HTF zone blocks the path to target (or entry sits inside one)
+roomOk(int dir, float entry, float risk) =>
+    bool ok = true
+    if minRoom > 0
+        for z in zones
+            if z.dir == -dir
+                bool inside = entry >= z.bot and entry <= z.top
+                float d = dir == 1 ? z.bot - entry : entry - z.top
+                if inside or (d > 0 and d < risk * minRoom)
+                    ok := false
+    ok
+
+// Fixed-fractional sizing, converted to account currency (critical for JPY / NZD quotes)
+float fxRate = request.currency_rate(syminfo.currency, strategy.account_currency, true)
+calcQty(float risk) =>
+    float cash    = strategy.equity * riskPct / 100.0
+    float perUnit = risk * syminfo.pointvalue * nz(fxRate, 1.0)
+    perUnit > 0 ? math.floor(cash / perUnit / qtyStep) * qtyStep : 0.0
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// JSON ALERT PAYLOAD  (set the alert message box to {{strategy.order.alert_message}})
+// ════════════════════════════════════════════════════════════════════════════════════
+fJson(string side, string ev, float sl, float tp, int score) =>
+    string base = '{"action":"{{strategy.order.action}}","ticker":"{{ticker}}","price":"{{strategy.order.price}}","sl":"'
+         + str.tostring(sl, format.mintick) + '","tp":"' + str.tostring(tp, format.mintick) + '"'
+    string ext = jsonExt ? ',"qty":"{{strategy.order.contracts}}","event":"' + ev + '","side":"' + side
+         + '","rr":"' + str.tostring(rr) + '","score":"' + str.tostring(score)
+         + '","interval":"{{interval}}","time":"{{timenow}}"' : ''
+    base + ext + '}'
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// ORDER STATE
+// ════════════════════════════════════════════════════════════════════════════════════
+var int   pendDir     = 0      // 1 / -1 while an entry order is waiting, 0 otherwise
+var int   pendBar     = na
+var float tSl         = na
+var float tTp         = na
+var float tRisk       = na
+var int   tScore      = 0
+var bool  beDone      = false
+var int   tradesToday = 0
+var array<box> entryBoxes = array.new<box>()
+
+int nyDay = dayofmonth(time, "America/New_York")
+if nyDay != nyDay[1]
+    tradesToday := 0
+
+bool inLong  = strategy.position_size > 0
+bool inShort = strategy.position_size < 0
+
+// Pending-order housekeeping: fill detection, expiry, run-away price, killzone end
+if pendDir != 0
+    bool filled = (pendDir == 1 and inLong) or (pendDir == -1 and inShort) or strategy.closedtrades > strategy.closedtrades[1]
+    if filled
+        pendDir := 0
+        beDone  := false
+    else
+        string id      = pendDir == 1 ? "Long" : "Short"
+        bool   expired = bar_index - pendBar > limitExp
+        bool   ranAway = pendDir == 1 ? high >= tTp : low <= tTp
+        bool   kzOver  = kzActive and cancelKZ and not inKZ
+        if expired or ranAway or kzOver
+            strategy.cancel(id)
+            strategy.cancel(id + " Exit")
+            pendDir := 0
+
+// Break-even management
+if beAt > 0 and not beDone and not na(tRisk)
+    if inLong and high >= strategy.position_avg_price + tRisk * beAt
+        tSl    := strategy.position_avg_price
+        beDone := true
+        strategy.exit("Long Exit", "Long", stop = tSl, limit = tTp, alert_message = fJson("sell", "exit_be", tSl, tTp, tScore))
+    if inShort and low <= strategy.position_avg_price - tRisk * beAt
+        tSl    := strategy.position_avg_price
+        beDone := true
+        strategy.exit("Short Exit", "Short", stop = tSl, limit = tTp, alert_message = fJson("buy", "exit_be", tSl, tTp, tScore))
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// SIGNAL LOOP — track → arm → MSS → validate → order
+// ════════════════════════════════════════════════════════════════════════════════════
+for s in setups
+    bool isLong = s.dir == 1
+    s.track()
+
+    bool  tap  = isLong ? dTap : sTap
+    if tap and not s.active
+        s.arm(isLong ? dTapTop : sTapTop, isLong ? dTapBot : sTapBot, isLong ? lastPL : lastPH, isLong ? lastPLRsi : lastPHRsi)
+        if alertArm
+            alert('{"event":"setup_armed","side":"' + (isLong ? "buy" : "sell") + '","ticker":"' + syminfo.tickerid
+                 + '","zone_top":"' + str.tostring(s.zTop, format.mintick) + '","zone_bot":"' + str.tostring(s.zBot, format.mintick) + '"}',
+                 alert.freq_once_per_bar_close)
+
+    bool mss = s.active and bar_index > s.tapBar and (isLong ?
+         (not na(lastPH) and close > lastPH and close[1] <= lastPH and dispUpOk) :
+         (not na(lastPL) and close < lastPL and close[1] >= lastPL and dispDnOk))
+
+    if mss
+        s.active := false   // a setup is consumed by its first MSS, traded or not
+        [entry, sl, tp, risk, score, tags, ezTop, ezBot, ezName, mkt, rsiZone, rsiMom] = plan(s)
+        bool  rsiPass = rsiMode == "Off" ? true : rsiMode == "Zone: OS/OB or Divergence" ? rsiZone : rsiMode == "Momentum: 50-line" ? rsiMom : (rsiZone and rsiMom)
+        float q       = calcQty(risk)
+
+        string why = ""
+        if strategy.position_size != 0 or pendDir != 0
+            why := "busy"
+        else if kzActive and not inKZ
+            why := "outside killzone"
+        else if tradesToday >= maxDay
+            why := "daily cap"
+        else if not biasOk(s.dir)
+            why := "HTF bias"
+        else if not rsiPass
+            why := "RSI"
+        else if score < minScore
+            why := "score " + str.tostring(score)
+        else if risk <= 0 or risk < atrL * minSl
+            why := "SL too tight"
+        else if risk > atrL * maxSl
+            why := "SL too wide"
+        else if not roomOk(s.dir, entry, risk)
+            why := "no room to target"
+        else if q <= 0
+            why := "size rounds to 0"
+
+        float swingLvl = isLong ? lastPH : lastPL
+        int   swingBar = isLong ? lastPHBar : lastPLBar
+        color c        = isLong ? demandCol : supplyCol
+
+        if why == ""
+            string id = isLong ? "Long" : "Short"
+            strategy.entry(id, isLong ? strategy.long : strategy.short, qty = q, limit = mkt ? na : entry,
+                 alert_message = fJson(isLong ? "buy" : "sell", "entry", sl, tp, score))
+            strategy.exit(id + " Exit", id, stop = sl, limit = tp,
+                 alert_message = fJson(isLong ? "sell" : "buy", "exit", sl, tp, score))
+            pendDir     := s.dir
+            pendBar     := bar_index
+            tSl         := sl
+            tTp         := tp
+            tRisk       := risk
+            tScore      := score
+            beDone      := false
+            tradesToday += 1
+            if showMss
+                line.new(swingBar, swingLvl, bar_index, swingLvl, color = c, style = line.style_dashed, width = 1)
+                label.new(bar_index, isLong ? low : high,
+                     (isLong ? "▲ BUY " : "▼ SELL ") + ezName + "  " + str.tostring(score) + "/5\n" + tags + str.tostring(rr) + "R",
+                     style = isLong ? label.style_label_up : label.style_label_down, size = size.small,
+                     color = color.new(c, 15), textcolor = color.white)
+                array.push(entryBoxes, box.new(s.extBar, ezTop, bar_index + limitExp, ezBot,
+                     bgcolor = color.new(c, 75), border_color = color.new(c, 30), border_style = line.style_dotted))
+                if array.size(entryBoxes) > 20
+                    box.delete(array.shift(entryBoxes))
+        else if showRej and why != "busy"
+            label.new(bar_index, isLong ? low : high, "✕ " + why, style = isLong ? label.style_label_up : label.style_label_down,
+                 size = size.tiny, color = color.new(color.gray, 60), textcolor = color.white)
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// VISUALS
+// ════════════════════════════════════════════════════════════════════════════════════
+bool hasPos = strategy.position_size != 0
+plot(hasPos ? strategy.position_avg_price : na, "Entry", color.new(color.gray, 0), 1, plot.style_linebr)
+plot(hasPos ? tSl : na, "Stop", color.new(supplyCol, 0), 2, plot.style_linebr)
+plot(hasPos ? tTp : na, "Target", color.new(demandCol, 0), 2, plot.style_linebr)
+bgcolor(showKZ and kzActive and inKZ ? color.new(color.gray, 93) : na, title = "Killzone")
+
+var table dash = table.new(position.top_right, 2, 9, bgcolor = color.new(#131722, 12),
+     border_color = color.new(color.gray, 75), border_width = 1, frame_color = color.new(color.gray, 60), frame_width = 1)
+
+cell(int r, string k, string v, color vc) =>
+    table.cell(dash, 0, r, k, text_color = color.new(color.white, 30), text_size = size.small, text_halign = text.align_left)
+    table.cell(dash, 1, r, v, text_color = vc, text_size = size.small, text_halign = text.align_right)
+
+if showDash and barstate.islast
+    int nD = 0
+    int nS = 0
+    for z in zones
+        if z.dir == 1
+            nD += 1
+        else
+            nS += 1
+    string biasTxt = hBos == 1 ? "Bullish" : hBos == -1 ? "Bearish" : "—"
+    color  biasCol = hBos == 1 ? demandCol : hBos == -1 ? supplyCol : color.gray
+    string posTxt  = inLong ? "LONG" : inShort ? "SHORT" : pendDir != 0 ? "Pending " + (pendDir == 1 ? "buy" : "sell") : "Flat"
+    cell(0, "HTF zones", htfName, color.white)
+    cell(1, "HTF structure", biasTxt, biasCol)
+    cell(2, "HTF EMA", hEmaBias == 1 ? "Above" : "Below", hEmaBias == 1 ? demandCol : supplyCol)
+    cell(3, "RSI  HTF / LTF", str.tostring(hRsi, "#") + " / " + str.tostring(rsi, "#"), rsi <= rsiOS ? demandCol : rsi >= rsiOB ? supplyCol : color.white)
+    cell(4, "Killzone", not kzActive ? "Off" : inKZ ? "ACTIVE" : "Closed", inKZ ? demandCol : color.gray)
+    cell(5, "Long setup", L.active ? "Armed " + str.tostring(bar_index - L.tapBar) + "b" : "—", L.active ? demandCol : color.gray)
+    cell(6, "Short setup", S.active ? "Armed " + str.tostring(bar_index - S.tapBar) + "b" : "—", S.active ? supplyCol : color.gray)
+    cell(7, "Zones D / S", str.tostring(nD) + " / " + str.tostring(nS), color.white)
+    cell(8, "Position", posTxt, inLong ? demandCol : inShort ? supplyCol : color.white)
