@@ -11,10 +11,13 @@
 //   3. RSI      While armed, RSI reaches oversold OR prints bullish divergence.
 //   4. SWEEP    (+score) a wick takes a minor swing low and closes back above it.
 //   5. MSS      A displacement candle closes above the last minor swing high.
-//   6. ENTRY    Limit at the retest of the reversal leg's Unicorn / FVG / iFVG / OB.
+//   6. ENTRY    Retest of the reversal leg's Unicorn / FVG / iFVG / OB, either as a
+//               resting limit or (stricter) a confirmation candle closing out of it.
 //   7. RISK     SL beyond the sweep extreme + ATR buffer. Rejected if too wide/tight.
 //               Size = equity × risk% ÷ (SL distance × point value × FX conversion).
-//   8. EXIT     TP at 1.5R / 2R / 3R, optional break-even.
+//   8. EXIT     Up to 3 take-profits with partial closes, SL → break-even at a set R.
+//               Every trade is drawn like a position tool: Entry / SL / TP1-TP3 with
+//               prices, R multiples, ✔ / ✖ hit marks and the final R result.
 //  Filters: killzones (New York time), HTF bias, room to the opposing zone,
 //           confluence score, max trades/day, max intraday loss.
 // ════════════════════════════════════════════════════════════════════════════════════
@@ -37,9 +40,9 @@ strategy(title = "Supply & Demand Confluence Pro [HTF + MSS + RSI]",
      slippage = 2,
      commission_type = strategy.commission.percent,
      commission_value = 0.0,
-     max_boxes_count = 200,
-     max_lines_count = 100,
-     max_labels_count = 150,
+     max_boxes_count = 300,
+     max_lines_count = 300,
+     max_labels_count = 300,
      max_bars_back = 500)
 
 // ════════════════════════════════════════════════════════════════════════════════════
@@ -106,32 +109,49 @@ kzAsia    = input.session("2000-2359", "Asia", group = grpK, inline = "asia")
 cancelKZ  = input.bool(true, "Cancel unfilled limits when killzone ends", group = grpK)
 
 grpE      = "⑦ Entry, Risk & Exits"
-entryMode = input.string("Limit @ FVG/OB retest", "Entry mode", group = grpE,
-     options = ["Limit @ FVG/OB retest", "Market on MSS close"])
-fvgLevel  = input.string("Proximal edge", "FVG entry level", group = grpE, options = ["Proximal edge", "50% (CE)"])
-limitExp  = input.int(12, "Cancel unfilled limit after (bars)", minval = 1, maxval = 100, group = grpE)
+entryMode = input.string("Confirmation candle at retest", "Entry mode", group = grpE,
+     options = ["Confirmation candle at retest", "Limit @ FVG/OB retest", "Market on MSS close"],
+     tooltip = "Confirmation: after the MSS, wait for price to retrace INTO the FVG/OB, then enter on the close of a candle that rejects it (closes back out in the trade direction). Fewer fills, far fewer losers.\nLimit: resting order at the FVG/OB edge. Best price, but fills on every touch.\nMarket: enter on the MSS candle close.")
+fvgLevel  = input.string("Proximal edge", "Limit entry level", group = grpE, options = ["Proximal edge", "50% (CE)"])
+limitExp  = input.int(12, "Cancel if no entry within (bars)", minval = 1, maxval = 100, group = grpE)
 slMode    = input.string("Beyond sweep extreme", "Stop-loss anchor", group = grpE,
      options = ["Beyond sweep extreme", "Beyond zone distal"])
 slBuf     = input.float(0.25, "SL buffer (× ATR)", minval = 0.0, step = 0.05, group = grpE)
 minSl     = input.float(0.5, "Min SL distance (× ATR)", minval = 0.0, step = 0.1, group = grpE)
 maxSl     = input.float(4.0, "Max SL distance (× ATR)", minval = 0.5, step = 0.25, group = grpE)
-rr        = input.float(2.0, "Risk : Reward", options = [1.5, 2.0, 3.0], group = grpE)
-beAt      = input.float(1.0, "Move SL to break-even at (R) — 0 = off", minval = 0.0, step = 0.25, group = grpE)
+
+grpT      = "⑧ Take-Profits & Break-even"
+tpCount   = input.int(3, "Number of take-profits", minval = 1, maxval = 3, group = grpT)
+tp1R      = input.float(1.0, "TP1 (R)", minval = 0.25, step = 0.25, group = grpT, inline = "tp1")
+tp1Pct    = input.int(40, "close %", minval = 1, maxval = 99, group = grpT, inline = "tp1")
+tp2R      = input.float(2.0, "TP2 (R)", minval = 0.25, step = 0.25, group = grpT, inline = "tp2")
+tp2Pct    = input.int(30, "close %", minval = 1, maxval = 98, group = grpT, inline = "tp2")
+tp3R      = input.float(3.0, "TP3 (R)", minval = 0.25, step = 0.25, group = grpT,
+     tooltip = "The LAST target always closes whatever is left. With 1 target, TP1 closes 100%.")
+beAt      = input.float(1.0, "Move SL to break-even at (R) — 0 = off", minval = 0.0, step = 0.25, group = grpT,
+     tooltip = "1.0 with TP1 at 1R = risk-free after TP1.")
+
 riskPct   = input.float(1.0, "Risk per trade (% equity)", minval = 0.1, maxval = 5.0, step = 0.25, group = grpE)
 qtyStep   = input.float(0.01, "Quantity step", minval = 0.0001, group = grpE,
      tooltip = "Rounding unit for position size. FX/Gold: 1 (units/oz) or 1000 (micro lots). NQ futures: 1 contract.")
 maxDD     = input.float(3.0, "Max intraday loss (% equity) — 0 = off", minval = 0.0, step = 0.5, group = grpE)
 
-grpA      = "⑧ Alerts (webhook JSON)"
+grpA      = "⑨ Alerts (webhook JSON)"
 jsonExt   = input.bool(true, "Add extended fields to JSON", group = grpA,
-     tooltip = "Adds qty, event, side, rr, score, interval, time after the 5 required keys.")
+     tooltip = "Adds qty, event, side, entry, tp1, tp2, tp3, score, interval, time after the 5 required keys.")
 alertArm  = input.bool(false, "Also alert when a setup arms (zone tap)", group = grpA)
 
-grpV      = "⑨ Visuals"
+grpV      = "⑩ Visuals"
 showDash  = input.bool(true, "Dashboard", group = grpV)
 showMss   = input.bool(true, "MSS lines & trade labels", group = grpV)
 showRej   = input.bool(false, "Show rejected setups (tuning)", group = grpV)
 showKZ    = input.bool(true, "Shade killzones", group = grpV)
+showTrade = input.bool(true, "Draw trades (Entry / SL / TP boxes & labels)", group = grpV)
+keepTrade = input.int(15, "Past trades kept on chart", minval = 1, maxval = 40, group = grpV)
+lblOff    = input.int(6, "Label offset (bars right of price)", minval = 1, maxval = 50, group = grpV)
+entryCol  = input.color(#2962ff, "Entry", group = grpV, inline = "tcol")
+slCol     = input.color(#f23645, "Stop", group = grpV, inline = "tcol")
+tpCol     = input.color(#089981, "Target", group = grpV, inline = "tcol")
 demandCol = input.color(#089981, "Demand", group = grpV, inline = "col")
 supplyCol = input.color(#f23645, "Supply", group = grpV, inline = "col")
 
@@ -145,6 +165,13 @@ string htf   = autoHtf ? (tfSec <= 300 ? "60" : tfSec <= 3600 ? "240" : "D") : h
 
 if timeframe.in_seconds(htf) <= tfSec
     runtime.error("HTF (" + htf + ") must be HIGHER than the chart timeframe (" + timeframe.period + ").")
+
+if tpCount >= 2 and tp2R <= tp1R
+    runtime.error("TP2 (R) must be greater than TP1 (R).")
+if tpCount == 3 and tp3R <= tp2R
+    runtime.error("TP3 (R) must be greater than TP2 (R).")
+if tpCount == 3 and tp1Pct + tp2Pct >= 100
+    runtime.error("TP1 % + TP2 % must be below 100 so TP3 has something left to close.")
 
 tfLabel(string tf) =>
     int s = timeframe.in_seconds(tf)
@@ -521,19 +548,18 @@ plan(Setup s) =>
         zBot := low[kOb]
     float prox  = isLong ? zTop : zBot
     float lvl   = fvgLevel == "50% (CE)" and zName != "OB" ? (zTop + zBot) / 2 : prox
-    bool  mkt   = entryMode == "Market on MSS close" or (isLong ? lvl >= close : lvl <= close)
+    bool  mkt   = entryMode == "Market on MSS close" or (entryMode == "Limit @ FVG/OB retest" and (isLong ? lvl >= close : lvl <= close))
     float entry = mkt ? close : lvl
     float anchor = slMode == "Beyond zone distal" ? (isLong ? math.min(s.ext, s.zBot) : math.max(s.ext, s.zTop)) : s.ext
     float sl    = isLong ? anchor - atrL * slBuf : anchor + atrL * slBuf
     float risk  = isLong ? entry - sl : sl - entry
-    float tp    = isLong ? entry + risk * rr : entry - risk * rr
     // Confluence
     bool div     = s.rsiDiv()
     bool rsiZone = s.rsiExh or div
     bool rsiMom  = isLong ? rsi > 50 : rsi < 50
     int  score   = (s.swept ? 1 : 0) + (rsiZone ? 1 : 0) + (rsiMom ? 1 : 0) + (zName != "OB" ? 1 : 0) + (unicorn ? 1 : 0)
     string tags  = (s.swept ? "Sweep · " : "") + (div ? "RSI div · " : s.rsiExh ? (isLong ? "RSI OS · " : "RSI OB · ") : "") + (rsiMom ? "RSI mom · " : "")
-    [entry, sl, tp, risk, score, tags, zTop, zBot, zName, mkt, rsiZone, rsiMom]
+    [entry, sl, risk, score, tags, zTop, zBot, zName, mkt, rsiZone, rsiMom]
 
 biasOk(int dir) =>
     bool s = hBos == dir
@@ -552,6 +578,7 @@ roomOk(int dir, float entry, float risk) =>
                     ok := false
     ok
 
+
 // Fixed-fractional sizing, converted to account currency (critical for JPY / NZD quotes)
 float fxRate = request.currency_rate(syminfo.currency, strategy.account_currency, true)
 calcQty(float risk) =>
@@ -559,66 +586,322 @@ calcQty(float risk) =>
     float perUnit = risk * syminfo.pointvalue * nz(fxRate, 1.0)
     perUnit > 0 ? math.floor(cash / perUnit / qtyStep) * qtyStep : 0.0
 
+// Partial-close split (the last target always closes the remainder)
+float finalR  = tpCount == 1 ? tp1R : tpCount == 2 ? tp2R : tp3R
+int   pct1    = tpCount == 1 ? 100 : tp1Pct
+int   pct2    = tpCount == 3 ? tp2Pct : tpCount == 2 ? 100 - tp1Pct : 0
+int   pct3    = tpCount == 3 ? 100 - tp1Pct - tp2Pct : 0
+
+fmt(float p) => str.tostring(p, format.mintick)
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// TRADE OBJECT — holds the plan, the live state and every drawing of one trade
+// state: 0 waiting for confirmation candle · 1 order working · 2 in position
+//        3 closed · 4 cancelled
+// ════════════════════════════════════════════════════════════════════════════════════
+type Trade
+    int    dir
+    int    sigBar
+    int    state    = 0
+    float  zTop
+    float  zBot
+    string ezName   = ""
+    float  entry
+    float  sl
+    float  stop
+    float  risk
+    float  tp1
+    float  tp2
+    float  tp3
+    float  qty
+    float  cashRisk
+    int    ctStart
+    int    score
+    bool   touched  = false
+    bool   h1       = false
+    bool   h2       = false
+    bool   h3       = false
+    bool   be       = false
+    bool   stopped  = false
+    string note     = ""
+    box    slBox
+    box    tpBox
+    box    zoneBox
+    line   lEntry
+    line   lSl
+    line   lTp1
+    line   lTp2
+    line   lTp3
+    line   lMss
+    label  bEntry
+    label  bSl
+    label  bTp1
+    label  bTp2
+    label  bTp3
+    label  bSig
+
+method tpFinal(Trade t) =>
+    tpCount == 1 ? t.tp1 : tpCount == 2 ? t.tp2 : t.tp3
+
+method setLevels(Trade t, float entry) =>
+    t.entry := entry
+    t.risk  := math.abs(entry - t.sl)
+    t.tp1   := entry + t.dir * t.risk * tp1R
+    t.tp2   := tpCount >= 2 ? entry + t.dir * t.risk * tp2R : na
+    t.tp3   := tpCount == 3 ? entry + t.dir * t.risk * tp3R : na
+    t
+
 // ════════════════════════════════════════════════════════════════════════════════════
 // JSON ALERT PAYLOAD  (set the alert message box to {{strategy.order.alert_message}})
 // ════════════════════════════════════════════════════════════════════════════════════
-fJson(string side, string ev, float sl, float tp, int score) =>
+fJson(Trade t, string ev) =>
     string base = '{"action":"{{strategy.order.action}}","ticker":"{{ticker}}","price":"{{strategy.order.price}}","sl":"'
-         + str.tostring(sl, format.mintick) + '","tp":"' + str.tostring(tp, format.mintick) + '"'
-    string ext = jsonExt ? ',"qty":"{{strategy.order.contracts}}","event":"' + ev + '","side":"' + side
-         + '","rr":"' + str.tostring(rr) + '","score":"' + str.tostring(score)
-         + '","interval":"{{interval}}","time":"{{timenow}}"' : ''
+         + fmt(t.stop) + '","tp":"' + fmt(t.tpFinal()) + '"'
+    string ext = jsonExt ? ',"qty":"{{strategy.order.contracts}}","event":"' + ev + '","side":"' + (t.dir == 1 ? "buy" : "sell")
+         + '","entry":"' + fmt(t.entry) + '","tp1":"' + fmt(t.tp1)
+         + '","tp2":"' + (na(t.tp2) ? "" : fmt(t.tp2)) + '","tp3":"' + (na(t.tp3) ? "" : fmt(t.tp3))
+         + '","score":"' + str.tostring(t.score) + '","interval":"{{interval}}","time":"{{timenow}}"' : ''
     base + ext + '}'
 
 // ════════════════════════════════════════════════════════════════════════════════════
-// ORDER STATE
+// TRADE DRAWINGS (position-tool style)
 // ════════════════════════════════════════════════════════════════════════════════════
-var int   pendDir     = 0      // 1 / -1 while an entry order is waiting, 0 otherwise
-var int   pendBar     = na
-var float tSl         = na
-var float tTp         = na
-var float tRisk       = na
-var int   tScore      = 0
-var bool  beDone      = false
-var int   tradesToday = 0
-var array<box> entryBoxes = array.new<box>()
+tpText(string name, float price, float r, int pct, bool hit) =>
+    name + "  " + fmt(price) + "   +" + str.tostring(r) + "R" + (tpCount > 1 ? " · " + str.tostring(pct) + "%" : "") + (hit ? "   ✔" : "")
+
+method refresh(Trade t, int x2) =>
+    if showTrade and not na(t.lEntry)
+        bool   isL    = t.dir == 1
+        string side   = isL ? "BUY" : "SELL"
+        bool   dead   = t.state == 4
+        bool   filled = t.state >= 2 and not dead
+        float  tpF    = t.tpFinal()
+        // Risk box (entry → original SL) and reward box (entry → final TP)
+        box.set_top(t.slBox, math.max(t.entry, t.sl))
+        box.set_bottom(t.slBox, math.min(t.entry, t.sl))
+        box.set_right(t.slBox, x2)
+        box.set_bgcolor(t.slBox, color.new(slCol, dead ? 95 : filled ? 82 : 90))
+        box.set_top(t.tpBox, math.max(t.entry, tpF))
+        box.set_bottom(t.tpBox, math.min(t.entry, tpF))
+        box.set_right(t.tpBox, x2)
+        box.set_bgcolor(t.tpBox, color.new(tpCol, dead ? 95 : filled ? 84 : 92))
+        // Level lines: dashed until filled / hit, solid afterwards
+        line.set_xy1(t.lEntry, t.sigBar, t.entry)
+        line.set_xy2(t.lEntry, x2, t.entry)
+        line.set_style(t.lEntry, filled ? line.style_solid : line.style_dashed)
+        line.set_xy1(t.lSl, t.sigBar, t.stop)
+        line.set_xy2(t.lSl, x2, t.stop)
+        line.set_style(t.lSl, t.stopped ? line.style_solid : line.style_dashed)
+        line.set_xy1(t.lTp1, t.sigBar, t.tp1)
+        line.set_xy2(t.lTp1, x2, t.tp1)
+        line.set_style(t.lTp1, t.h1 ? line.style_solid : line.style_dashed)
+        if not na(t.lTp2)
+            line.set_xy1(t.lTp2, t.sigBar, t.tp2)
+            line.set_xy2(t.lTp2, x2, t.tp2)
+            line.set_style(t.lTp2, t.h2 ? line.style_solid : line.style_dashed)
+        if not na(t.lTp3)
+            line.set_xy1(t.lTp3, t.sigBar, t.tp3)
+            line.set_xy2(t.lTp3, x2, t.tp3)
+            line.set_style(t.lTp3, t.h3 ? line.style_solid : line.style_dashed)
+        // Entry label
+        string eTxt = side + "  " + fmt(t.entry)
+        if t.state == 0
+            eTxt := side + " · WAIT RETEST of " + t.ezName + "  " + fmt(t.zBot) + " – " + fmt(t.zTop)
+        else if t.state == 1
+            eTxt := side + (entryMode == "Limit @ FVG/OB retest" ? " LIMIT  " : " @ MARKET  ") + fmt(t.entry)
+        else if t.state == 2
+            eTxt := side + "  " + fmt(t.entry) + "   risk " + str.tostring(riskPct) + "%"
+        else
+            eTxt := side + "  " + fmt(t.entry) + "   " + t.note
+        label.set_xy(t.bEntry, x2, t.entry)
+        label.set_text(t.bEntry, eTxt)
+        label.set_color(t.bEntry, color.new(entryCol, dead ? 70 : 0))
+        // Stop label
+        string sTxt = (t.be ? "SL → BE  " : "SL  ") + fmt(t.stop) + (t.be ? "" : "   −1R") + (t.stopped ? "   ✖" : "")
+        label.set_xy(t.bSl, x2, t.stop)
+        label.set_text(t.bSl, sTxt)
+        label.set_color(t.bSl, color.new(slCol, dead ? 70 : t.stopped ? 0 : 25))
+        // Target labels
+        label.set_xy(t.bTp1, x2, t.tp1)
+        label.set_text(t.bTp1, tpText("TP1", t.tp1, tp1R, pct1, t.h1))
+        label.set_color(t.bTp1, color.new(tpCol, dead ? 70 : t.h1 ? 0 : 35))
+        if not na(t.bTp2)
+            label.set_xy(t.bTp2, x2, t.tp2)
+            label.set_text(t.bTp2, tpText("TP2", t.tp2, tp2R, pct2, t.h2))
+            label.set_color(t.bTp2, color.new(tpCol, dead ? 70 : t.h2 ? 0 : 35))
+        if not na(t.bTp3)
+            label.set_xy(t.bTp3, x2, t.tp3)
+            label.set_text(t.bTp3, tpText("TP3", t.tp3, tp3R, pct3, t.h3))
+            label.set_color(t.bTp3, color.new(tpCol, dead ? 70 : t.h3 ? 0 : 35))
+    t
+
+newLvlLine(float y, color c, int w) =>
+    line.new(bar_index, y, bar_index, y, color = c, width = w, style = line.style_dashed)
+
+newLvlLabel(float y) =>
+    label.new(bar_index, y, "", style = label.style_label_left, textcolor = color.white, size = size.small)
+
+method draw(Trade t) =>
+    if showTrade
+        t.slBox  := box.new(t.sigBar, t.entry, bar_index, t.sl, border_color = color.new(slCol, 100), bgcolor = color.new(slCol, 90))
+        t.tpBox  := box.new(t.sigBar, t.entry, bar_index, t.tpFinal(), border_color = color.new(tpCol, 100), bgcolor = color.new(tpCol, 92))
+        t.lEntry := newLvlLine(t.entry, entryCol, 2)
+        t.lSl    := newLvlLine(t.sl, slCol, 2)
+        t.lTp1   := newLvlLine(t.tp1, tpCol, 1)
+        t.bEntry := newLvlLabel(t.entry)
+        t.bSl    := newLvlLabel(t.sl)
+        t.bTp1   := newLvlLabel(t.tp1)
+        if tpCount >= 2
+            t.lTp2 := newLvlLine(t.tp2, tpCol, 1)
+            t.bTp2 := newLvlLabel(t.tp2)
+        if tpCount == 3
+            t.lTp3 := newLvlLine(t.tp3, tpCol, 2)
+            t.bTp3 := newLvlLabel(t.tp3)
+    t.refresh(bar_index + lblOff)
+
+method wipe(Trade t) =>
+    box.delete(t.slBox)
+    box.delete(t.tpBox)
+    box.delete(t.zoneBox)
+    line.delete(t.lEntry)
+    line.delete(t.lSl)
+    line.delete(t.lTp1)
+    line.delete(t.lTp2)
+    line.delete(t.lTp3)
+    line.delete(t.lMss)
+    label.delete(t.bEntry)
+    label.delete(t.bSl)
+    label.delete(t.bTp1)
+    label.delete(t.bTp2)
+    label.delete(t.bTp3)
+    label.delete(t.bSig)
+    t
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// ORDERS — one entry plus up to 3 bracket exits (each exit carries the shared stop)
+// ════════════════════════════════════════════════════════════════════════════════════
+method sendExits(Trade t) =>
+    string id = t.dir == 1 ? "Long" : "Short"
+    if tpCount == 1
+        strategy.exit(id + " TP1", id, stop = t.stop, limit = t.tp1, alert_message = fJson(t, "exit_tp1_or_sl"))
+    else
+        if not t.h1
+            strategy.exit(id + " TP1", id, qty_percent = pct1, stop = t.stop, limit = t.tp1, alert_message = fJson(t, "exit_tp1_or_sl"))
+        if tpCount == 3 and not t.h2
+            strategy.exit(id + " TP2", id, qty_percent = pct2, stop = t.stop, limit = t.tp2, alert_message = fJson(t, "exit_tp2_or_sl"))
+        string last = tpCount == 2 ? "TP2" : "TP3"
+        strategy.exit(id + " " + last, id, stop = t.stop, limit = t.tpFinal(), alert_message = fJson(t, "exit_" + str.lower(last) + "_or_sl"))
+    t
+
+method sendEntry(Trade t, bool market) =>
+    string id = t.dir == 1 ? "Long" : "Short"
+    t.cashRisk := t.risk * t.qty * syminfo.pointvalue * nz(fxRate, 1.0)
+    t.ctStart  := strategy.closedtrades
+    strategy.entry(id, t.dir == 1 ? strategy.long : strategy.short, qty = t.qty, limit = market ? na : t.entry,
+         alert_message = fJson(t, "entry"))
+    t.sendExits()
+    t.state := 1
+    t
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// TRADE LIFECYCLE
+// ════════════════════════════════════════════════════════════════════════════════════
+var Trade        tr          = na
+var array<Trade> history     = array.new<Trade>()
+var int          tradesToday = 0
 
 int nyDay = dayofmonth(time, "America/New_York")
 if nyDay != nyDay[1]
     tradesToday := 0
 
-bool inLong  = strategy.position_size > 0
-bool inShort = strategy.position_size < 0
+bool   closedNow = strategy.closedtrades > strategy.closedtrades[1]
+string endWhy    = ""
+bool   doClose   = false
 
-// Pending-order housekeeping: fill detection, expiry, run-away price, killzone end
-if pendDir != 0
-    bool filled = (pendDir == 1 and inLong) or (pendDir == -1 and inShort) or strategy.closedtrades > strategy.closedtrades[1]
-    if filled
-        pendDir := 0
-        beDone  := false
+if not na(tr)
+    bool isL     = tr.dir == 1
+    bool posOpen = isL ? strategy.position_size > 0 : strategy.position_size < 0
+    bool kzOver  = kzActive and cancelKZ and not inKZ
+    bool expired = bar_index - tr.sigBar > limitExp
+    bool ranAway = isL ? high >= tr.tp1 : low <= tr.tp1
+
+    // 0 ─ waiting for price to retest the entry array and reject it
+    if tr.state == 0
+        if isL ? low <= tr.zTop : high >= tr.zBot
+            tr.touched := true
+        bool failed  = isL ? (close < tr.zBot or low <= tr.sl) : (close > tr.zTop or high >= tr.sl)
+        bool confirm = tr.touched and not failed and (isL ? (close > open and close > tr.zTop) : (close < open and close < tr.zBot))
+        if confirm
+            tr.setLevels(close)
+            float q = calcQty(tr.risk)
+            if tr.risk > atrL * maxSl
+                endWhy := "SL too wide after confirmation"
+            else if q <= 0
+                endWhy := "size rounds to 0"
+            else
+                tr.qty := q
+                tr.sendEntry(true)
+                tradesToday += 1
+        else if failed
+            endWhy := "zone failed"
+        else if expired
+            endWhy := "no retest"
+        else if kzOver
+            endWhy := "killzone ended"
+        else if not tr.touched and ranAway
+            endWhy := "missed (ran without retest)"
+
+    // 1 ─ order working
+    else if tr.state == 1
+        if posOpen or closedNow
+            tr.state := 2
+        else if expired or kzOver or ranAway
+            strategy.cancel_all()
+            endWhy := expired ? "not filled" : kzOver ? "killzone ended" : "missed (ran to TP1)"
+
+    // 2 ─ in position: mark hits, manage break-even, detect close
+    if tr.state == 2
+        if not tr.h1 and (isL ? high >= tr.tp1 : low <= tr.tp1)
+            tr.h1 := true
+        if not na(tr.tp2) and not tr.h2 and (isL ? high >= tr.tp2 : low <= tr.tp2)
+            tr.h2 := true
+        if not na(tr.tp3) and not tr.h3 and (isL ? high >= tr.tp3 : low <= tr.tp3)
+            tr.h3 := true
+        if posOpen
+            if beAt > 0 and not tr.be and (isL ? high >= tr.entry + tr.risk * beAt : low <= tr.entry - tr.risk * beAt)
+                tr.be   := true
+                tr.stop := tr.entry
+                tr.sendExits()
+        else
+            doClose := true
+
+if doClose
+    float pnl = 0.0
+    if strategy.closedtrades > tr.ctStart
+        for i = tr.ctStart to strategy.closedtrades - 1
+            pnl += strategy.closedtrades.profit(i)
+    float rRes     = tr.cashRisk > 0 ? pnl / tr.cashRisk : 0.0
+    bool  finalHit = tpCount == 1 ? tr.h1 : tpCount == 2 ? tr.h2 : tr.h3
+    tr.stopped := not finalHit
+    tr.note    := (rRes >= 0 ? "+" : "") + str.tostring(rRes, "#.##") + "R" + (rRes > 0.05 ? "  ✔" : rRes < -0.05 ? "  ✖" : "  (BE)")
+    tr.state   := 3
+
+if endWhy != ""
+    tr.note  := "✕ cancelled · " + endWhy
+    tr.state := 4
+
+if not na(tr)
+    if tr.state >= 3
+        tr.refresh(bar_index)
+        array.push(history, tr)
+        if array.size(history) > keepTrade
+            array.shift(history).wipe()
+        tr := na
     else
-        string id      = pendDir == 1 ? "Long" : "Short"
-        bool   expired = bar_index - pendBar > limitExp
-        bool   ranAway = pendDir == 1 ? high >= tTp : low <= tTp
-        bool   kzOver  = kzActive and cancelKZ and not inKZ
-        if expired or ranAway or kzOver
-            strategy.cancel(id)
-            strategy.cancel(id + " Exit")
-            pendDir := 0
-
-// Break-even management
-if beAt > 0 and not beDone and not na(tRisk)
-    if inLong and high >= strategy.position_avg_price + tRisk * beAt
-        tSl    := strategy.position_avg_price
-        beDone := true
-        strategy.exit("Long Exit", "Long", stop = tSl, limit = tTp, alert_message = fJson("sell", "exit_be", tSl, tTp, tScore))
-    if inShort and low <= strategy.position_avg_price - tRisk * beAt
-        tSl    := strategy.position_avg_price
-        beDone := true
-        strategy.exit("Short Exit", "Short", stop = tSl, limit = tTp, alert_message = fJson("buy", "exit_be", tSl, tTp, tScore))
+        tr.refresh(bar_index + lblOff)
 
 // ════════════════════════════════════════════════════════════════════════════════════
-// SIGNAL LOOP — track → arm → MSS → validate → order
+// SIGNAL LOOP — track → arm → MSS → validate → plan the trade
 // ════════════════════════════════════════════════════════════════════════════════════
 for s in setups
     bool isLong = s.dir == 1
@@ -638,12 +921,12 @@ for s in setups
 
     if mss
         s.active := false   // a setup is consumed by its first MSS, traded or not
-        [entry, sl, tp, risk, score, tags, ezTop, ezBot, ezName, mkt, rsiZone, rsiMom] = plan(s)
+        [entry, sl, risk, score, tags, ezTop, ezBot, ezName, mkt, rsiZone, rsiMom] = plan(s)
         bool  rsiPass = rsiMode == "Off" ? true : rsiMode == "Zone: OS/OB or Divergence" ? rsiZone : rsiMode == "Momentum: 50-line" ? rsiMom : (rsiZone and rsiMom)
         float q       = calcQty(risk)
 
         string why = ""
-        if strategy.position_size != 0 or pendDir != 0
+        if not na(tr) or strategy.position_size != 0
             why := "busy"
         else if kzActive and not inKZ
             why := "outside killzone"
@@ -664,34 +947,26 @@ for s in setups
         else if q <= 0
             why := "size rounds to 0"
 
-        float swingLvl = isLong ? lastPH : lastPL
-        int   swingBar = isLong ? lastPHBar : lastPLBar
-        color c        = isLong ? demandCol : supplyCol
-
+        color c = isLong ? demandCol : supplyCol
         if why == ""
-            string id = isLong ? "Long" : "Short"
-            strategy.entry(id, isLong ? strategy.long : strategy.short, qty = q, limit = mkt ? na : entry,
-                 alert_message = fJson(isLong ? "buy" : "sell", "entry", sl, tp, score))
-            strategy.exit(id + " Exit", id, stop = sl, limit = tp,
-                 alert_message = fJson(isLong ? "sell" : "buy", "exit", sl, tp, score))
-            pendDir     := s.dir
-            pendBar     := bar_index
-            tSl         := sl
-            tTp         := tp
-            tRisk       := risk
-            tScore      := score
-            beDone      := false
-            tradesToday += 1
+            Trade t = Trade.new(dir = s.dir, sigBar = bar_index, zTop = ezTop, zBot = ezBot, ezName = ezName, sl = sl, stop = sl, score = score)
+            t.setLevels(entry)
+            if entryMode != "Confirmation candle at retest"
+                t.qty := q
+                t.sendEntry(mkt)
+                tradesToday += 1
             if showMss
-                line.new(swingBar, swingLvl, bar_index, swingLvl, color = c, style = line.style_dashed, width = 1)
-                label.new(bar_index, isLong ? low : high,
-                     (isLong ? "▲ BUY " : "▼ SELL ") + ezName + "  " + str.tostring(score) + "/5\n" + tags + str.tostring(rr) + "R",
+                float swingLvl = isLong ? lastPH : lastPL
+                int   swingBar = isLong ? lastPHBar : lastPLBar
+                t.lMss := line.new(swingBar, swingLvl, bar_index, swingLvl, color = c, style = line.style_dotted, width = 1)
+                t.bSig := label.new(bar_index, isLong ? low : high,
+                     (isLong ? "▲ BUY" : "▼ SELL") + " · " + ezName + " · " + str.tostring(score) + "/5\n" + tags,
                      style = isLong ? label.style_label_up : label.style_label_down, size = size.small,
                      color = color.new(c, 15), textcolor = color.white)
-                array.push(entryBoxes, box.new(s.extBar, ezTop, bar_index + limitExp, ezBot,
-                     bgcolor = color.new(c, 75), border_color = color.new(c, 30), border_style = line.style_dotted))
-                if array.size(entryBoxes) > 20
-                    box.delete(array.shift(entryBoxes))
+                t.zoneBox := box.new(s.extBar, ezTop, bar_index, ezBot,
+                     bgcolor = color.new(entryCol, 80), border_color = color.new(entryCol, 30), border_style = line.style_dotted)
+            t.draw()
+            tr := t
         else if showRej and why != "busy"
             label.new(bar_index, isLong ? low : high, "✕ " + why, style = isLong ? label.style_label_up : label.style_label_down,
                  size = size.tiny, color = color.new(color.gray, 60), textcolor = color.white)
@@ -699,13 +974,9 @@ for s in setups
 // ════════════════════════════════════════════════════════════════════════════════════
 // VISUALS
 // ════════════════════════════════════════════════════════════════════════════════════
-bool hasPos = strategy.position_size != 0
-plot(hasPos ? strategy.position_avg_price : na, "Entry", color.new(color.gray, 0), 1, plot.style_linebr)
-plot(hasPos ? tSl : na, "Stop", color.new(supplyCol, 0), 2, plot.style_linebr)
-plot(hasPos ? tTp : na, "Target", color.new(demandCol, 0), 2, plot.style_linebr)
 bgcolor(showKZ and kzActive and inKZ ? color.new(color.gray, 93) : na, title = "Killzone")
 
-var table dash = table.new(position.top_right, 2, 9, bgcolor = color.new(#131722, 12),
+var table dash = table.new(position.top_right, 2, 11, bgcolor = color.new(#131722, 12),
      border_color = color.new(color.gray, 75), border_width = 1, frame_color = color.new(color.gray, 60), frame_width = 1)
 
 cell(int r, string k, string v, color vc) =>
@@ -720,9 +991,18 @@ if showDash and barstate.islast
             nD += 1
         else
             nS += 1
-    string biasTxt = hBos == 1 ? "Bullish" : hBos == -1 ? "Bearish" : "—"
-    color  biasCol = hBos == 1 ? demandCol : hBos == -1 ? supplyCol : color.gray
-    string posTxt  = inLong ? "LONG" : inShort ? "SHORT" : pendDir != 0 ? "Pending " + (pendDir == 1 ? "buy" : "sell") : "Flat"
+    string biasTxt  = hBos == 1 ? "Bullish" : hBos == -1 ? "Bearish" : "—"
+    color  biasCol  = hBos == 1 ? demandCol : hBos == -1 ? supplyCol : color.gray
+    string stateTxt = "Flat"
+    string lvlTxt   = "—"
+    string tpTxt    = "—"
+    color  stateCol = color.white
+    if not na(tr)
+        string side = tr.dir == 1 ? "BUY" : "SELL"
+        stateTxt := tr.state == 0 ? side + " · waiting retest" : tr.state == 1 ? side + " · order working" : side + " · in trade" + (tr.be ? " (BE)" : "")
+        stateCol := tr.dir == 1 ? demandCol : supplyCol
+        lvlTxt   := "E " + fmt(tr.entry) + "  ·  SL " + fmt(tr.stop)
+        tpTxt    := fmt(tr.tp1) + (na(tr.tp2) ? "" : " / " + fmt(tr.tp2)) + (na(tr.tp3) ? "" : " / " + fmt(tr.tp3))
     cell(0, "HTF zones", htfName, color.white)
     cell(1, "HTF structure", biasTxt, biasCol)
     cell(2, "HTF EMA", hEmaBias == 1 ? "Above" : "Below", hEmaBias == 1 ? demandCol : supplyCol)
@@ -731,4 +1011,6 @@ if showDash and barstate.islast
     cell(5, "Long setup", L.active ? "Armed " + str.tostring(bar_index - L.tapBar) + "b" : "—", L.active ? demandCol : color.gray)
     cell(6, "Short setup", S.active ? "Armed " + str.tostring(bar_index - S.tapBar) + "b" : "—", S.active ? supplyCol : color.gray)
     cell(7, "Zones D / S", str.tostring(nD) + " / " + str.tostring(nS), color.white)
-    cell(8, "Position", posTxt, inLong ? demandCol : inShort ? supplyCol : color.white)
+    cell(8, "Trade", stateTxt, stateCol)
+    cell(9, "Entry / Stop", lvlTxt, color.white)
+    cell(10, "Targets", tpTxt, tpCol)

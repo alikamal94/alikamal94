@@ -50,16 +50,35 @@ Script: [`SD_Confluence_Pro.pine`](SD_Confluence_Pro.pine). It's a TradingView s
 12. **FVG:** the 3-candle imbalance created by the displacement leg. Gets +1.
 13. **iFVG:** a bearish FVG that a candle body closed back above, so it now acts as support. Gets +1.
 14. **OB:** the last down-candle in the up-leg (fallback).
-15. Place a **limit at the proximal edge** (or the 50% "CE"). Cancel it if it's not filled within 12 bars, if price runs to the target first, or if the killzone ends.
+15. **Entry modes:**
+    - **Confirmation candle at retest** (default): after the MSS, wait until price retraces *into* the entry array, then enter at the close of a candle that rejects it. For buys that means a bullish candle closing back above the zone. The trade is cancelled if price closes through the zone, never retests within 12 bars, runs to TP1 without retesting, or the killzone ends.
+    - **Limit @ FVG/OB retest:** a resting limit at the proximal edge (or the 50% "CE"). You get the best price, but it fills on every touch.
+    - **Market on MSS close:** enters immediately.
 
 **E. Risk**
 
 16. **SL** goes below the sweep low plus 0.25 × ATR (or below the zone's distal edge, which you can pick in the settings).
 17. **Reject** the trade if the SL is < 0.5 × ATR (noise) or > 4 × ATR (too wide).
-18. **TP** at 1.5R / 2R / 3R. Move the SL to break-even at +1R (optional).
+18. **Take-profits:** up to 3 targets with partial closes. The default is TP1 1R (40%), TP2 2R (30%) and TP3 3R (the rest). The SL moves to break-even at +1R, so the trade is risk-free once TP1 is hit.
 19. Risk 1% per trade (adjustable). At most 2 trades a day, and trading stops for the day after a 3% loss.
 
 **Confluence score (0–5):** Sweep · RSI zone signal · RSI momentum · FVG/iFVG entry · Unicorn. The default minimum is **2**. Raise it to 3 for fewer, A-grade trades.
+
+## 2b. What you see on the chart
+
+Every trade is drawn like TradingView's long/short position tool:
+
+| Element | Meaning |
+|---|---|
+| Red box | Risk: entry to the original stop |
+| Green box | Reward: entry to the final target |
+| Blue line + label | `BUY · WAIT RETEST of FVG …` then `BUY LIMIT 2385.40` / `BUY @ MARKET`, then `BUY 2385.40 risk 1%`, then the final result, e.g. `+1.6R ✔` |
+| Red line + label | `SL 2378.90 −1R`. It becomes `SL → BE 2385.40` after break-even, and gets a ✖ if hit. |
+| Green lines + labels | `TP1 2391.90 +1R · 40%` … each gets a ✔ and turns solid when hit |
+| Dotted blue box | The FVG / OB / Unicorn array the entry came from |
+| Dotted line | The swing that was broken (MSS) |
+
+Dashed lines mean the level is pending, and solid lines mean filled or hit. Cancelled setups fade out and show the reason. The dashboard also lists the live entry, stop and targets.
 
 ---
 
@@ -86,11 +105,12 @@ Script: [`SD_Confluence_Pro.pine`](SD_Confluence_Pro.pine). It's a TradingView s
 3. Payload example (the first 5 keys are always present; the rest come from *extended fields*):
 
 ```json
-{"action":"buy","ticker":"XAUUSD","price":"2385.40","sl":"2378.90","tp":"2398.40",
- "qty":"12","event":"entry","side":"buy","rr":"2","score":"3","interval":"15","time":"2026-10-01T13:45:00Z"}
+{"action":"buy","ticker":"XAUUSD","price":"2385.40","sl":"2378.90","tp":"2404.90",
+ "qty":"12","event":"entry","side":"buy","entry":"2385.40","tp1":"2391.90","tp2":"2398.40",
+ "tp3":"2404.90","score":"3","interval":"15","time":"2026-10-01T13:45:00Z"}
 ```
 
-`event` is one of `entry`, `exit` or `exit_be` (break-even modification).
+`event` is `entry` for the entry order, or `exit_tp1_or_sl`, `exit_tp2_or_sl` or `exit_tp3_or_sl` for each exit leg. Every leg carries the shared stop, so when price hits the stop all remaining legs fill with that event and `{{strategy.order.price}}` holds the stop price.
 
 ---
 
