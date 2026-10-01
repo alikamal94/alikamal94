@@ -18,26 +18,29 @@
 //  Filters: killzones (New York time), HTF bias, room to the opposing zone,
 //           confluence score, max trades/day, max intraday loss.
 // ════════════════════════════════════════════════════════════════════════════════════
+// Notes on the settings below:
+//  • "recalc_on_order_fills" does not exist in Pine; the real flag is calc_on_order_fills.
+//    It is kept OFF: with process_orders_on_close it re-runs the bar after a fill, which can
+//    double-fire logic and inflate backtests.
+//  • margin 2% = 1:50 leverage. The default 100% margin blocks FX/NQ stop-based sizing.
+//  • Set a per-asset commission / spread in Properties.
 strategy(title = "Supply & Demand Confluence Pro [HTF + MSS + RSI]",
-     shorttitle            = "S&D Pro",
-     overlay               = true,
-     initial_capital       = 10000,
-     currency              = currency.USD,
-     pyramiding            = 0,
-     // "recalc_on_order_fills" does not exist in Pine; the real flag is calc_on_order_fills.
-     // It is kept OFF on purpose: with process_orders_on_close it only re-runs the bar after a
-     // fill, which can double-fire logic and inflate backtests.
-     calc_on_order_fills   = false,
+     shorttitle = "S&D Pro",
+     overlay = true,
+     initial_capital = 10000,
+     currency = currency.USD,
+     pyramiding = 0,
+     calc_on_order_fills = false,
      process_orders_on_close = true,
-     margin_long           = 2,     // 1:50 leverage — the default 100% margin would block FX/NQ sizing
-     margin_short          = 2,
-     slippage              = 2,
-     commission_type       = strategy.commission.percent,
-     commission_value      = 0.0,   // set a per-asset commission/spread in Properties
-     max_boxes_count       = 200,
-     max_lines_count       = 100,
-     max_labels_count      = 150,
-     max_bars_back         = 500)
+     margin_long = 2,
+     margin_short = 2,
+     slippage = 2,
+     commission_type = strategy.commission.percent,
+     commission_value = 0.0,
+     max_boxes_count = 200,
+     max_lines_count = 100,
+     max_labels_count = 150,
+     max_bars_back = 500)
 
 // ════════════════════════════════════════════════════════════════════════════════════
 // INPUTS
