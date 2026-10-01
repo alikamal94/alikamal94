@@ -27,6 +27,16 @@ With *Auto*, the signal ORB matches the chart timeframe. On any other timeframe 
 
 ## Risk and outputs
 
-- Stop loss: **Retest candle** (default), **ORB 50%** or **Opposite ORB side**, plus an ATR buffer. The take profit is a multiple of R. The TP/SL result is labelled on the chart.
+- **Entry:** the broken ORB level (the FVG edge for FVG entries), or the signal candle's close.
+- **Stop loss:** beyond the retest candle (default), at the opposite ORB side (ORB High for shorts, ORB Low for longs), or at ORB 50%, plus an ATR buffer. The stop is always placed on the losing side of the entry.
+- **Take profit:** LONG = entry + R × risk (above the entry); SHORT = entry − R × risk (below the entry).
+- Colours: blue = entry, red = SL, green = TP, purple = breakout label.
 - Info table: the High/50%/Low of each ORB (★ marks the signal ORB) and the live status.
 - Alerts: *ORB NY Long* and *ORB NY Short*. You can also create an alert on **Any alert() function call** to get breakout, entry, TP and SL messages with prices.
+
+## Non-repainting
+
+- Signals, labels and lines are only created when a candle has **closed**.
+- All drawings are placed by time with fixed end points, so they never move once drawn.
+- Each session's drawings are kept in arrays, and only whole old sessions are removed (*Days of drawings to keep*).
+- *Max signals per session* (default 1) locks the session once the signal fires. Each level gets only one breakout label per session.
