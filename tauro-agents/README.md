@@ -78,7 +78,6 @@ Every agent reads these before it works. Ali owns them. Items marked `TODO(Ali)`
 
 ## Not done yet / needs from Tauro
 
-- **Logo:** `assets/logo/` holds low-res extracts from the brand-guide PDF. Replace them with the original PNG files.
 - **Price feed:** the MT5 feed is coded (`tauro/data/prices.py`) but untested. It needs an MT5 investor login on a Windows host.
 - **Canva:** edit links are not built yet. They need the Canva plan / Connect API confirmed.
 - **Database:** the code uses SQLite for now. The tables move to Postgres for production.
