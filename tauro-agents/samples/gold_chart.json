@@ -1,0 +1,56 @@
+{
+  "brief": {
+    "priority": "normal",
+    "size": "1080x1350",
+    "visual_direction": "dark, calm, one big number",
+    "variations": 1,
+    "brief_id": "2026-09-28-02",
+    "publish_at": "2026-09-28T10:00:00+03:00",
+    "channels": [
+      "telegram",
+      "instagram_feed"
+    ],
+    "format": "telegram_card",
+    "template": "gold_chart",
+    "pillar": "gold_analysis",
+    "goal": "engagement",
+    "topic": "Gold H4 levels to watch",
+    "key_points": [
+      "Supply above",
+      "Demand below"
+    ],
+    "data": {
+      "symbol": "XAUUSD",
+      "timeframe": "H4",
+      "zones": [
+        {
+          "kind": "supply",
+          "low": 2668,
+          "high": 2676
+        },
+        {
+          "kind": "demand",
+          "low": 2618,
+          "high": 2626
+        }
+      ]
+    },
+    "cta": "Join the Telegram channel"
+  },
+  "copy": {
+    "headline": "مستويات الذهب اللي نراقبها اليوم",
+    "subline": "فريم الأربع ساعات · مناطق للمراقبة وليست توصيات",
+    "cta": "انضم لقناتنا على تيليجرام",
+    "caption": "مستويات الذهب لليوم…\n\nنظرة فنية وليست توصية تداول.\nإدارة رأس المال والمخاطر مسؤوليتك دائمًا.",
+    "telegram_text": "صباح الخير يا جماعة 👋 …\n\nنظرة فنية وليست توصية تداول.\nإدارة رأس المال والمخاطر مسؤوليتك دائمًا.",
+    "brief_id": "2026-09-28-02",
+    "risk_line": "نظرة فنية وليست توصية تداول. إدارة رأس المال والمخاطر مسؤوليتك دائمًا.",
+    "hashtags": [
+      "#تورو_ماركتس",
+      "#تداول",
+      "#الكويت",
+      "#الذهب",
+      "#إدارة_المخاطر"
+    ]
+  }
+}

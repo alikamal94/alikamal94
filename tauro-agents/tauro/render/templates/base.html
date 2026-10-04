@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: "Cairo"; font-weight: 400; src: url("{{ fonts }}/Cairo-Regular.ttf"); }
+@font-face { font-family: "Cairo"; font-weight: 700; src: url("{{ fonts }}/Cairo-Bold.ttf"); }
+:root {
+  --red: #FE0000; --black: #000000; --rich: #0D0D0D; --panel: #1A1A1A;
+  --grey: #B3B3B3; --white: #FFFFFF;
+  --bg: var(--rich); --fg: var(--white); --muted: var(--grey); --zone: var(--panel); --rule: var(--red);
+}
+.theme-white { --bg: var(--white); --fg: var(--rich); --muted: #4D4D4D; --zone: #F2F2F2; }
+.theme-red   { --bg: var(--red);   --fg: var(--white); --muted: #FFFFFF; --zone: rgba(0,0,0,.18); --rule: var(--white); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: {{ w }}px; height: {{ h }}px; overflow: hidden; }
+body {
+  background: var(--bg); color: var(--fg); font-family: "Cairo", sans-serif; font-weight: 400;
+  font-size: 30px; line-height: 1.5; direction: rtl; text-align: right;
+}
+.canvas { width: 100%; height: 100%; padding: 64px 72px 56px; display: flex; flex-direction: column; gap: 28px; position: relative; }
+.top { display: flex; justify-content: space-between; align-items: center; min-height: 96px; }
+.logo { width: 260px; height: auto; display: block; }
+.logo-chip { background: var(--rich); padding: 22px 26px; border-radius: 18px; }
+.kicker { font-weight: 700; font-size: 28px; color: var(--muted); letter-spacing: 0; }
+.kicker .dot { display: inline-block; width: 14px; height: 14px; background: var(--red); border-radius: 50%; margin-left: 10px; }
+.theme-red .kicker .dot { background: var(--white); }
+h1 { font-weight: 700; font-size: {{ headline_size }}px; line-height: 1.3; }
+.rule { width: 180px; height: 6px; background: var(--rule); }
+.sub { font-size: 34px; color: var(--muted); }
+.zone { background: var(--zone); border-radius: 24px; padding: 40px 44px; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 22px; overflow: hidden; }
+.zone.flat { flex: 0 0 auto; }
+.spacer { flex: 1; }
+.cta { background: var(--red); color: var(--white); font-weight: 700; font-size: 40px; padding: 26px 40px; border-radius: 18px; text-align: center; }
+.theme-red .cta { background: var(--rich); }
+.footer { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; color: var(--muted); font-size: 28px; }
+.footer .handle { direction: ltr; font-weight: 700; color: var(--fg); white-space: nowrap; }
+.footer .risk { flex: 1; line-height: 1.4; }
+.stamp { position: absolute; top: 24px; left: 24px; background: #FFD400; color: #000; font: 700 26px/1 "Cairo"; padding: 12px 18px; border-radius: 8px; z-index: 9; direction: ltr; }
+ul.points { list-style: none; display: flex; flex-direction: column; gap: 18px; }
+ul.points li { padding-right: 34px; position: relative; font-size: 32px; }
+ul.points li::before { content: ""; position: absolute; right: 0; top: 20px; width: 14px; height: 14px; background: var(--red); }
+.theme-red ul.points li::before { background: var(--white); }
+.source { font-size: 28px; color: var(--muted); direction: ltr; text-align: left; }
+{% block style %}{% endblock %}
+</style>
+</head>
+<body class="theme-{{ theme }}">
+<div class="canvas">
+  {% if sample %}<div class="stamp">SAMPLE DATA · NOT FOR PUBLISHING</div>{% endif %}
+  <div class="top">
+    {% if theme == "red" %}<div class="logo-chip"><img class="logo" src="{{ logo }}" alt="Tauro Markets"></div>
+    {% else %}<img class="logo" src="{{ logo }}" alt="Tauro Markets">{% endif %}
+    <div class="kicker"><span class="dot"></span>{{ kicker }}</div>
+  </div>
+  {% block body %}{% endblock %}
+  <div class="footer">
+    <div class="risk">{{ risk_line }}</div>
+    <div class="handle">{{ handle }}</div>
+  </div>
+</div>
+</body>
+</html>

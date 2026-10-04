@@ -1,0 +1,61 @@
+{
+  "brief": {
+    "priority": "normal",
+    "size": "1080x1350",
+    "visual_direction": "dark, calm, one big number",
+    "variations": 1,
+    "brief_id": "2026-09-28-03",
+    "publish_at": "2026-09-28T10:00:00+03:00",
+    "channels": [
+      "instagram_feed",
+      "telegram"
+    ],
+    "format": "single_post",
+    "template": "calendar_card",
+    "pillar": "market_news",
+    "goal": "awareness",
+    "topic": "This week's 3-star events",
+    "key_points": [],
+    "sources": [
+      "https://www.bls.gov/schedule/"
+    ],
+    "cta": "Save this post"
+  },
+  "copy": {
+    "headline": "أهم أحداث الأسبوع الاقتصادية",
+    "subline": "خلك جاهز قبل التقلبات",
+    "calendar": [
+      {
+        "time": "15:30 الثلاثاء",
+        "country": "🇺🇸 أمريكا",
+        "event": "مؤشر أسعار المستهلك CPI"
+      },
+      {
+        "time": "21:00 الأربعاء",
+        "country": "🇺🇸 أمريكا",
+        "event": "قرار الفائدة من الفيدرالي"
+      },
+      {
+        "time": "15:15 الخميس",
+        "country": "🇪🇺 أوروبا",
+        "event": "قرار الفائدة من المركزي الأوروبي"
+      },
+      {
+        "time": "15:30 الجمعة",
+        "country": "🇺🇸 أمريكا",
+        "event": "الوظائف غير الزراعية NFP"
+      }
+    ],
+    "cta": "احفظ البوست وارجع له",
+    "caption": "أهم أحداث الأسبوع…\n\nنظرة فنية وليست توصية تداول.\nإدارة رأس المال والمخاطر مسؤوليتك دائمًا.",
+    "brief_id": "2026-09-28-03",
+    "risk_line": "نظرة فنية وليست توصية تداول. إدارة رأس المال والمخاطر مسؤوليتك دائمًا.",
+    "hashtags": [
+      "#تورو_ماركتس",
+      "#تداول",
+      "#الكويت",
+      "#الذهب",
+      "#إدارة_المخاطر"
+    ]
+  }
+}

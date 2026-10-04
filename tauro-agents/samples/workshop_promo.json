@@ -1,0 +1,43 @@
+{
+  "brief": {
+    "priority": "normal",
+    "size": "1080x1350",
+    "visual_direction": "dark, calm, one big number",
+    "variations": 1,
+    "brief_id": "2026-09-28-05",
+    "publish_at": "2026-09-28T16:00:00+03:00",
+    "channels": [
+      "instagram_feed",
+      "telegram"
+    ],
+    "format": "single_post",
+    "template": "workshop_promo",
+    "pillar": "workshop",
+    "goal": "workshop_booking",
+    "topic": "Free risk-management workshop",
+    "key_points": [
+      "Mon–Wed 17:30–19:30",
+      "13 seats"
+    ],
+    "cta": "Book a free workshop seat"
+  },
+  "copy": {
+    "headline": "ورشة إدارة المخاطر المجانية",
+    "subline": "تعلّم كيف تحمي رأس مالك قبل لا تدور على الربح",
+    "bullets": [
+      "حجم الصفقة الصح لحسابك",
+      "وين تحط وقف الخسارة ولماذا"
+    ],
+    "cta": "احجز مقعدك المجاني",
+    "caption": "الورشة…\n\nنظرة فنية وليست توصية تداول.\nإدارة رأس المال والمخاطر مسؤوليتك دائمًا.",
+    "brief_id": "2026-09-28-05",
+    "risk_line": "نظرة فنية وليست توصية تداول. إدارة رأس المال والمخاطر مسؤوليتك دائمًا.",
+    "hashtags": [
+      "#تورو_ماركتس",
+      "#تداول",
+      "#الكويت",
+      "#الذهب",
+      "#إدارة_المخاطر"
+    ]
+  }
+}

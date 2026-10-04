@@ -1,0 +1,35 @@
+{
+  "brief": {
+    "priority": "normal",
+    "size": "1080x1350",
+    "visual_direction": "dark, calm, one big number",
+    "variations": 1,
+    "brief_id": "2026-09-28-04",
+    "publish_at": "2026-09-28T16:00:00+03:00",
+    "channels": [
+      "instagram_feed"
+    ],
+    "format": "single_post",
+    "template": "tip_card",
+    "pillar": "trust",
+    "goal": "engagement",
+    "topic": "Discipline beats luck",
+    "key_points": [],
+    "cta": "Follow for more"
+  },
+  "copy": {
+    "headline": "الانضباط يصنع المتداول، وليس الحظ",
+    "subline": "خطة واضحة، وقف خسارة، والتزام",
+    "cta": "تابعنا للمزيد",
+    "caption": "الانضباط…\n\nنظرة فنية وليست توصية تداول.\nإدارة رأس المال والمخاطر مسؤوليتك دائمًا.",
+    "brief_id": "2026-09-28-04",
+    "risk_line": "نظرة فنية وليست توصية تداول. إدارة رأس المال والمخاطر مسؤوليتك دائمًا.",
+    "hashtags": [
+      "#تورو_ماركتس",
+      "#تداول",
+      "#الكويت",
+      "#الذهب",
+      "#إدارة_المخاطر"
+    ]
+  }
+}

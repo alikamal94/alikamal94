@@ -1,0 +1,49 @@
+{
+  "brief": {
+    "priority": "normal",
+    "size": "1080x1920",
+    "visual_direction": "dark, calm, one big number",
+    "variations": 1,
+    "brief_id": "2026-09-28-06",
+    "publish_at": "2026-09-28T20:00:00+03:00",
+    "channels": [
+      "instagram_story"
+    ],
+    "format": "story",
+    "template": "poll_card",
+    "pillar": "engagement",
+    "goal": "engagement",
+    "topic": "Which session do you trade?",
+    "key_points": [],
+    "cta": "Vote in the comments"
+  },
+  "copy": {
+    "headline": "أي جلسة تتداول فيها أكثر؟",
+    "subline": "جاوبنا بالتعليقات",
+    "poll_options": [
+      {
+        "text": "الجلسة الآسيوية"
+      },
+      {
+        "text": "جلسة لندن"
+      },
+      {
+        "text": "جلسة نيويورك"
+      },
+      {
+        "text": "ما أتداول يومياً"
+      }
+    ],
+    "cta": "صوّت بالتعليقات",
+    "caption": "سؤال اليوم…\n\nنظرة فنية وليست توصية تداول.\nإدارة رأس المال والمخاطر مسؤوليتك دائمًا.",
+    "brief_id": "2026-09-28-06",
+    "risk_line": "نظرة فنية وليست توصية تداول. إدارة رأس المال والمخاطر مسؤوليتك دائمًا.",
+    "hashtags": [
+      "#تورو_ماركتس",
+      "#تداول",
+      "#الكويت",
+      "#الذهب",
+      "#إدارة_المخاطر"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block style %}
+.chart { flex: 1; min-height: 0; padding: 28px 24px; }
+.chart svg { width: 100%; height: 100%; }
+.legend { display: flex; gap: 36px; font-size: 28px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 22px; height: 22px; margin-left: 10px; vertical-align: -3px; border-radius: 4px; }
+.legend .s::before { background: rgba(254,0,0,.5); border: 2px solid #FE0000; }
+.legend .d::before { background: rgba(255,255,255,.3); border: 2px solid #FFF; }
+{% endblock %}
+{% block body %}
+  <h1>{{ copy.headline }}</h1>
+  <div class="rule"></div>
+  {% if copy.subline %}<p class="sub">{{ copy.subline }}</p>{% endif %}
+  <div class="zone chart">{{ chart_svg | safe }}</div>
+  <div class="legend"><span class="s">منطقة عرض</span><span class="d">منطقة طلب</span><span>{{ symbol }} · {{ timeframe }}</span></div>
+  <div class="cta">{{ copy.cta }}</div>
+{% endblock %}
