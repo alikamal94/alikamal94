@@ -26,7 +26,7 @@ def test_page_has_brand_basics(sample):
     page = Renderer(SampleProvider()).pages(*sample("news_card"))[0]
     assert 'dir="rtl"' in page.html
     assert "tauro-logo-reversed.png" in page.html
-    assert "@tauromarkets_me" in page.html
+    assert "@tauromarketsme" in page.html
     assert "Cairo-Bold.ttf" in page.html
 
 

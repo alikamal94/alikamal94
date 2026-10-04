@@ -8,7 +8,7 @@ ALL = ["news_card", "gold_chart", "calendar_card", "tip_card", "workshop_promo",
 
 
 def test_knowledge_parsing():
-    assert knowledge.handle() == "@tauromarkets_me"
+    assert knowledge.handle() == "@tauromarketsme"
     assert "guaranteed" in knowledge.banned_phrases()
     assert knowledge.gold_zones() == []  # placeholder zones (0 | 0) are ignored until Ali sets real ones
     assert ("XAUUSD", 1.0, 4) in knowledge.watchlist()
@@ -29,7 +29,7 @@ def test_banned_phrase_even_with_diacritics(sample):
 
 def test_wrong_handle(sample):
     brief, copy = sample("news_card")
-    copy.caption += " تابعونا @tauromarketsme"
+    copy.caption += " تابعونا @tauromarkets_me"
     assert any("handle misspelled" in r for r in hard_checks(brief, copy))
 
 

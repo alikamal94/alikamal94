@@ -1,8 +1,8 @@
 # Brand facts
 Used by: Content Strategist (2), Design Agent (3), Arabic Copywriter (4).
 
-- Instagram handle: **@tauromarkets_me**
-  <!-- TODO(Ali): the build spec writes "@tauromarketsme" but the brand guidelines V2 write "@tauromarkets_me". Confirm which one is correct; QA checks the spelling against this line. -->
+- Instagram handle: **@tauromarketsme**
+  (Confirmed by Ali Kamal, 4 Oct 2026. The brand guidelines V2 PDF shows "@tauromarkets_me"; that spelling is wrong and QA rejects it.)
 - Website: tauromarkets.com
 - Trading platform: MetaTrader 5 (MT5)
 - Asset classes: Forex, Gold, Indices, Commodities, Crypto

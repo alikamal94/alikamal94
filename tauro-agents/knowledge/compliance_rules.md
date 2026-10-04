@@ -1,7 +1,8 @@
 # Compliance rules
 Used by: Arabic Copywriter (4), Compliance & Brand QA (5).
 
-<!-- TODO(Ali / compliance counsel): confirm which regulator's rules apply and the exact risk-disclaimer wording in writing. QA enforces exactly what is written here. -->
+Approved by Ali Kamal on behalf of Tauro Markets, 4 Oct 2026. QA enforces exactly what is written here.
+<!-- If a regulator later requires specific wording, replace the risk line below; every agent picks it up on the next run. -->
 
 ## Required risk line
 Every post that talks about trading must include this risk line (Arabic, then English where English is used):

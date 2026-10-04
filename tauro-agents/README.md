@@ -69,8 +69,6 @@ message. It replies with your chat id, which goes in `TELEGRAM_APPROVER_CHAT_ID`
 
 Every agent reads these before it works. Ali owns them. Items marked `TODO(Ali)` still need input:
 
-- **Instagram handle:** the spec says `@tauromarketsme`, the brand guide says `@tauromarkets_me`. The code currently uses the brand guide's spelling.
-- **Risk disclaimer:** the exact wording, and which regulator applies (needs compliance counsel).
 - **Approved offers:** none yet, so QA blocks every offer.
 - **Gold levels:** your current H4 zones.
 - **Voice guide:** about 20 sample captions you've approved.
