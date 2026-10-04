@@ -17,7 +17,7 @@ Used by: Arabic Copywriter (4), Compliance & Brand QA (5).
 - On-image headline: about 8 words maximum.
 - Each brief gets: on-image headline, caption, hook line, one CTA, 5–10 hashtags.
 - Reels and key posts get 2 hook options.
-- Numbers inside Arabic copy use Arabic-Indic digits (٠١٢٣٤٥٦٧٨٩).
+- Use Western digits (4455, 17:30) for all numbers, prices and times, even inside Arabic copy.
 
 ## Words to use / avoid
 <!-- TODO(Ali): add Kuwaiti words and phrases you like, and ones to avoid. -->

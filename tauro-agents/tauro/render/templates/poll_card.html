@@ -4,12 +4,12 @@
 .opt .k { width: 56px; height: 56px; border-radius: 50%; background: var(--red); color: #fff; display: grid; place-items: center; font-size: 30px; flex: 0 0 auto; }
 {% endblock %}
 {% block body %}
-  <h1>{{ copy.headline | ar }}</h1>
+  <h1>{{ copy.headline }}</h1>
   <div class="rule"></div>
-  {% if copy.subline %}<p class="sub">{{ copy.subline | ar }}</p>{% endif %}
+  {% if copy.subline %}<p class="sub">{{ copy.subline }}</p>{% endif %}
   <div class="zone flat">
-    {% for o in copy.poll_options %}<div class="opt"><span class="k">{{ "أبجد"[loop.index0] if loop.index0 < 4 else loop.index }}</span>{{ o.text | ar }}</div>{% endfor %}
+    {% for o in copy.poll_options %}<div class="opt"><span class="k">{{ "أبجد"[loop.index0] if loop.index0 < 4 else loop.index }}</span>{{ o.text }}</div>{% endfor %}
   </div>
   <div class="spacer"></div>
-  <div class="cta">{{ copy.cta | ar }}</div>
+  <div class="cta">{{ copy.cta }}</div>
 {% endblock %}

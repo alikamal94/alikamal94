@@ -6,9 +6,9 @@ h1.quote { font-size: {{ headline_size + 8 }}px; }
 {% block body %}
   <div class="spacer"></div>
   <div class="quote-mark">”</div>
-  <h1 class="quote">{{ copy.headline | ar }}</h1>
+  <h1 class="quote">{{ copy.headline }}</h1>
   <div class="rule"></div>
-  {% if copy.subline %}<p class="sub">{{ copy.subline | ar }}</p>{% endif %}
+  {% if copy.subline %}<p class="sub">{{ copy.subline }}</p>{% endif %}
   <div class="spacer"></div>
-  <div class="cta">{{ copy.cta | ar }}</div>
+  <div class="cta">{{ copy.cta }}</div>
 {% endblock %}

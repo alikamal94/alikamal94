@@ -85,6 +85,10 @@ class MT5Provider:
 def get_provider(name: str) -> PriceProvider:
     if name == "mt5":
         return MT5Provider()
+    if name == "tradingview":
+        from .tradingview import TradingViewProvider
+
+        return TradingViewProvider()
     if name == "sample":
         return SampleProvider()
     raise ValueError(f"unknown price provider {name!r}")

@@ -8,14 +8,14 @@ td.country { white-space: nowrap; width: 170px; color: var(--muted); }
 .stars { color: var(--red); letter-spacing: 4px; font-size: 26px; }
 {% endblock %}
 {% block body %}
-  <h1>{{ copy.headline | ar }}</h1>
+  <h1>{{ copy.headline }}</h1>
   <div class="rule"></div>
-  {% if copy.subline %}<p class="sub">{{ copy.subline | ar }}</p>{% endif %}
+  {% if copy.subline %}<p class="sub">{{ copy.subline }}</p>{% endif %}
   <div class="zone">
     <div class="stars">★★★ <span style="color:var(--muted);letter-spacing:0">أحداث عالية التأثير · بتوقيت الكويت</span></div>
     <table>{% for r in copy.calendar %}
-      <tr><td class="time">{{ r.time | ar }}</td><td class="country">{{ r.country }}</td><td>{{ r.event | ar }}</td></tr>
+      <tr><td class="time">{{ r.time }}</td><td class="country">{{ r.country }}</td><td>{{ r.event }}</td></tr>
     {% endfor %}</table>
   </div>
-  <div class="cta">{{ copy.cta | ar }}</div>
+  <div class="cta">{{ copy.cta }}</div>
 {% endblock %}

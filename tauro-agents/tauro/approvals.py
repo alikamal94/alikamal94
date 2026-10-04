@@ -18,12 +18,14 @@ class Approver(Protocol):
     def notify(self, text: str) -> None: ...
 
 
-def card_text(brief: Brief, copy: Copy, verdict: QAVerdict, note: str = "") -> str:
+def card_text(brief: Brief, copy: Copy, verdict: QAVerdict, note: str = "", design: DesignOutput | None = None) -> str:
     lines = [f"🆔 {brief.brief_id} · {brief.template.value} · {brief.publish_at[11:16]} · {', '.join(c.value for c in brief.channels)}"]
     if brief.priority.value == "breaking":
         lines.insert(0, "🚨 BREAKING — fast track")
     if note:
         lines.append(f"⚠️ {note}")
+    for n in design.notes if design else []:
+        lines.append(f"ℹ️ {n}")
     if verdict.verdict == "fail":
         lines.append("❌ QA: " + "; ".join(verdict.reasons))
     lines += ["", copy.caption, "", " ".join(copy.hashtags)]
@@ -41,7 +43,7 @@ class FileApprover:
 
     def send(self, brief: Brief, copy: Copy, design: DesignOutput, verdict: QAVerdict, note: str = "") -> None:
         images = "\n".join(f"![]({Path(p).resolve().as_uri()})" for p in design.images)
-        (self.dir / f"{brief.brief_id}.md").write_text(f"{card_text(brief, copy, verdict, note)}\n\n{images}\n", encoding="utf-8")
+        (self.dir / f"{brief.brief_id}.md").write_text(f"{card_text(brief, copy, verdict, note, design)}\n\n{images}\n", encoding="utf-8")
 
     def notify(self, text: str) -> None:
         with (self.dir / "_notifications.log").open("a", encoding="utf-8") as f:
@@ -74,7 +76,7 @@ class TelegramApprover:
                     InlineKeyboardButton("✏️ Edit", callback_data=f"edit:{brief.brief_id}"),
                     InlineKeyboardButton("❌ Reject", callback_data=f"reject:{brief.brief_id}"),
                 ]])
-            await bot.send_message(self.chat_id, card_text(brief, copy, verdict, note)[:4000], reply_markup=keyboard)
+            await bot.send_message(self.chat_id, card_text(brief, copy, verdict, note, design)[:4000], reply_markup=keyboard)
 
     def send(self, brief: Brief, copy: Copy, design: DesignOutput, verdict: QAVerdict, note: str = "") -> None:
         asyncio.run(self._send(brief, copy, design, verdict, note))

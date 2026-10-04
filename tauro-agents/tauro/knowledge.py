@@ -63,6 +63,14 @@ def gold_zones(kb_dir: Path | None = None) -> list[Zone]:
     return zones
 
 
+def gold_levels_updated(kb_dir: Path | None = None):
+    """The 'Last updated: YYYY-MM-DD' date in gold_levels.md, or None if not set."""
+    from datetime import date
+
+    m = re.search(r"Last updated:\s*(\d{4}-\d{2}-\d{2})", read("gold_levels.md", kb_dir))
+    return date.fromisoformat(m.group(1)) if m else None
+
+
 def watchlist(kb_dir: Path | None = None) -> list[tuple[str, float, int]]:
     rows = []
     for line in _block(read("watchlist.md", kb_dir), "watchlist"):

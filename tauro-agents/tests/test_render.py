@@ -2,11 +2,19 @@ import pytest
 from PIL import Image
 
 from tauro.data.prices import SampleProvider
-from tauro.render.renderer import Renderer, theme_for, to_arabic_digits
+from tauro.render.renderer import Renderer, theme_for
 
 
-def test_arabic_digits():
-    assert to_arabic_digits("17:30 – 19:30") == "١٧:٣٠ – ١٩:٣٠"
+def test_western_digits(sample):
+    page = Renderer(SampleProvider()).pages(*sample("workshop_promo"))[0]
+    assert "\u206617:30 – 19:30\u2069" in page.html and "١٧" not in page.html
+
+
+def test_number_ranges_kept_left_to_right():
+    from tauro.render.renderer import keep_ranges_ltr
+
+    assert keep_ranges_ltr("منطقة 4455 – 4475 مهمة") == "منطقة \u20664455 – 4475\u2069 مهمة"
+    assert keep_ranges_ltr("بدون أرقام") == "بدون أرقام"
 
 
 def test_themes_follow_grid(sample):

@@ -21,6 +21,15 @@ def required_risk_line(kb_dir: Path | None = None) -> str:
     return m.group(1).strip() if m else ""
 
 
+def disclaimer_lines(kb_dir: Path | None = None) -> list[str]:
+    return knowledge._block(knowledge.read("compliance_rules.md", kb_dir), "disclaimer")
+
+
+def ends_with_disclaimer(text: str, lines: list[str]) -> bool:
+    tail = [ln.strip() for ln in text.strip().splitlines() if ln.strip()][-len(lines):]
+    return tail == lines
+
+
 def approved_offers(kb_dir: Path | None = None) -> list[str]:
     text = knowledge.read("brand_facts.md", kb_dir)
     section = text.split("## Approved offers", 1)[-1]
@@ -53,6 +62,13 @@ def hard_checks(brief: Brief, copy: Copy, kb_dir: Path | None = None) -> list[st
     risk = required_risk_line(kb_dir)
     if risk and risk not in copy.risk_line:
         reasons.append("risk line missing or not the approved wording from compliance_rules.md")
+
+    disclaimer = disclaimer_lines(kb_dir)
+    if disclaimer:
+        if not ends_with_disclaimer(copy.caption, disclaimer):
+            reasons.append("caption must end with the two-line disclaimer from compliance_rules.md")
+        if copy.telegram_text and not ends_with_disclaimer(copy.telegram_text, disclaimer):
+            reasons.append("Telegram post must end with the two-line disclaimer from compliance_rules.md")
 
     official = knowledge.handle(kb_dir).lower()
     for h in re.findall(r"@tauro[\w.]*", text, re.I):

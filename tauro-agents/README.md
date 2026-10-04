@@ -10,6 +10,7 @@ This is **Phase 0 (foundations) + the Phase 1 core team (agents 1–5)**. Phase 
 | # | Agent | File | How it works |
 |---|-------|------|--------------|
 | 1 | Market Intelligence & News | `tauro/agents/market_intel.py` | Claude + web search. Big-move check (e.g. gold ±1% in 4h) is plain code on price data |
+| — | Gold zones | `tauro/zones.py` | Ali's zones from `gold_levels.md`; if none or older than 14 days, provisional zones from H4 swing pivots (15–25 pt bands), flagged "unconfirmed" on the approval card |
 | 2 | Content Strategist | `tauro/agents/strategist.py` | Claude Opus 5.5 → daily plan + one brief JSON per post |
 | 3 | Design Agent | `tauro/agents/designer.py` | Deterministic: HTML/CSS templates → PNG with headless Chromium; chart drawn in code |
 | 4 | Arabic Copywriter | `tauro/agents/copywriter.py` | Claude Sonnet 5.5, Kuwaiti dialect, voice + compliance files in the prompt |
@@ -27,7 +28,14 @@ Agents 6–8 (Publisher, Analytics, Competitor Watch) are Phases 2–3 and not b
 ## The 7 templates
 
 `news_card` · `gold_chart` · `calendar_card` · `edu_carousel` (cover → 4 slides → red CTA) · `tip_card` · `workshop_promo` · `poll_card`.
-Each one follows the brand guide: Cairo font, right-to-left Arabic with Arabic-Indic digits, reversed logo top right, red rule under the headline, one red CTA strip, and the handle and risk line in the footer. Backgrounds follow the grid: dark for analysis and education, white for trust, red for promo.
+Each one follows the brand guide: Cairo font, right-to-left Arabic with Western digits, reversed logo top right, red rule under the headline, one red CTA strip, and the handle and risk line in the footer. Backgrounds follow the grid: dark for analysis and education, white for trust, red for promo.
+
+## Price data
+
+Set `TAURO_PRICE_PROVIDER` in `.env`:
+- `sample`: made-up prices for testing. Charts are stamped SAMPLE DATA and QA always blocks them.
+- `tradingview`: your TradingView, through the same connector the Claude app uses on your Mac. Set `TAURO_TV_MCP_COMMAND` to the command that starts it (copy it from the Claude app's connector settings) and `pip install -e ".[tradingview]"`. It reads bars only and puts your chart back on its original timeframe. It never draws on your chart and never screenshots it. Works only while your Mac is on and TradingView is open.
+- `mt5`: Tauro's own feed (Windows host + MT5 investor login), for running 24/7 on a server.
 
 ## Run it on your laptop
 

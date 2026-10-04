@@ -21,7 +21,7 @@ Brief rules:
 - publish_at uses the Kuwait offset +03:00 and one of the slots 10:00, 16:00, 20:00 (stories may use 16:30 on workshop days).
 - size: 1080x1920 for story and reel_cover, otherwise 1080x1350.
 - edu_carousel always means 6 slides: cover, 4 content slides, red CTA slide.
-- gold_chart briefs use data.symbol XAUUSD, timeframe H4, and only Ali's zones from gold_levels.md. If no zones are set, do not plan a gold_chart post; plan a different gold_analysis format and say why in notes.
+- gold_chart briefs use data.symbol XAUUSD and timeframe H4. Copy Ali's zones from gold_levels.md into data.zones only if they are dated within the last 14 days; otherwise leave data.zones empty and the Designer derives provisional zones for Ali to confirm. Never invent levels and never take them from another channel.
 - Every market_news brief carries the source links from the Market Brief.
 - Never plan a post about an offer that is not on the approved list in brand_facts.md.
 - One CTA per post. Use variations=2 for key posts so Ali can choose.

@@ -135,6 +135,7 @@ class DesignOutput(BaseModel):
     images: list[str]
     canva_edit_link: str = ""
     variation: int = 1
+    notes: list[str] = Field(default_factory=list)
 
 
 class QAVerdict(BaseModel):

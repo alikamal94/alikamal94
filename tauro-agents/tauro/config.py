@@ -41,7 +41,7 @@ class Settings:
     telegram_approver_chat_id: str = _env("TELEGRAM_APPROVER_CHAT_ID")
     telegram_backup_chat_id: str = _env("TELEGRAM_BACKUP_CHAT_ID")
     chromium_path: str = _env("TAURO_CHROMIUM_PATH")  # optional: use a specific Chromium build
-    price_provider: str = _env("TAURO_PRICE_PROVIDER", "sample")  # sample | mt5
+    price_provider: str = _env("TAURO_PRICE_PROVIDER", "sample")  # sample | mt5 | tradingview
     max_qa_retries: int = int(_env("TAURO_MAX_QA_RETRIES", "2"))
     monthly_budget_usd: float = float(_env("TAURO_MONTHLY_BUDGET_USD", "250"))
 

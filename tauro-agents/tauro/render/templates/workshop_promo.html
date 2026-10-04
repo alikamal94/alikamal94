@@ -6,17 +6,17 @@
 .fact span { font-size: 28px; opacity: .9; }
 {% endblock %}
 {% block body %}
-  <h1>{{ copy.headline | ar }}</h1>
+  <h1>{{ copy.headline }}</h1>
   <div class="rule"></div>
-  {% if copy.subline %}<p class="sub">{{ copy.subline | ar }}</p>{% endif %}
+  {% if copy.subline %}<p class="sub">{{ copy.subline }}</p>{% endif %}
   <div class="zone">
     <div class="facts">
       <div class="fact"><b>{{ "الإثنين · الثلاثاء · الأربعاء" }}</b><span>أيام الورشة</span></div>
-      <div class="fact"><b>{{ "17:30 – 19:30" | ar }}</b><span>بتوقيت الكويت</span></div>
-      <div class="fact"><b>{{ "13 مقعد" | ar }}</b><span>لكل جلسة</span></div>
+      <div class="fact"><b>⁦17:30 – 19:30⁩</b><span>بتوقيت الكويت</span></div>
+      <div class="fact"><b>{{ "13 مقعد" }}</b><span>لكل جلسة</span></div>
       <div class="fact"><b>مجانية</b><span>للمتداولين في الخليج</span></div>
     </div>
-    <ul class="points">{% for b in copy.bullets %}<li>{{ b | ar }}</li>{% endfor %}</ul>
+    <ul class="points">{% for b in copy.bullets %}<li>{{ b }}</li>{% endfor %}</ul>
   </div>
-  <div class="cta">{{ copy.cta | ar }}</div>
+  <div class="cta">{{ copy.cta }}</div>
 {% endblock %}

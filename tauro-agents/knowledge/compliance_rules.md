@@ -5,9 +5,14 @@ Approved by Ali Kamal on behalf of Tauro Markets, 4 Oct 2026. QA enforces exactl
 <!-- If a regulator later requires specific wording, replace the risk line below; every agent picks it up on the next run. -->
 
 ## Required risk line
-Every post that talks about trading must include this risk line (Arabic, then English where English is used):
-- AR: التداول ينطوي على مخاطر عالية وقد تخسر رأس مالك. تداول بمسؤولية.
-- EN: Trading involves high risk and you may lose your capital. Trade responsibly.
+Every post carries this line on the graphic (risk_line):
+- AR: نظرة فنية وليست توصية تداول. إدارة رأس المال والمخاطر مسؤوليتك دائمًا.
+
+Every caption and Telegram post ends with exactly these two lines:
+```disclaimer
+نظرة فنية وليست توصية تداول.
+إدارة رأس المال والمخاطر مسؤوليتك دائمًا.
+```
 
 ## Never
 - No guaranteed returns, no "guaranteed", no unrealistic income or profit claims.

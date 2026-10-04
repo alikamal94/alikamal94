@@ -74,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
     r = sub.add_parser("render", help="render brief+copy JSON files to PNG")
     r.add_argument("files", nargs="+")
     r.add_argument("--out", default=str(settings.out_dir / "renders"))
-    r.add_argument("--prices", choices=["sample", "mt5"])
+    r.add_argument("--prices", choices=["sample", "mt5", "tradingview"])
     r.set_defaults(fn=cmd_render)
     q = sub.add_parser("qa-check", help="run the code-level QA rules on brief+copy JSON files")
     q.add_argument("files", nargs="+")

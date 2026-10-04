@@ -1,7 +1,9 @@
 """Deterministic rendering: template HTML/CSS → PNG with headless Chromium (Playwright)."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
@@ -11,9 +13,29 @@ from ..config import settings
 from ..data.prices import PriceProvider
 from ..schemas import Brief, Copy, Pillar, Template
 from .chart import candle_svg
+from ..zones import derive_zones, is_stale
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
-ARABIC_DIGITS = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
+# A number range such as "17:30 – 19:30" or "4455-4475" flips inside right-to-left text; isolating it keeps it in order.
+NUMBER_RANGE = re.compile(r"\d[\d.,:]*\s*[–—-]\s*\d[\d.,:]*")
+LRI, PDI = "\u2066", "\u2069"
+
+
+def keep_ranges_ltr(text: str) -> str:
+    return NUMBER_RANGE.sub(lambda m: f"{LRI}{m.group(0)}{PDI}", text)
+
+
+def _fix_copy(copy: Copy) -> Copy:
+    def walk(v):
+        if isinstance(v, str):
+            return keep_ranges_ltr(v)
+        if isinstance(v, list):
+            return [walk(x) for x in v]
+        if isinstance(v, dict):
+            return {k: walk(x) for k, x in v.items()}
+        return v
+
+    return Copy.model_validate(walk(copy.model_dump()))
 
 KICKER = {
     Pillar.market_news: "أخبار السوق",
@@ -23,11 +45,6 @@ KICKER = {
     Pillar.trust: "قيمنا",
     Pillar.engagement: "شاركنا رأيك",
 }
-
-
-def to_arabic_digits(text: str) -> str:
-    """Brand rule: Arabic-Indic numerals in Arabic copy."""
-    return str(text).translate(ARABIC_DIGITS)
 
 
 def theme_for(brief: Brief) -> str:
@@ -44,14 +61,16 @@ class RenderedPage:
     html: str
     width: int
     height: int
+    notes: list[str] = field(default_factory=list)
 
 
 class Renderer:
-    def __init__(self, prices: PriceProvider, kb_dir: Path | None = None) -> None:
+    def __init__(self, prices: PriceProvider, kb_dir: Path | None = None, today: date | None = None) -> None:
         self.prices = prices
         self.kb_dir = kb_dir
+        self.today = today
+        self.last_notes: list[str] = []
         self.env = Environment(loader=FileSystemLoader(TEMPLATES_DIR), undefined=StrictUndefined, autoescape=True)
-        self.env.filters["ar"] = to_arabic_digits
 
     def _logo(self, theme: str) -> str:
         name = "tauro-logo-primary.png" if theme == "white" else "tauro-logo-reversed.png"
@@ -60,7 +79,9 @@ class Renderer:
     def pages(self, brief: Brief, copy: Copy) -> list[RenderedPage]:
         w, h = (int(x) for x in brief.size.split("x"))
         theme = theme_for(brief)
+        copy = _fix_copy(copy)
         sample = False
+        notes: list[str] = []
         base = dict(
             w=w, h=h, theme=theme, logo=self._logo(theme),
             fonts=(settings.assets_dir / "fonts").as_uri(),
@@ -74,7 +95,16 @@ class Renderer:
             timeframe = brief.data.timeframe or "H4"
             candles = self.prices.candles(symbol, timeframe, 60)
             sample = self.prices.is_sample
-            zones = brief.data.zones or knowledge.gold_zones(self.kb_dir)
+            zones = brief.data.zones
+            if not zones:
+                kb_zones = knowledge.gold_zones(self.kb_dir)
+                if kb_zones and not is_stale(knowledge.gold_levels_updated(self.kb_dir), self.today or date.today()):
+                    zones = kb_zones
+                else:
+                    zones = derive_zones(candles)
+                    shown = ", ".join(f"{z.kind} {z.low:.2f}–{z.high:.2f}" for z in zones) or "none found"
+                    notes.append(f"Zones auto-derived from H4 swings and unconfirmed ({shown}). "
+                                 "Confirm or replace them in gold_levels.md.")
             chart_h = 1000 if h > 1400 else 440
             base |= dict(symbol=symbol, timeframe=timeframe,
                          chart_svg=candle_svg(candles, zones, width=w - 2 * 72 - 48, height=chart_h))
@@ -93,7 +123,7 @@ class Renderer:
             return out
 
         tpl = self.env.get_template(f"{brief.template.value}.html")
-        return [RenderedPage(tpl.render(**base), w, h)]
+        return [RenderedPage(tpl.render(**base), w, h, notes)]
 
     def render(self, brief: Brief, copy: Copy, out_dir: Path, variation: int = 1) -> list[Path]:
         from playwright.sync_api import sync_playwright
@@ -101,6 +131,7 @@ class Renderer:
         out_dir = out_dir.resolve()
         out_dir.mkdir(parents=True, exist_ok=True)
         pages = self.pages(brief, copy)
+        self.last_notes = [n for p in pages for n in p.notes]
         paths = []
         with sync_playwright() as p:
             browser = p.chromium.launch(executable_path=settings.chromium_path or None)

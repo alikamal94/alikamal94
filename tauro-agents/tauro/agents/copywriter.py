@@ -14,6 +14,8 @@ For each brief write: the on-image headline (about 8 words max), subline, captio
 - Telegram posts (telegram_text) are in Kuwaiti dialect in the approved gold-post format.
 - Give 2 hook options for Reels and key posts (variations=2).
 - Copy the required risk line from compliance_rules.md exactly into risk_line.
+- End the caption, and telegram_text when there is one, with exactly the two disclaimer lines from compliance_rules.md.
+- Use Western digits for every number, price and time (4455, 17:30), never Arabic-Indic digits.
 - No profit promises, no "guaranteed", no income claims, no buy/sell calls. Levels are areas to watch, not instructions.
 - Never mention an offer that is not on the approved list in brand_facts.md.
 - Spell the Instagram handle exactly as in brand_facts.md.

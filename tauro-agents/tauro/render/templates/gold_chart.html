@@ -8,10 +8,10 @@
 .legend .d::before { background: rgba(255,255,255,.3); border: 2px solid #FFF; }
 {% endblock %}
 {% block body %}
-  <h1>{{ copy.headline | ar }}</h1>
+  <h1>{{ copy.headline }}</h1>
   <div class="rule"></div>
-  {% if copy.subline %}<p class="sub">{{ copy.subline | ar }}</p>{% endif %}
+  {% if copy.subline %}<p class="sub">{{ copy.subline }}</p>{% endif %}
   <div class="zone chart">{{ chart_svg | safe }}</div>
   <div class="legend"><span class="s">منطقة عرض</span><span class="d">منطقة طلب</span><span>{{ symbol }} · {{ timeframe }}</span></div>
-  <div class="cta">{{ copy.cta | ar }}</div>
+  <div class="cta">{{ copy.cta }}</div>
 {% endblock %}

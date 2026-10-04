@@ -12,7 +12,7 @@ def test_knowledge_parsing():
     assert "guaranteed" in knowledge.banned_phrases()
     assert knowledge.gold_zones() == []  # placeholder zones (0 | 0) are ignored until Ali sets real ones
     assert ("XAUUSD", 1.0, 4) in knowledge.watchlist()
-    assert required_risk_line().startswith("التداول ينطوي")
+    assert required_risk_line() == "نظرة فنية وليست توصية تداول. إدارة رأس المال والمخاطر مسؤوليتك دائمًا."
 
 
 @pytest.mark.parametrize("name", ALL)
@@ -58,3 +58,9 @@ def test_carousel_needs_four_slides(sample):
     brief, copy = sample("edu_carousel")
     copy.slides = copy.slides[:3]
     assert any("4 content slides" in r for r in hard_checks(brief, copy))
+
+
+def test_telegram_post_must_end_with_disclaimer(sample):
+    brief, copy = sample("gold_chart")
+    copy.telegram_text = "صباح الخير"
+    assert any("Telegram post must end" in r for r in hard_checks(brief, copy))

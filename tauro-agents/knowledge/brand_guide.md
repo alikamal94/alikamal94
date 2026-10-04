@@ -37,7 +37,7 @@ Used by: Design Agent (3), Compliance & Brand QA (5).
 - Arabic is always right-aligned (RTL). English is left-aligned.
 - Never mix more than two typefaces in one design.
 - Minimum body size: 28 pt on a 1080 px canvas.
-- Use Arabic-Indic numerals (٠١٢٣٤٥٦٧٨٩) in Arabic copy.
+- Numerals: Western digits (0123456789) for prices, times and all numbers. This overrides the brand PDF's Arabic-Indic rule (Ali, 4 Oct 2026).
 - Weight, not typeface, creates the hierarchy (700 for hooks, 400 for support).
 
 ## Instagram system: the 3-pillar grid
