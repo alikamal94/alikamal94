@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block style %}
+.num { font-size: 140px; font-weight: 700; color: var(--red); line-height: 1; }
+.swipe { font-size: 30px; color: var(--muted); }
+.slide-body { font-size: 36px; line-height: 1.6; }
+.dots { display: flex; gap: 12px; justify-content: center; }
+.dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--muted); opacity: .35; }
+.dots i.on { opacity: 1; background: var(--red); }
+.theme-red .dots i.on { background: var(--white); }
+{% endblock %}
+{% block body %}
+  {% if slide_kind == "cover" %}
+    <div class="spacer"></div>
+    <h1>{{ copy.headline | ar }}</h1>
+    <div class="rule"></div>
+    {% if copy.subline %}<p class="sub">{{ copy.subline | ar }}</p>{% endif %}
+    <div class="spacer"></div>
+    <div class="swipe">اسحب للتعلّم ←</div>
+  {% elif slide_kind == "content" %}
+    <div class="num">{{ slide_no | string | ar }}</div>
+    <h1>{{ slide.headline | ar }}</h1>
+    <div class="rule"></div>
+    <div class="zone flat"><p class="slide-body">{{ slide.body | ar }}</p></div>
+    <div class="spacer"></div>
+  {% else %}
+    <div class="spacer"></div>
+    <h1>{{ copy.cta | ar }}</h1>
+    <div class="rule"></div>
+    <p class="sub">تابعنا للمزيد من المحتوى التعليمي</p>
+    <div class="spacer"></div>
+  {% endif %}
+  <div class="dots">{% for i in range(6) %}<i class="{{ 'on' if i == slide_index else '' }}"></i>{% endfor %}</div>
+{% endblock %}

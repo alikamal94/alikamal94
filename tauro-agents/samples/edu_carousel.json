@@ -1,0 +1,53 @@
+{
+  "brief": {
+    "priority": "normal",
+    "size": "1080x1350",
+    "visual_direction": "dark, calm, one big number",
+    "variations": 1,
+    "brief_id": "2026-09-28-07",
+    "publish_at": "2026-09-28T20:00:00+03:00",
+    "channels": [
+      "instagram_feed"
+    ],
+    "format": "carousel",
+    "template": "edu_carousel",
+    "pillar": "education",
+    "goal": "engagement",
+    "topic": "What is liquidity and why price moves toward it",
+    "key_points": [],
+    "cta": "Follow for more"
+  },
+  "copy": {
+    "headline": "ما هي السيولة؟ ولماذا يتحرك السعر نحوها؟",
+    "subline": "شرح مبسّط في ٤ شرائح",
+    "slides": [
+      {
+        "headline": "السيولة = أوامر معلّقة",
+        "body": "فوق القمم وتحت القيعان تتجمع أوامر وقف الخسارة وأوامر الدخول."
+      },
+      {
+        "headline": "ليش السعر يروح لها؟",
+        "body": "الصفقات الكبيرة تحتاج طرف مقابل، والسيولة توفره."
+      },
+      {
+        "headline": "كيف تشوفها على الشارت",
+        "body": "القمم والقيعان المتساوية علامة على تجمع أوامر."
+      },
+      {
+        "headline": "الدرس الأهم",
+        "body": "لا تحط وقفك في نفس مكان الكل. خطّط قبل لا تدخل."
+      }
+    ],
+    "cta": "تابع للمزيد",
+    "caption": "السيولة…",
+    "brief_id": "2026-09-28-07",
+    "risk_line": "التداول ينطوي على مخاطر عالية وقد تخسر رأس مالك. تداول بمسؤولية.",
+    "hashtags": [
+      "#تورو_ماركتس",
+      "#تداول",
+      "#الكويت",
+      "#الذهب",
+      "#إدارة_المخاطر"
+    ]
+  }
+}

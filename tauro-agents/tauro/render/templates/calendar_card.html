@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block style %}
+table { width: 100%; border-collapse: collapse; font-size: 30px; }
+td { padding: 20px 8px; border-bottom: 2px solid rgba(179,179,179,.18); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td.time { font-weight: 700; white-space: nowrap; width: 150px; color: var(--red); }
+td.country { white-space: nowrap; width: 170px; color: var(--muted); }
+.stars { color: var(--red); letter-spacing: 4px; font-size: 26px; }
+{% endblock %}
+{% block body %}
+  <h1>{{ copy.headline | ar }}</h1>
+  <div class="rule"></div>
+  {% if copy.subline %}<p class="sub">{{ copy.subline | ar }}</p>{% endif %}
+  <div class="zone">
+    <div class="stars">★★★ <span style="color:var(--muted);letter-spacing:0">أحداث عالية التأثير · بتوقيت الكويت</span></div>
+    <table>{% for r in copy.calendar %}
+      <tr><td class="time">{{ r.time | ar }}</td><td class="country">{{ r.country }}</td><td>{{ r.event | ar }}</td></tr>
+    {% endfor %}</table>
+  </div>
+  <div class="cta">{{ copy.cta | ar }}</div>
+{% endblock %}

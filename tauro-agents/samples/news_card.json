@@ -1,0 +1,48 @@
+{
+  "brief": {
+    "priority": "normal",
+    "size": "1080x1350",
+    "visual_direction": "dark, calm, one big number",
+    "variations": 1,
+    "brief_id": "2026-09-28-01",
+    "publish_at": "2026-09-28T10:00:00+03:00",
+    "channels": [
+      "instagram_feed",
+      "telegram"
+    ],
+    "format": "single_post",
+    "template": "news_card",
+    "pillar": "market_news",
+    "goal": "awareness",
+    "topic": "Fed holds rates — what it means for gold",
+    "key_points": [
+      "Fed kept rates unchanged",
+      "Statement points to data-dependence"
+    ],
+    "sources": [
+      "https://www.federalreserve.gov/newsevents/pressreleases.htm"
+    ],
+    "cta": "Follow for the full analysis"
+  },
+  "copy": {
+    "headline": "الفيدرالي يثبّت الفائدة… شنو يعني للذهب؟",
+    "subline": "قرار متوقع، والسوق يركز على لهجة البيان",
+    "bullets": [
+      "الفائدة بقت على حالها في اجتماع سبتمبر",
+      "البيان ربط أي تغيير قادم بالبيانات",
+      "تقلبات الذهب ممكن ترتفع مع مؤتمر الرئيس"
+    ],
+    "cta": "تابعنا للتحليل الكامل",
+    "caption": "الفيدرالي ثبّت الفائدة اليوم…",
+    "hooks": [],
+    "brief_id": "2026-09-28-01",
+    "risk_line": "التداول ينطوي على مخاطر عالية وقد تخسر رأس مالك. تداول بمسؤولية.",
+    "hashtags": [
+      "#تورو_ماركتس",
+      "#تداول",
+      "#الكويت",
+      "#الذهب",
+      "#إدارة_المخاطر"
+    ]
+  }
+}

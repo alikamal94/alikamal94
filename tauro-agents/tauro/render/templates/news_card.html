@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block body %}
+  <h1>{{ copy.headline | ar }}</h1>
+  <div class="rule"></div>
+  {% if copy.subline %}<p class="sub">{{ copy.subline | ar }}</p>{% endif %}
+  <div class="zone flat">
+    <ul class="points">{% for b in copy.bullets %}<li>{{ b | ar }}</li>{% endfor %}</ul>
+    {% if sources %}<div class="source">Source: {{ sources | join(" · ") }}</div>{% endif %}
+  </div>
+  <div class="spacer"></div>
+  <div class="cta">{{ copy.cta | ar }}</div>
+{% endblock %}
