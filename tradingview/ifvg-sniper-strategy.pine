@@ -1,6 +1,7 @@
 //@version=6
 // ─────────────────────────────────────────────────────────────────────────────
-//  IFVG Sniper Model  (defaults tuned for the 15-minute chart)
+//  IFVG Sniper Model – STRATEGY version (for the TradingView Strategy Tester)
+//  Same signals as the indicator; adds real orders: risk-based size, 50% at TP1, rest at TP2, SL → BE.
 //  1. Liquidity sweep   – price wicks through a swing / previous-day high-low and closes back inside
 //  2. V-shape recovery  – fast displacement away from the sweep extreme (× ATR)
 //  3. CISD              – close through the open of the delivery series that made the extreme
@@ -10,8 +11,10 @@
 //  Filters              – higher-timeframe bias, London / New York killzones, max stop size,
 //                         discount / premium entry, daily trade & loss limits, one position at a time
 // ─────────────────────────────────────────────────────────────────────────────
-indicator("IFVG Sniper Model", "IFVG Sniper", overlay = true, max_bars_back = 500,
-     max_lines_count = 500, max_labels_count = 500, max_boxes_count = 500)
+strategy("IFVG Sniper Model – Strategy", "IFVG Sniper S", overlay = true, max_bars_back = 500,
+     max_lines_count = 500, max_labels_count = 500, max_boxes_count = 500,
+     initial_capital = 10000, pyramiding = 0, process_orders_on_close = true,
+     commission_type = strategy.commission.cash_per_contract, commission_value = 0, slippage = 0)
 
 // ───────────────────────── Inputs ─────────────────────────
 const string G0 = "0 · High-Probability Filters"
@@ -620,17 +623,35 @@ plot(bear.st == 3 ? bear.sl    : na, "Bear SL",    slCol,   display = display.da
 plot(bear.st == 3 ? bear.tp1   : na, "Bear TP1",   tgtCol,  display = display.data_window)
 plot(bear.st == 3 ? bear.tp2   : na, "Bear TP2",   tgtCol,  display = display.data_window)
 
+// ───────────────────────── Orders ─────────────────────────
+const string G7 = "Strategy"
+riskPct = input.float(1.0, "Risk per trade (% of equity)", minval = 0.1, maxval = 10, step = 0.1, group = G7)
+
+qtyFor(float risk) => risk > 0 ? strategy.equity * riskPct / 100 / (risk * syminfo.pointvalue) : 0.0
+
+// entries fill at the close of the signal bar (process_orders_on_close), exactly like the indicator
+if bEntry and strategy.position_size == 0
+    strategy.entry("Long", strategy.long, qty = qtyFor(bull.risk))
+if sEntry and strategy.position_size == 0
+    strategy.entry("Short", strategy.short, qty = qtyFor(bear.risk))
+
+// exits are re-sent every bar so the stop follows the indicator (moves to entry after TP1)
+if bull.st == 3
+    if not bull.tp1Hit and partialPct > 0
+        strategy.exit("Long TP1", "Long", qty_percent = partialPct, stop = bull.sl, limit = bull.tp1)
+    strategy.exit("Long TP2", "Long", stop = bull.sl, limit = bull.tp2)
+if bear.st == 3
+    if not bear.tp1Hit and partialPct > 0
+        strategy.exit("Short TP1", "Short", qty_percent = partialPct, stop = bear.sl, limit = bear.tp1)
+    strategy.exit("Short TP2", "Short", stop = bear.sl, limit = bear.tp2)
+
+// time exit / safety sync with the indicator's trade state
+if strategy.position_size > 0 and bull.st != 3
+    strategy.close("Long", comment = "Time exit")
+if strategy.position_size < 0 and bear.st != 3
+    strategy.close("Short", comment = "Time exit")
+
 // ───────────────────────── Alerts ─────────────────────────
-alertcondition(bArm,   "Bull IFVG armed",   "IFVG Sniper: bullish sweep + V + CISD + IFVG armed on {{ticker}} ({{interval}})")
-alertcondition(bEntry, "Bull entry",        "IFVG Sniper: BUY on {{ticker}} @ {{close}} – IFVG retest + sweep")
-alertcondition(bTp1,   "Bull TP1",          "IFVG Sniper: bullish TP1 hit on {{ticker}}")
-alertcondition(bTp2,   "Bull TP2",          "IFVG Sniper: bullish TP2 hit on {{ticker}}")
-alertcondition(bSl,    "Bull stop",         "IFVG Sniper: bullish stop hit on {{ticker}}")
-alertcondition(sArm,   "Bear IFVG armed",   "IFVG Sniper: bearish sweep + V + CISD + IFVG armed on {{ticker}} ({{interval}})")
-alertcondition(sEntry, "Bear entry",        "IFVG Sniper: SELL on {{ticker}} @ {{close}} – IFVG retest + sweep")
-alertcondition(sTp1,   "Bear TP1",          "IFVG Sniper: bearish TP1 hit on {{ticker}}")
-alertcondition(sTp2,   "Bear TP2",          "IFVG Sniper: bearish TP2 hit on {{ticker}}")
-alertcondition(sSl,    "Bear stop",         "IFVG Sniper: bearish stop hit on {{ticker}}")
 
 if bEntry
     alert("IFVG Sniper BUY " + syminfo.ticker + " | entry " + str.tostring(bull.entry, format.mintick) +

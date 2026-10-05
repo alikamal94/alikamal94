@@ -18,6 +18,10 @@
 - **Displacement:** the candle that inverts the FVG must have a body of at least 50% of its range.
 - **Stop size:** a retest is skipped if its stop would be larger than 2× ATR. Stops tighter than 0.3× ATR are widened so normal noise doesn't hit them.
 - **Draw on liquidity:** the trade is only taken if there's an untouched liquidity pool at least TP1 away in the trade direction.
+- **Discount / premium:** a long is only taken if the entry is at least 50% of the way back down the V leg (from the V high to the sweep low). Shorts mirror this.
+- **Asia range:** the Asia session high and low (20:00–00:00 New York time) are added as liquidity, so London sweeps of Asia count.
+- **Daily limits:** at most 2 trades a day, and no more trades after the first loss of the day.
+- **One position at a time:** a long can't open while a short is running, and the reverse.
 
 A retest that fails a filter is skipped, and the IFVG stays armed for a later retest.
 
@@ -36,13 +40,21 @@ Cancelled IFVG boxes turn grey. Trades still open after 96 bars (one day on 15M)
    - one of the named conditions (armed, entry, TP1, TP2, stop), or
    - **Any alert() function call**, which gives you an entry message that includes the SL, TP1 and TP2 prices.
 
+## Strategy version (real backtest)
+`ifvg-sniper-strategy.pine` uses the same signals, but it's a strategy, so TradingView's **Strategy Tester** tab reports results from real orders:
+- Each trade risks 1% of equity (you can change this).
+- 50% closes at TP1, the stop moves to entry, and the rest closes at TP2.
+- The tester reports win rate, profit factor and drawdown, with your own commission and slippage settings.
+
+Add it the same way as the indicator (Pine Editor → new script → paste → Save → Add to chart), then open **Strategy Tester** below the chart. Alerts with named conditions are only in the indicator version.
+
 ## Chart legend
 - **Dotted grey rays:** resting liquidity pools. Each ray stops at the bar where its pool is taken.
 - **SSL / BSL sweep, V, CISD:** labels placed after the fact on the bars that confirmed each step.
 - **⌖ IFVG box:** the sniper entry zone. Its border gets thicker when the retest fires.
 - **BUY / SELL label:** the confirmed entry. Hover over it to see entry, SL, TP1, TP2 and R:R.
 - **Entry / SL / TP1 / TP2 lines (labelled with their R):** these follow the trade until it ends. If `Move SL to entry after TP1` is on, the SL moves to break-even once TP1 is hit.
-- **Stats table (top right):** closed trades, win rate (R > 0), TP1 and TP2 hit rates, stops before TP1, net R and average R per trade. These are for the bars loaded on your chart.
+- **Stats table (top right):** closed trades, win rate (R > 0), TP1 and TP2 hit rates, stops before TP1, net R and average R per trade. These are for the bars loaded on your chart. Below them it shows live status: the HTF bias, whether a killzone is open, today's trades and losses, and what each side is waiting for.
 
 ## Tuning tips
 Check **Win rate** and **Avg R** in the stats table on the 15M chart with about 2–3 months of history loaded, then:
