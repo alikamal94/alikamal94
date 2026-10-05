@@ -43,7 +43,7 @@ usePdl    = input.bool(true, "Add previous-day high / low as liquidity", group =
 useAsia   = input.bool(true, "Add Asia session high / low as liquidity", group = G1, inline = "asia")
 asiaSess  = input.session("2000-0000", "", group = G1, inline = "asia")
 maxPools  = input.int(30, "Max pools tracked per side", minval = 5, maxval = 100, group = G1)
-showPools = input.bool(true, "Show resting liquidity levels", group = G1)
+showPools = input.bool(false, "Show resting liquidity levels", group = G1)
 
 const string G2 = "2 · V-Shape Recovery"
 vMaxBars  = input.int(6, "Max bars from extreme → recovery", minval = 1, group = G2)
@@ -78,9 +78,13 @@ showBull  = input.bool(true, "Bullish setups", group = G6, inline = "d")
 showBear  = input.bool(true, "Bearish setups", group = G6, inline = "d")
 bullCol   = input.color(#089981, "Bull", group = G6, inline = "c")
 bearCol   = input.color(#F23645, "Bear", group = G6, inline = "c")
-tgtCol    = input.color(#2962FF, "Targets", group = G6, inline = "c")
-slCol     = input.color(#FF9800, "Stop", group = G6, inline = "c")
-showStats = input.bool(true, "Show stats table", group = G6)
+tgtCol    = input.color(#26A69A, "Profit", group = G6, inline = "c")
+slCol     = input.color(#EF5350, "Risk", group = G6, inline = "c")
+showFailed = input.bool(false, "Keep cancelled setups on chart (grey)", group = G6)
+lblSizeIn = input.string("Normal", "Label size", options = ["Small", "Normal", "Large"], group = G6)
+showStats = input.bool(true, "Show stats table", group = G6, inline = "t")
+tablePos  = input.string("Top right", "", options = ["Top right", "Bottom right", "Top left", "Bottom left"], group = G6, inline = "t")
+string lblSz = lblSizeIn == "Large" ? size.large : lblSizeIn == "Normal" ? size.normal : size.small
 
 // ───────────────────────── Core series ─────────────────────────
 atr       = ta.atr(atrLen)
@@ -250,10 +254,14 @@ type Setup
     bool  tp1Hit   = false
     int   entryBar
     box   zBox
-    line  lE
-    line  lS
+    line  dSweepLn
+    label dSweepLb
+    label dVLb
+    line  dCisdLn
+    label dCisdLb
+    box   bxRisk
+    box   bxRew
     line  lT1
-    line  lT2
     label bS
     label bT1
     label bT2
@@ -265,10 +273,14 @@ method reset(Setup s) =>
     s.zDone    := false
     s.tp1Hit   := false
     s.zBox     := na
-    s.lE       := na
-    s.lS       := na
+    s.dSweepLn := na
+    s.dSweepLb := na
+    s.dVLb     := na
+    s.dCisdLn  := na
+    s.dCisdLb  := na
+    s.bxRisk   := na
+    s.bxRew    := na
     s.lT1      := na
-    s.lT2      := na
     s.bS       := na
     s.bT1      := na
     s.bT2      := na
@@ -292,11 +304,13 @@ method start(Setup s, float lvl, int lvlBar) =>
         s.lvlBar := lvlBar
     true
 
+// "+1.5R" / "-1R"
+fmtR(float r) => (r >= 0 ? "+" : "") + str.tostring(r, "#.##") + "R"
+
 method setTradeX(Setup s, int x) =>
-    line.set_x2(s.lE, x)
-    line.set_x2(s.lS, x)
+    box.set_right(s.bxRisk, x)
+    box.set_right(s.bxRew, x)
     line.set_x2(s.lT1, x)
-    line.set_x2(s.lT2, x)
     label.set_x(s.bS, x)
     label.set_x(s.bT1, x)
     label.set_x(s.bT2, x)
@@ -347,16 +361,21 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar,
             s.st     := 2
             s.armBar := bar_index
             evArm    := true
-            line.new(s.lvlBar, s.lvl, s.sweepBar, s.lvl, color = c, style = line.style_dashed)
-            label.new(s.extBar, s.ext, d == 1 ? "SSL sweep" : "BSL sweep", color = color(na), textcolor = c,
-                 style = d == 1 ? label.style_label_up : label.style_label_down, size = size.small)
-            label.new(s.vBar, s.vPx, "V", color = color(na), textcolor = c,
-                 style = d == 1 ? label.style_label_down : label.style_label_up, size = size.small)
-            line.new(s.cisdBar, s.cisd, s.cisdConfBar, s.cisd, color = c, width = 2)
-            label.new(s.cisdConfBar, s.cisd, "CISD", color = color(na), textcolor = c,
-                 style = label.style_label_left, size = size.small)
-            s.zBox := box.new(s.zBar, s.zTop, bar_index, s.zBot, border_color = c, bgcolor = color.new(c, 80),
-                 text = "⌖ IFVG", text_color = c, text_size = size.small, text_halign = text.align_right)
+            color cf = color.new(c, 20)
+            s.dSweepLn := line.new(s.lvlBar, s.lvl, s.sweepBar, s.lvl, color = c, style = line.style_dashed)
+            s.dSweepLb := label.new(s.extBar, s.ext, "1 Sweep", color = cf, textcolor = color.white,
+                 style = d == 1 ? label.style_label_up : label.style_label_down, size = lblSz,
+                 tooltip = (d == 1 ? "Sell-side" : "Buy-side") + " liquidity at " + str.tostring(s.lvl, format.mintick) + " taken and reclaimed")
+            s.dVLb := label.new(s.vBar, s.vPx, "2 V", color = cf, textcolor = color.white,
+                 style = d == 1 ? label.style_label_down : label.style_label_up, size = lblSz,
+                 tooltip = "V-shape recovery: fast displacement away from the sweep")
+            s.dCisdLn := line.new(s.cisdBar, s.cisd, s.cisdConfBar, s.cisd, color = c, width = 2)
+            s.dCisdLb := label.new(s.cisdBar, s.cisd, "3 CISD", color = cf, textcolor = color.white,
+                 style = label.style_label_right, size = lblSz,
+                 tooltip = "Change in state of delivery: close through " + str.tostring(s.cisd, format.mintick))
+            s.zBox := box.new(s.zBar, math.max(s.zTop, s.zBot), bar_index, math.min(s.zTop, s.zBot),
+                 border_color = c, bgcolor = color.new(c, 82), text = "4 IFVG", text_color = c,
+                 text_size = lblSz, text_halign = text.align_left, text_valign = text.align_center)
         else if bar_index - s.sweepBar > alignBars or (not s.vDone and bar_index - s.extBar > vMaxBars)
             s.reset()
 
@@ -372,9 +391,18 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar,
             bool sweep2  = d * (adv - minorLvl) < 0 and d * (close - minorLvl) > 0
             bool holds   = d * (close - zFar) >= 0
             if broke or expired
-                box.set_bgcolor(s.zBox, color.new(color.gray, 85))
-                box.set_border_color(s.zBox, color.gray)
-                box.set_text_color(s.zBox, color.gray)
+                if showFailed
+                    box.set_bgcolor(s.zBox, color.new(color.gray, 88))
+                    box.set_border_color(s.zBox, color.gray)
+                    box.set_text_color(s.zBox, color.gray)
+                    box.set_text(s.zBox, "IFVG cancelled")
+                else
+                    box.delete(s.zBox)
+                    line.delete(s.dSweepLn)
+                    label.delete(s.dSweepLb)
+                    label.delete(s.dVLb)
+                    line.delete(s.dCisdLn)
+                    label.delete(s.dCisdLb)
                 s.reset()
             else if touched and sweep2 and holds and bias and allow
                 float entry = close
@@ -414,20 +442,20 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar,
                          "\nTP2 " + str.tostring(s.tp2, format.mintick) + " (" + str.tostring(s.r2, "#.##") + "R)" +
                          "\nDraw on liquidity " + (na(dol) ? "none beyond TP1" : str.tostring(dol, format.mintick)) +
                          "\nRetracement " + str.tostring(depth * 100, "#") + "% of V leg"
-                    label.new(bar_index, adv, d == 1 ? "BUY" : "SELL", color = c,
-                         textcolor = color.white, style = d == 1 ? label.style_label_up : label.style_label_down,
-                         size = size.small, tooltip = tip)
+                    label.new(bar_index, adv, d == 1 ? "5 BUY" : "5 SELL", color = c, textcolor = color.white,
+                         style = d == 1 ? label.style_label_up : label.style_label_down, size = lblSz, tooltip = tip)
                     box.set_border_width(s.zBox, 2)
-                    s.lE  := line.new(bar_index, s.entry, x2, s.entry, color = c, width = 2)
-                    s.lS  := line.new(bar_index, s.sl, x2, s.sl, color = slCol, style = line.style_dashed)
+                    s.bxRisk := box.new(bar_index, math.max(s.entry, s.sl), x2, math.min(s.entry, s.sl),
+                         border_color = color.new(slCol, 50), bgcolor = color.new(slCol, 80))
+                    s.bxRew  := box.new(bar_index, math.max(s.entry, s.tp2), x2, math.min(s.entry, s.tp2),
+                         border_color = color.new(tgtCol, 50), bgcolor = color.new(tgtCol, 80))
                     s.lT1 := line.new(bar_index, s.tp1, x2, s.tp1, color = tgtCol, style = line.style_dashed)
-                    s.lT2 := line.new(bar_index, s.tp2, x2, s.tp2, color = tgtCol)
-                    s.bS  := label.new(x2, s.sl, "SL", color = color(na), textcolor = slCol,
-                         style = label.style_label_left, size = size.small)
-                    s.bT1 := label.new(x2, s.tp1, "TP1 " + str.tostring(s.r1, "#.#") + "R", color = color(na),
-                         textcolor = tgtCol, style = label.style_label_left, size = size.small)
-                    s.bT2 := label.new(x2, s.tp2, "TP2 " + str.tostring(s.r2, "#.#") + "R", color = color(na),
-                         textcolor = tgtCol, style = label.style_label_left, size = size.small)
+                    s.bS  := label.new(x2, s.sl, "SL  " + str.tostring(s.sl, format.mintick), color = color(na),
+                         textcolor = slCol, style = label.style_label_left, size = lblSz)
+                    s.bT1 := label.new(x2, s.tp1, "TP1  " + str.tostring(s.r1, "#.#") + "R", color = color(na),
+                         textcolor = tgtCol, style = label.style_label_left, size = lblSz)
+                    s.bT2 := label.new(x2, s.tp2, "TP2  " + str.tostring(s.r2, "#.#") + "R", color = color(na),
+                         textcolor = tgtCol, style = label.style_label_left, size = lblSz)
 
     else if s.st == 3
         if bar_index > s.entryBar
@@ -443,8 +471,8 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar,
                 else
                     evSl := true
                     resR := -1.0
-                label.new(bar_index, adv, s.tp1Hit ? (beAfterTp1 ? "BE" : "SL after TP1") : "SL ✕", color = color(na),
-                     textcolor = slCol, style = d == 1 ? label.style_label_up : label.style_label_down, size = size.small)
+                label.new(bar_index, adv, (s.tp1Hit ? "BE " : "✕ SL ") + fmtR(resR), color = s.tp1Hit ? color.gray : slCol,
+                     textcolor = color.white, style = d == 1 ? label.style_label_up : label.style_label_down, size = lblSz)
                 s.setTradeX(bar_index)
                 s.reset()
             else if hitTp2
@@ -452,27 +480,27 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar,
                     evTp1 := true
                 evTp2 := true
                 resR  := part * s.r1 + (1 - part) * s.r2
-                label.new(bar_index, s.tp2, "TP2 ✓", color = color(na), textcolor = tgtCol,
-                     style = d == 1 ? label.style_label_down : label.style_label_up, size = size.small)
+                label.new(bar_index, s.tp2, "✓ TP2 " + fmtR(resR), color = tgtCol, textcolor = color.white,
+                     style = d == 1 ? label.style_label_down : label.style_label_up, size = lblSz)
                 s.setTradeX(bar_index)
                 s.reset()
             else
                 if hitTp1 and not s.tp1Hit
                     s.tp1Hit := true
                     evTp1    := true
-                    label.new(bar_index, s.tp1, "TP1 ✓", color = color(na), textcolor = tgtCol,
-                         style = d == 1 ? label.style_label_down : label.style_label_up, size = size.small)
+                    label.new(bar_index, s.tp1, "✓ TP1", color = color.new(tgtCol, 30), textcolor = color.white,
+                         style = d == 1 ? label.style_label_down : label.style_label_up, size = lblSz)
                     if beAfterTp1
                         s.sl := s.entry
-                        line.set_y1(s.lS, s.entry)
-                        line.set_y2(s.lS, s.entry)
+                        box.set_bgcolor(s.bxRisk, color.new(color.gray, 90))
+                        box.set_border_color(s.bxRisk, color.new(color.gray, 70))
                         label.set_y(s.bS, s.entry)
-                        label.set_text(s.bS, "SL → BE")
+                        label.set_text(s.bS, "SL moved to entry")
                 if bar_index - s.entryBar >= tradeMax
                     float openR = d * (close - s.entry) / s.risk
                     resR := s.tp1Hit ? part * s.r1 + (1 - part) * openR : openR
-                    label.new(bar_index, close, "Time exit " + str.tostring(resR, "#.##") + "R", color = color(na),
-                         textcolor = color.gray, style = label.style_label_left, size = size.small)
+                    label.new(bar_index, close, "Time exit " + fmtR(resR), color = color.gray, textcolor = color.white,
+                         style = label.style_label_left, size = lblSz)
                     s.setTradeX(bar_index)
                     s.reset()
 
@@ -593,7 +621,9 @@ pct(int a, int b) => b > 0 ? str.tostring(100.0 * a / b, "#") + "%" : "–"
 stateName(Setup s) =>
     s.st == 0 ? "Idle" : s.st == 1 ? "Swept – waiting V/CISD/IFVG" : s.st == 2 ? "IFVG armed – waiting retest" : "In trade"
 
-var table stats = table.new(position.top_right, 2, 13, bgcolor = color.new(#131722, 10), border_width = 1)
+string tPos = tablePos == "Bottom right" ? position.bottom_right : tablePos == "Top left" ? position.top_left :
+     tablePos == "Bottom left" ? position.bottom_left : position.top_right
+var table stats = table.new(tPos, 2, 13, bgcolor = color.new(#131722, 10), border_width = 1)
 if showStats and barstate.islast
     table.cell(stats, 0, 0, "IFVG Sniper · " + timeframe.period + (timeframe.period == "15" ? "" : "  (tuned for 15)"),
          text_color = color.white, text_size = size.small)

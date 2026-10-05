@@ -49,12 +49,26 @@ Cancelled IFVG boxes turn grey. Trades still open after 96 bars (one day on 15M)
 Add it the same way as the indicator (Pine Editor → new script → paste → Save → Add to chart), then open **Strategy Tester** below the chart. Alerts with named conditions are only in the indicator version.
 
 ## Chart legend
-- **Dotted grey rays:** resting liquidity pools. Each ray stops at the bar where its pool is taken.
-- **SSL / BSL sweep, V, CISD:** labels placed after the fact on the bars that confirmed each step.
-- **⌖ IFVG box:** the sniper entry zone. Its border gets thicker when the retest fires.
-- **BUY / SELL label:** the confirmed entry. Hover over it to see entry, SL, TP1, TP2 and R:R.
-- **Entry / SL / TP1 / TP2 lines (labelled with their R):** these follow the trade until it ends. If `Move SL to entry after TP1` is on, the SL moves to break-even once TP1 is hit.
-- **Stats table (top right):** closed trades, win rate (R > 0), TP1 and TP2 hit rates, stops before TP1, net R and average R per trade. These are for the bars loaded on your chart. Below them it shows live status: the HTF bias, whether a killzone is open, today's trades and losses, and what each side is waiting for.
+Each setup is labelled with its steps, in order:
+- **1 Sweep:** where the liquidity was taken. A dashed line runs from the swing that was swept.
+- **2 V:** the V-shape recovery.
+- **3 CISD:** the line price closed through.
+- **4 IFVG:** the shaded box. This is the zone to wait for.
+- **5 BUY / SELL:** the confirmed entry after the retest sweep. Hover over it to see entry, SL, TP1, TP2, retracement and the draw on liquidity.
+
+After the entry, the trade is drawn like TradingView's position tool:
+- **Red box:** the risk (entry to SL).
+- **Green box:** the reward (entry to TP2).
+- **Dashed line:** TP1.
+
+When TP1 is hit, the red box greys out and the SL label moves to entry. Each outcome is labelled with its result in R: **✓ TP1**, **✓ TP2 +1.5R**, **BE +0.5R**, **✕ SL -1R**, or **Time exit**.
+
+To keep the chart clean:
+- Cancelled setups are removed. Turn on *Keep cancelled setups on chart* to see them in grey.
+- Liquidity lines are hidden by default. Turn on *Show resting liquidity levels* to show them.
+- *Label size* changes the size of all labels, and the stats table can sit in any corner.
+
+**Stats table:** closed trades, win rate (R > 0), TP1 and TP2 hit rates, stops before TP1, net R and average R per trade, for the bars loaded on your chart. Below them it shows live status: the HTF bias, whether a killzone is open, today's trades and losses, and what each side is waiting for.
 
 ## Tuning tips
 Check **Win rate** and **Avg R** in the stats table on the 15M chart with about 2–3 months of history loaded, then:
