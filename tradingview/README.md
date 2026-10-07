@@ -11,7 +11,24 @@
 | 5 | **Retest + second sweep** | Price comes back into the IFVG, takes out the low of the previous `N` bars (minor liquidity), and closes back above that low without closing below the IFVG. This is the **BUY** signal, and entry is at that candle's close. |
 | 6 | **Targets** | By default TP1 is at 1R and TP2 at 2R. The stop goes below the retest-sweep low plus a small ATR buffer. At TP1, 50% is closed and the stop moves to entry. In `Liquidity (capped at R:R)` mode, each target is the nearest untouched swing or previous-day level, but never further than 1R / 2R. |
 
-### High-probability filters (defaults tuned for the 15M chart)
+### Signal mode (first setting)
+Pick how strict the indicator is. The model stays the same in every mode (sweep → V → CISD → IFVG → retest). Only the filters loosen.
+
+| Setting | Sniper | **Balanced** (default) | Aggressive |
+|---|---|---|---|
+| Retest confirmation | sweep of minor liquidity | rejection candle (closes in the trade direction) | touch of the IFVG that holds |
+| 1H EMA bias | above/below **and** sloping | above/below only | off |
+| Killzones (New York time) | 02–05, 07–11 | 01–06, 07–13 | off |
+| Liquidity swing length | 8 | 5 | 3 |
+| V recovery | 1.5× ATR within 6 bars | 1.2× ATR within 10 bars | 0.9× ATR within 15 bars |
+| Bars allowed for sweep → CISD/IFVG / to wait for retest | 12 / 16 | 20 / 24 | 30 / 40 |
+| Min body of IFVG candle / min retracement | 50% / 50% | 35% / 25% | off / off |
+| Draw on liquidity beyond TP1 | required | required | off |
+| Max trades / losses per day | 2 / 1 | 4 / 2 | 8 / 4 |
+
+**Custom** uses your own value for every setting marked with *. In the other modes, the * settings are set by the mode. The table header shows which mode is running.
+
+### High-probability filters (the Sniper settings, tuned for the 15M chart)
 - **HTF bias:** longs only when the 1H close is above a rising 50 EMA; shorts only below a falling one. It uses the last closed 1H bar, so it doesn't repaint.
 - **Killzones:** entries only during London (02:00–05:00 New York time) and New York (07:00–11:00).
 - **Major liquidity only:** swing length is 8, and the previous day's high and low are added as liquidity pools.

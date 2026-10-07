@@ -14,27 +14,30 @@ indicator("IFVG Sniper Model", "IFVG Sniper", overlay = true, max_bars_back = 50
      max_lines_count = 500, max_labels_count = 500, max_boxes_count = 500)
 
 // ───────────────────────── Inputs ─────────────────────────
+signalMode = input.string("Balanced", "Signal mode", options = ["Sniper", "Balanced", "Aggressive", "Custom"],
+     tooltip = "Sniper: strictest, fewest signals.\nBalanced: more signals, keeps the core model (sweep → V → CISD → IFVG → retest).\nAggressive: most signals, filters mostly off.\nCustom: uses every setting below exactly as you set it. In the other modes the starred (*) settings below are set by the mode.")
 const string G0 = "0 · High-Probability Filters"
-useHtf    = input.bool(true, "Trade with higher-timeframe bias", group = G0,
+useHtfIn = input.bool(true, "Trade with higher-timeframe bias *", group = G0,
      tooltip = "Longs only when the HTF close is above a rising EMA, shorts only below a falling EMA (last closed HTF bar, no repaint).")
 htfTf     = input.timeframe("60", "HTF", group = G0, inline = "htf")
 htfEmaLen = input.int(50, "EMA", minval = 1, group = G0, inline = "htf")
-useKz     = input.bool(true, "Entries only inside killzones", group = G0)
-kz1       = input.session("0200-0500", "London", group = G0, inline = "kz")
-kz2       = input.session("0700-1100", "New York", group = G0, inline = "kz")
+htfSlopeIn = input.bool(true, "HTF EMA must also slope with the trade *", group = G0)
+useKzIn = input.bool(true, "Entries only inside killzones *", group = G0)
+kz1In = input.session("0200-0500", "London", group = G0, inline = "kz")
+kz2In = input.session("0700-1100", "New York", group = G0, inline = "kz")
 kzTz      = input.string("America/New_York", "Killzone timezone", group = G0)
-dispBody  = input.float(0.5, "Min body % of IFVG inversion candle", minval = 0, maxval = 1, step = 0.05, group = G0,
+dispBodyIn = input.float(0.5, "Min body % of IFVG inversion candle *", minval = 0, maxval = 1, step = 0.05, group = G0,
      tooltip = "The candle that closes through the FVG must be a displacement candle (body / range). 0 disables.")
-pdMin     = input.float(0.5, "Min retracement into the V leg", minval = 0, maxval = 1, step = 0.05, group = G0,
+pdMinIn = input.float(0.5, "Min retracement into the V leg *", minval = 0, maxval = 1, step = 0.05, group = G0,
      tooltip = "Entry must sit at least this deep in the range from the sweep extreme to the V high (bull) / low (bear). 0.5 = discount for longs, premium for shorts. 0 disables.")
-maxDay    = input.int(2, "Max trades per day", minval = 1, group = G0, inline = "day")
-maxLossDay = input.int(1, "Stop after N losses", minval = 1, group = G0, inline = "day")
+maxDayIn = input.int(2, "Max trades per day *", minval = 1, group = G0, inline = "day")
+maxLossDayIn = input.int(1, "Stop after N losses *", minval = 1, group = G0, inline = "day")
 maxSlAtr  = input.float(2.0, "Skip entry if stop > N × ATR", minval = 0.2, step = 0.1, group = G0)
 minSlAtr  = input.float(0.3, "Minimum stop size (× ATR)", minval = 0, step = 0.05, group = G0,
      tooltip = "Stops tighter than this get widened so normal noise does not tag them.")
 
 const string G1 = "1 · Liquidity Sweep"
-swingLen  = input.int(8, "Liquidity swing length", minval = 2, group = G1,
+swingLenIn = input.int(8, "Liquidity swing length *", minval = 2, group = G1,
      tooltip = "Bars on each side that define a swing high/low (a resting liquidity pool). Higher = only major liquidity.")
 usePdl    = input.bool(true, "Add previous-day high / low as liquidity", group = G1)
 useAsia   = input.bool(true, "Add Asia session high / low as liquidity", group = G1, inline = "asia")
@@ -43,18 +46,20 @@ maxPools  = input.int(30, "Max pools tracked per side", minval = 5, maxval = 100
 showPools = input.bool(false, "Show resting liquidity levels", group = G1)
 
 const string G2 = "2 · V-Shape Recovery"
-vMaxBars  = input.int(6, "Max bars from extreme → recovery", minval = 1, group = G2)
-vAtrMult  = input.float(1.5, "Recovery displacement (× ATR)", minval = 0.1, step = 0.1, group = G2)
+vMaxBarsIn = input.int(6, "Max bars from extreme → recovery *", minval = 1, group = G2)
+vAtrMultIn = input.float(1.5, "Recovery displacement (× ATR) *", minval = 0.1, step = 0.1, group = G2)
 atrLen    = input.int(14, "ATR length", minval = 1, group = G2)
 
 const string G3 = "3 · CISD + IFVG"
-alignBars = input.int(12, "Max bars sweep → CISD & IFVG", minval = 1, group = G3)
+alignBarsIn = input.int(12, "Max bars sweep → CISD & IFVG *", minval = 1, group = G3)
 cisdScan  = input.int(15, "CISD candle scan depth", minval = 1, maxval = 100, group = G3)
 fvgLook   = input.int(20, "FVG may form up to N bars before sweep", minval = 1, group = G3)
-fvgMinAtr = input.float(0.1, "Min FVG size (× ATR)", minval = 0, step = 0.05, group = G3)
+fvgMinAtrIn = input.float(0.1, "Min FVG size (× ATR) *", minval = 0, step = 0.05, group = G3)
 
 const string G4 = "4 · Retest + Second Sweep"
-retestMax = input.int(16, "Max bars to wait for retest", minval = 1, group = G4)
+retestModeIn = input.string("Sweep minor liquidity", "Retest confirmation *", options = ["Sweep minor liquidity", "Rejection candle", "Touch"], group = G4,
+     tooltip = "Sweep minor liquidity: the retest candle takes the last N bars' low/high and closes back (strictest).\nRejection candle: the retest candle closes in the trade direction.\nTouch: any retest that holds the IFVG.")
+retestMaxIn = input.int(16, "Max bars to wait for retest *", minval = 1, group = G4)
 minorLen  = input.int(3, "Retest sweep lookback (bars)", minval = 1, group = G4,
      tooltip = "On the retest, price must take the low (bull) / high (bear) of the previous N bars and close back.")
 
@@ -63,7 +68,7 @@ tpMode     = input.string("Fixed R:R", "Target mode", options = ["Fixed R:R", "L
      tooltip = "Fixed R:R: TP1 / TP2 exactly at the R multiples below.\nLiquidity (capped): nearest draw on liquidity, never further than the R multiples.")
 rr1        = input.float(1.0, "TP1 (R)", minval = 0.25, step = 0.25, group = G5, inline = "rr")
 rr2        = input.float(2.0, "TP2 (R)", minval = 0.5, step = 0.25, group = G5, inline = "rr")
-requireDol = input.bool(true, "Require draw on liquidity beyond TP1", group = G5,
+requireDolIn = input.bool(true, "Require draw on liquidity beyond TP1 *", group = G5,
      tooltip = "Only enter when an untouched liquidity pool sits at least TP1 away in the trade direction.")
 slBuf      = input.float(0.1, "SL buffer (× ATR)", minval = 0, step = 0.05, group = G5)
 partialPct = input.float(50, "Close % at TP1", minval = 0, maxval = 100, step = 5, group = G5)
@@ -83,6 +88,30 @@ showStats = input.bool(true, "Show stats table", group = G6, inline = "t")
 tablePos  = input.string("Top right", "", options = ["Top right", "Bottom right", "Top left", "Bottom left"], group = G6, inline = "t")
 string lblSz = lblSizeIn == "Large" ? size.large : lblSizeIn == "Normal" ? size.normal : size.small
 
+// ───────────────────────── Effective settings (signal mode) ─────────────────────────
+bool isSn = signalMode == "Sniper"
+bool isBa = signalMode == "Balanced"
+bool isAg = signalMode == "Aggressive"
+bool isCu = signalMode == "Custom"
+//                        Custom          Sniper                 Balanced               Aggressive
+useHtf     = isCu ? useHtfIn     : isSn ? true                 : isBa ? true                 : false
+htfSlope   = isCu ? htfSlopeIn   : isSn ? true                 : false
+useKz      = isCu ? useKzIn      : isSn ? true                 : isBa ? true                 : false
+kz1        = isCu ? kz1In        : isSn ? "0200-0500"          : "0100-0600"
+kz2        = isCu ? kz2In        : isSn ? "0700-1100"          : "0700-1300"
+dispBody   = isCu ? dispBodyIn   : isSn ? 0.5                  : isBa ? 0.35                 : 0.0
+pdMin      = isCu ? pdMinIn      : isSn ? 0.5                  : isBa ? 0.25                 : 0.0
+maxDay     = isCu ? maxDayIn     : isSn ? 2                    : isBa ? 4                    : 8
+maxLossDay = isCu ? maxLossDayIn : isSn ? 1                    : isBa ? 2                    : 4
+swingLen   = isCu ? swingLenIn   : isSn ? 8                    : isBa ? 5                    : 3
+vMaxBars   = isCu ? vMaxBarsIn   : isSn ? 6                    : isBa ? 10                   : 15
+vAtrMult   = isCu ? vAtrMultIn   : isSn ? 1.5                  : isBa ? 1.2                  : 0.9
+alignBars  = isCu ? alignBarsIn  : isSn ? 12                   : isBa ? 20                   : 30
+fvgMinAtr  = isCu ? fvgMinAtrIn  : isSn ? 0.1                  : isBa ? 0.05                 : 0.0
+retestMax  = isCu ? retestMaxIn  : isSn ? 16                   : isBa ? 24                   : 40
+requireDol = isCu ? requireDolIn : isSn ? true                 : isBa ? true                 : false
+retestMode = isCu ? retestModeIn : isSn ? "Sweep minor liquidity" : isBa ? "Rejection candle" : "Touch"
+
 // ───────────────────────── Core series ─────────────────────────
 atr       = ta.atr(atrLen)
 minorLow  = ta.lowest(low, minorLen)[1]
@@ -95,8 +124,8 @@ htfData() =>
     float e = ta.ema(close, htfEmaLen)
     [close[1], e[1], e[2]]
 [htfClose, htfEma, htfEmaPrev] = request.security(syminfo.tickerid, htfTf, htfData(), lookahead = barmerge.lookahead_on)
-bool bullBias = not useHtf or (htfClose > htfEma and htfEma > htfEmaPrev)
-bool bearBias = not useHtf or (htfClose < htfEma and htfEma < htfEmaPrev)
+bool bullBias = not useHtf or (htfClose > htfEma and (not htfSlope or htfEma > htfEmaPrev))
+bool bearBias = not useHtf or (htfClose < htfEma and (not htfSlope or htfEma < htfEmaPrev))
 
 // Killzones
 bool inKz = not useKz or not na(time(timeframe.period, kz1, kzTz)) or not na(time(timeframe.period, kz2, kzTz))
@@ -386,6 +415,7 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar,
             bool expired = bar_index - s.armBar > retestMax
             bool touched = d * (adv - zNear) <= 0
             bool sweep2  = d * (adv - minorLvl) < 0 and d * (close - minorLvl) > 0
+            bool confirm = retestMode == "Sweep minor liquidity" ? sweep2 : retestMode == "Rejection candle" ? d * (close - open) > 0 : true
             bool holds   = d * (close - zFar) >= 0
             if broke or expired
                 if showFailed
@@ -401,7 +431,7 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar,
                     line.delete(s.dCisdLn)
                     label.delete(s.dCisdLb)
                 s.reset()
-            else if touched and sweep2 and holds and bias and allow
+            else if touched and confirm and holds and bias and allow
                 float entry = close
                 float legSz = math.abs(s.far - s.ext)
                 float depth = legSz > 0 ? d * (s.far - entry) / legSz : 0.0
@@ -622,7 +652,7 @@ string tPos = tablePos == "Bottom right" ? position.bottom_right : tablePos == "
      tablePos == "Bottom left" ? position.bottom_left : position.top_right
 var table stats = table.new(tPos, 2, 13, bgcolor = color.new(#131722, 10), border_width = 1)
 if showStats and barstate.islast
-    table.cell(stats, 0, 0, "IFVG Sniper · " + timeframe.period + (timeframe.period == "15" ? "" : "  (tuned for 15)"),
+    table.cell(stats, 0, 0, "IFVG Sniper · " + signalMode + " · " + timeframe.period + (timeframe.period == "15" ? "" : "  (tuned for 15)"),
          text_color = color.white, text_size = size.small)
     table.merge_cells(stats, 0, 0, 1, 0)
     statRow(stats, 1, "Trades closed", str.tostring(nClosed) + " / " + str.tostring(nTrades), color.white)
