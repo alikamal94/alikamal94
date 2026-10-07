@@ -66,17 +66,8 @@ Cancelled IFVG boxes turn grey. Trades still open after 96 bars (one day on 15M)
 Add it the same way as the indicator (Pine Editor → new script → paste → Save → Add to chart), then open **Strategy Tester** below the chart. Alerts with named conditions are only in the indicator version.
 
 ## Chart legend
-Each setup is labelled with its steps, in order:
-- **1 Sweep:** where the liquidity was taken. A dashed line runs from the swing that was swept.
-- **2 V:** the V-shape recovery.
-- **3 CISD:** the line price closed through.
-- **4 IFVG:** the shaded box. This is the zone to wait for.
-- **5 BUY / SELL:** the confirmed entry after the retest sweep. Hover over it to see entry, SL, TP1, TP2, retracement and the draw on liquidity.
-
-On the candles themselves:
-- **Small triangles:** every liquidity sweep (▲ under a candle that swept a low, ▼ over a candle that swept a high).
-- **Diamond:** the IFVG setup is armed (sweep + V + CISD + IFVG all confirmed). Wait for the retest.
-- **BUY / SELL tag and a yellow candle:** the entry signal.
+- **BUY / SELL label:** under the candle for a buy, above it for a sell. It shows the entry, SL, TP1 and TP2 prices. The signal candle is colored green (buy) or red (sell).
+- **Setup steps:** small labels that show how the setup formed. **Sweep** marks the liquidity that was taken, with a dashed line from the swept level. **V** marks the recovery, and **CISD** marks the line price closed through. The shaded **IFVG** box is the zone the retest came back to. Turn off *Show setup steps* to see only the trades.
 
 After the entry, the trade is drawn like TradingView's position tool:
 - **Red box:** the risk (entry to SL).
@@ -86,6 +77,7 @@ After the entry, the trade is drawn like TradingView's position tool:
 When TP1 is hit, the red box greys out and the SL label moves to entry. Each outcome is labelled with its result in R: **✓ TP1**, **✓ TP2 +1.5R**, **BE +0.5R**, **✕ SL -1R**, or **Time exit**.
 
 To keep the chart clean:
+- There are no extra markers on every sweep. Only setups that become a trade (or an IFVG zone) are drawn.
 - When a setup is cancelled, its step labels are removed and its IFVG box fades to grey ("IFVG – no entry"). Turn off *Keep cancelled IFVG zones* to remove the box too.
 - The stats table is off by default. Turn on *Show stats table* to see it.
 - Liquidity lines are hidden by default. Turn on *Show resting liquidity levels* to show them.

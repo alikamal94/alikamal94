@@ -85,13 +85,14 @@ bullCol   = input.color(#089981, "Bull", group = G6, inline = "c")
 bearCol   = input.color(#F23645, "Bear", group = G6, inline = "c")
 tgtCol    = input.color(#26A69A, "Profit", group = G6, inline = "c")
 slCol     = input.color(#EF5350, "Risk", group = G6, inline = "c")
-showSweeps = input.bool(true, "Mark every liquidity sweep on the candle", group = G6)
-colorBars = input.bool(true, "Color the BUY / SELL candle", group = G6)
+showSteps = input.bool(true, "Show setup steps (Sweep, V, CISD, IFVG)", group = G6)
+colorBars = input.bool(true, "Highlight the BUY / SELL candle", group = G6)
 showFailed = input.bool(true, "Keep cancelled IFVG zones (faint grey)", group = G6)
 lblSizeIn = input.string("Normal", "Label size", options = ["Small", "Normal", "Large"], group = G6)
 showStats = input.bool(false, "Show stats table", group = G6, inline = "t")
 tablePos  = input.string("Top right", "", options = ["Top right", "Bottom right", "Top left", "Bottom left"], group = G6, inline = "t")
-string lblSz = lblSizeIn == "Large" ? size.large : lblSizeIn == "Normal" ? size.normal : size.small
+string lblSz  = lblSizeIn == "Large" ? size.large : lblSizeIn == "Normal" ? size.normal : size.small
+string stepSz = lblSizeIn == "Large" ? size.normal : size.small
 
 // ───────────────────────── Effective settings (signal mode) ─────────────────────────
 bool isSn = signalMode == "Sniper"
@@ -392,21 +393,22 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar,
             s.st     := 2
             s.armBar := bar_index
             evArm    := true
-            color cf = color.new(c, 20)
-            s.dSweepLn := line.new(s.lvlBar, s.lvl, s.sweepBar, s.lvl, color = c, style = line.style_dashed)
-            s.dSweepLb := label.new(s.extBar, s.ext, "1 Sweep", color = cf, textcolor = color.white,
-                 style = d == 1 ? label.style_label_up : label.style_label_down, size = lblSz,
+            color cf = color.new(c, 35)
+            if showSteps
+                s.dSweepLn := line.new(s.lvlBar, s.lvl, s.sweepBar, s.lvl, color = c, style = line.style_dashed)
+                s.dSweepLb := label.new(s.extBar, s.ext, "Sweep", color = cf, textcolor = color.white,
+                 style = d == 1 ? label.style_label_up : label.style_label_down, size = stepSz,
                  tooltip = (d == 1 ? "Sell-side" : "Buy-side") + " liquidity at " + str.tostring(s.lvl, format.mintick) + " taken and reclaimed")
-            s.dVLb := label.new(s.vBar, s.vPx, "2 V", color = cf, textcolor = color.white,
-                 style = d == 1 ? label.style_label_down : label.style_label_up, size = lblSz,
+                s.dVLb := label.new(s.vBar, s.vPx, "V", color = cf, textcolor = color.white,
+                 style = d == 1 ? label.style_label_down : label.style_label_up, size = stepSz,
                  tooltip = "V-shape recovery: fast displacement away from the sweep")
-            s.dCisdLn := line.new(s.cisdBar, s.cisd, s.cisdConfBar, s.cisd, color = c, width = 2)
-            s.dCisdLb := label.new(s.cisdBar, s.cisd, "3 CISD", color = cf, textcolor = color.white,
-                 style = label.style_label_right, size = lblSz,
+                s.dCisdLn := line.new(s.cisdBar, s.cisd, s.cisdConfBar, s.cisd, color = c, width = 2)
+                s.dCisdLb := label.new(s.cisdBar, s.cisd, "CISD", color = cf, textcolor = color.white,
+                 style = label.style_label_right, size = stepSz,
                  tooltip = "Change in state of delivery: close through " + str.tostring(s.cisd, format.mintick))
             s.zBox := box.new(s.zBar, math.max(s.zTop, s.zBot), bar_index, math.min(s.zTop, s.zBot),
-                 border_color = c, bgcolor = color.new(c, 82), text = "4 IFVG", text_color = c,
-                 text_size = lblSz, text_halign = text.align_left, text_valign = text.align_center)
+                 border_color = c, bgcolor = color.new(c, 82), text = "IFVG", text_color = c,
+                 text_size = stepSz, text_halign = text.align_left, text_valign = text.align_center)
         else if bar_index - s.sweepBar > alignBars or (not s.vDone and bar_index - s.extBar > vMaxBars)
             s.reset()
 
@@ -474,8 +476,12 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar,
                          "\nTP2 " + str.tostring(s.tp2, format.mintick) + " (" + str.tostring(s.r2, "#.##") + "R)" +
                          "\nDraw on liquidity " + (na(dol) ? "none beyond TP1" : str.tostring(dol, format.mintick)) +
                          "\nRetracement " + str.tostring(depth * 100, "#") + "% of V leg"
-                    label.new(bar_index, s.entry, "5 Entry " + str.tostring(s.entry, format.mintick), color = color.new(c, 20),
-                         textcolor = color.white, style = label.style_label_right, size = lblSz, tooltip = tip)
+                    string sig = (d == 1 ? "BUY  " : "SELL  ") + str.tostring(s.entry, format.mintick) +
+                         "\nSL  " + str.tostring(s.sl, format.mintick) +
+                         "\nTP1 " + str.tostring(s.tp1, format.mintick) +
+                         "\nTP2 " + str.tostring(s.tp2, format.mintick)
+                    label.new(bar_index, adv, sig, color = c, textcolor = color.white, textalign = text.align_left,
+                         style = d == 1 ? label.style_label_up : label.style_label_down, size = lblSz, tooltip = tip)
                     box.set_border_width(s.zBox, 2)
                     s.bxRisk := box.new(bar_index, math.max(s.entry, s.sl), x2, math.min(s.entry, s.sl),
                          border_color = color.new(slCol, 50), bgcolor = color.new(slCol, 80))
@@ -675,19 +681,8 @@ if showStats and barstate.islast
     statRow(stats, 11, "Bull", stateName(bull), bullCol)
     statRow(stats, 12, "Bear", stateName(bear), bearCol)
 
-// ───────────────────────── Candle markings ─────────────────────────
-// every liquidity sweep (wick through a pool + close back) gets a small triangle on its candle
-plotshape(showSweeps and showBull and not na(sslLvl), "Sell-side liquidity swept", shape.triangleup, location.belowbar,
-     color.new(bullCol, 35), size = size.tiny)
-plotshape(showSweeps and showBear and not na(bslLvl), "Buy-side liquidity swept", shape.triangledown, location.abovebar,
-     color.new(bearCol, 35), size = size.tiny)
-// IFVG armed (sweep + V + CISD + IFVG all confirmed) – the setup is ready, wait for the retest
-plotshape(bArm, "Bull IFVG ready", shape.diamond, location.belowbar, bullCol, size = size.small)
-plotshape(sArm, "Bear IFVG ready", shape.diamond, location.abovebar, bearCol, size = size.small)
-// entry candles
-plotshape(bEntry, "BUY signal", shape.labelup, location.belowbar, bullCol, text = "BUY", textcolor = color.white, size = size.normal)
-plotshape(sEntry, "SELL signal", shape.labeldown, location.abovebar, bearCol, text = "SELL", textcolor = color.white, size = size.normal)
-barcolor(colorBars and bEntry ? color.new(#FFD600, 0) : colorBars and sEntry ? color.new(#FFD600, 0) : na, title = "Signal candle")
+// ───────────────────────── Candle highlight ─────────────────────────
+barcolor(colorBars and bEntry ? bullCol : colorBars and sEntry ? bearCol : na, title = "Signal candle")
 
 // ───────────────────────── Data window ─────────────────────────
 plot(bull.st == 3 ? bull.entry : na, "Bull entry", bullCol, display = display.data_window)
