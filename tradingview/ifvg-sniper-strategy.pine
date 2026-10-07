@@ -85,9 +85,11 @@ bullCol   = input.color(#089981, "Bull", group = G6, inline = "c")
 bearCol   = input.color(#F23645, "Bear", group = G6, inline = "c")
 tgtCol    = input.color(#26A69A, "Profit", group = G6, inline = "c")
 slCol     = input.color(#EF5350, "Risk", group = G6, inline = "c")
-showFailed = input.bool(false, "Keep cancelled setups on chart (grey)", group = G6)
+showSweeps = input.bool(true, "Mark every liquidity sweep on the candle", group = G6)
+colorBars = input.bool(true, "Color the BUY / SELL candle", group = G6)
+showFailed = input.bool(true, "Keep cancelled IFVG zones (faint grey)", group = G6)
 lblSizeIn = input.string("Normal", "Label size", options = ["Small", "Normal", "Large"], group = G6)
-showStats = input.bool(true, "Show stats table", group = G6, inline = "t")
+showStats = input.bool(false, "Show stats table", group = G6, inline = "t")
 tablePos  = input.string("Top right", "", options = ["Top right", "Bottom right", "Top left", "Bottom left"], group = G6, inline = "t")
 string lblSz = lblSizeIn == "Large" ? size.large : lblSizeIn == "Normal" ? size.normal : size.small
 
@@ -421,18 +423,18 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar,
             bool confirm = retestMode == "Sweep minor liquidity" ? sweep2 : retestMode == "Rejection candle" ? d * (close - open) > 0 : true
             bool holds   = d * (close - zFar) >= 0
             if broke or expired
+                line.delete(s.dSweepLn)
+                label.delete(s.dSweepLb)
+                label.delete(s.dVLb)
+                line.delete(s.dCisdLn)
+                label.delete(s.dCisdLb)
                 if showFailed
-                    box.set_bgcolor(s.zBox, color.new(color.gray, 88))
-                    box.set_border_color(s.zBox, color.gray)
-                    box.set_text_color(s.zBox, color.gray)
-                    box.set_text(s.zBox, "IFVG cancelled")
+                    box.set_bgcolor(s.zBox, color.new(color.gray, 90))
+                    box.set_border_color(s.zBox, color.new(color.gray, 60))
+                    box.set_text_color(s.zBox, color.new(color.gray, 40))
+                    box.set_text(s.zBox, "IFVG – no entry")
                 else
                     box.delete(s.zBox)
-                    line.delete(s.dSweepLn)
-                    label.delete(s.dSweepLb)
-                    label.delete(s.dVLb)
-                    line.delete(s.dCisdLn)
-                    label.delete(s.dCisdLb)
                 s.reset()
             else if touched and confirm and holds and bias and allow
                 float entry = close
@@ -472,8 +474,8 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar,
                          "\nTP2 " + str.tostring(s.tp2, format.mintick) + " (" + str.tostring(s.r2, "#.##") + "R)" +
                          "\nDraw on liquidity " + (na(dol) ? "none beyond TP1" : str.tostring(dol, format.mintick)) +
                          "\nRetracement " + str.tostring(depth * 100, "#") + "% of V leg"
-                    label.new(bar_index, adv, d == 1 ? "5 BUY" : "5 SELL", color = c, textcolor = color.white,
-                         style = d == 1 ? label.style_label_up : label.style_label_down, size = lblSz, tooltip = tip)
+                    label.new(bar_index, s.entry, "5 Entry " + str.tostring(s.entry, format.mintick), color = color.new(c, 20),
+                         textcolor = color.white, style = label.style_label_right, size = lblSz, tooltip = tip)
                     box.set_border_width(s.zBox, 2)
                     s.bxRisk := box.new(bar_index, math.max(s.entry, s.sl), x2, math.min(s.entry, s.sl),
                          border_color = color.new(slCol, 50), bgcolor = color.new(slCol, 80))
@@ -672,6 +674,20 @@ if showStats and barstate.islast
          dayOk ? color.white : slCol)
     statRow(stats, 11, "Bull", stateName(bull), bullCol)
     statRow(stats, 12, "Bear", stateName(bear), bearCol)
+
+// ───────────────────────── Candle markings ─────────────────────────
+// every liquidity sweep (wick through a pool + close back) gets a small triangle on its candle
+plotshape(showSweeps and showBull and not na(sslLvl), "Sell-side liquidity swept", shape.triangleup, location.belowbar,
+     color.new(bullCol, 35), size = size.tiny)
+plotshape(showSweeps and showBear and not na(bslLvl), "Buy-side liquidity swept", shape.triangledown, location.abovebar,
+     color.new(bearCol, 35), size = size.tiny)
+// IFVG armed (sweep + V + CISD + IFVG all confirmed) – the setup is ready, wait for the retest
+plotshape(bArm, "Bull IFVG ready", shape.diamond, location.belowbar, bullCol, size = size.small)
+plotshape(sArm, "Bear IFVG ready", shape.diamond, location.abovebar, bearCol, size = size.small)
+// entry candles
+plotshape(bEntry, "BUY signal", shape.labelup, location.belowbar, bullCol, text = "BUY", textcolor = color.white, size = size.normal)
+plotshape(sEntry, "SELL signal", shape.labeldown, location.abovebar, bearCol, text = "SELL", textcolor = color.white, size = size.normal)
+barcolor(colorBars and bEntry ? color.new(#FFD600, 0) : colorBars and sEntry ? color.new(#FFD600, 0) : na, title = "Signal candle")
 
 // ───────────────────────── Data window ─────────────────────────
 plot(bull.st == 3 ? bull.entry : na, "Bull entry", bullCol, display = display.data_window)

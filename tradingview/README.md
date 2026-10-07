@@ -73,6 +73,11 @@ Each setup is labelled with its steps, in order:
 - **4 IFVG:** the shaded box. This is the zone to wait for.
 - **5 BUY / SELL:** the confirmed entry after the retest sweep. Hover over it to see entry, SL, TP1, TP2, retracement and the draw on liquidity.
 
+On the candles themselves:
+- **Small triangles:** every liquidity sweep (▲ under a candle that swept a low, ▼ over a candle that swept a high).
+- **Diamond:** the IFVG setup is armed (sweep + V + CISD + IFVG all confirmed). Wait for the retest.
+- **BUY / SELL tag and a yellow candle:** the entry signal.
+
 After the entry, the trade is drawn like TradingView's position tool:
 - **Red box:** the risk (entry to SL).
 - **Green box:** the reward (entry to TP2).
@@ -81,7 +86,8 @@ After the entry, the trade is drawn like TradingView's position tool:
 When TP1 is hit, the red box greys out and the SL label moves to entry. Each outcome is labelled with its result in R: **✓ TP1**, **✓ TP2 +1.5R**, **BE +0.5R**, **✕ SL -1R**, or **Time exit**.
 
 To keep the chart clean:
-- Cancelled setups are removed. Turn on *Keep cancelled setups on chart* to see them in grey.
+- When a setup is cancelled, its step labels are removed and its IFVG box fades to grey ("IFVG – no entry"). Turn off *Keep cancelled IFVG zones* to remove the box too.
+- The stats table is off by default. Turn on *Show stats table* to see it.
 - Liquidity lines are hidden by default. Turn on *Show resting liquidity levels* to show them.
 - *Label size* changes the size of all labels, and the stats table can sit in any corner.
 
