@@ -17,12 +17,12 @@ Pick how strict the indicator is. The model stays the same in every mode (sweep 
 | Setting | Sniper | **Balanced** (default) | Aggressive |
 |---|---|---|---|
 | Retest confirmation | sweep of minor liquidity | rejection candle (closes in the trade direction) | touch of the IFVG that holds |
-| 1H EMA bias | above/below **and** sloping | above/below only | off |
+| 1H EMA bias | above/below **and** sloping | off | off |
 | Killzones (New York time) | 02–05, 07–11 | 01–06, 07–13 | off |
 | Liquidity swing length | 8 | 5 | 3 |
 | V recovery | 1.5× ATR within 6 bars | 1.2× ATR within 10 bars | 0.9× ATR within 15 bars |
 | Bars allowed for sweep → CISD/IFVG / to wait for retest | 12 / 16 | 20 / 24 | 30 / 40 |
-| Min body of IFVG candle / min retracement | 50% / 50% | 35% / 25% | off / off |
+| Min body of IFVG candle / min retracement | 50% / 50% | 35% / off | off / off |
 | Draw on liquidity beyond TP1 | required | required | off |
 | Max trades / losses per day | 2 / 1 | 4 / 2 | 8 / 4 |
 
@@ -66,6 +66,7 @@ Cancelled IFVG boxes turn grey. Trades still open after 96 bars (one day on 15M)
 Add it the same way as the indicator (Pine Editor → new script → paste → Save → Add to chart), then open **Strategy Tester** below the chart. Alerts with named conditions are only in the indicator version.
 
 ## Chart legend
+- **Status label (right of the last candle):** shows what each side is waiting for (a sweep, V + CISD + IFVG, or the retest), whether you're in a trade, the 1H trend and killzone when those filters are on, and when the last signal fired. If the chart looks empty, this label tells you why.
 - **BUY / SELL label:** under the candle for a buy, above it for a sell. It shows the entry, SL, TP1 and TP2 prices. The signal candle is colored green (buy) or red (sell).
 - **Setup steps:** small labels that show how the setup formed. **Sweep** marks the liquidity that was taken, with a dashed line from the swept level. **V** marks the recovery, and **CISD** marks the line price closed through. The shaded **IFVG** box is the zone the retest came back to. Turn off *Show setup steps* to see only the trades.
 

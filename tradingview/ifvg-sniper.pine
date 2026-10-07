@@ -15,7 +15,7 @@ indicator("IFVG Sniper Model", "IFVG Sniper", overlay = true, max_bars_back = 50
 
 // ───────────────────────── Inputs ─────────────────────────
 signalMode = input.string("Balanced", "Signal mode", options = ["Sniper", "Balanced", "Aggressive", "Custom"],
-     tooltip = "Sniper: strictest, fewest signals.\nBalanced: more signals, keeps the core model (sweep → V → CISD → IFVG → retest).\nAggressive: most signals, filters mostly off.\nCustom: uses every setting below exactly as you set it. In the other modes the starred (*) settings below are set by the mode.")
+     tooltip = "Sniper: strictest, fewest signals (1H trend filter on).\nBalanced: more signals, keeps the core model (sweep → V → CISD → IFVG → retest).\nAggressive: most signals, filters mostly off.\nCustom: uses every setting below exactly as you set it. In the other modes the starred (*) settings below are set by the mode.")
 const string G0 = "0 · High-Probability Filters"
 useHtfIn = input.bool(true, "Trade with higher-timeframe bias *", group = G0,
      tooltip = "Longs only when the HTF close is above a rising EMA, shorts only below a falling EMA (last closed HTF bar, no repaint).")
@@ -86,6 +86,7 @@ showSteps = input.bool(true, "Show setup steps (Sweep, V, CISD, IFVG)", group = 
 colorBars = input.bool(true, "Highlight the BUY / SELL candle", group = G6)
 showFailed = input.bool(true, "Keep cancelled IFVG zones (faint grey)", group = G6)
 lblSizeIn = input.string("Normal", "Label size", options = ["Small", "Normal", "Large"], group = G6)
+showStatus = input.bool(true, "Show status next to the last candle", group = G6)
 showStats = input.bool(false, "Show stats table", group = G6, inline = "t")
 tablePos  = input.string("Top right", "", options = ["Top right", "Bottom right", "Top left", "Bottom left"], group = G6, inline = "t")
 string lblSz  = lblSizeIn == "Large" ? size.large : lblSizeIn == "Normal" ? size.normal : size.small
@@ -97,13 +98,13 @@ bool isBa = signalMode == "Balanced"
 bool isAg = signalMode == "Aggressive"
 bool isCu = signalMode == "Custom"
 //                        Custom          Sniper                 Balanced               Aggressive
-useHtf     = isCu ? useHtfIn     : isSn ? true                 : isBa ? true                 : false
+useHtf     = isCu ? useHtfIn     : isSn ? true                 : false
 htfSlope   = isCu ? htfSlopeIn   : isSn ? true                 : false
 useKz      = isCu ? useKzIn      : isSn ? true                 : isBa ? true                 : false
 kz1        = isCu ? kz1In        : isSn ? "0200-0500"          : "0100-0600"
 kz2        = isCu ? kz2In        : isSn ? "0700-1100"          : "0700-1300"
 dispBody   = isCu ? dispBodyIn   : isSn ? 0.5                  : isBa ? 0.35                 : 0.0
-pdMin      = isCu ? pdMinIn      : isSn ? 0.5                  : isBa ? 0.25                 : 0.0
+pdMin      = isCu ? pdMinIn      : isSn ? 0.5                  : 0.0
 maxDay     = isCu ? maxDayIn     : isSn ? 2                    : isBa ? 4                    : 8
 maxLossDay = isCu ? maxLossDayIn : isSn ? 1                    : isBa ? 2                    : 4
 swingLen   = isCu ? swingLenIn   : isSn ? 8                    : isBa ? 5                    : 3
@@ -677,6 +678,34 @@ if showStats and barstate.islast
          dayOk ? color.white : slCol)
     statRow(stats, 11, "Bull", stateName(bull), bullCol)
     statRow(stats, 12, "Bear", stateName(bear), bearCol)
+
+// ───────────────────────── Status next to the last candle ─────────────────────────
+var string lastSig     = "none yet on loaded bars"
+var int    lastSigTime = na
+if bEntry or sEntry
+    lastSig     := (bEntry ? "BUY " + str.tostring(bull.entry, format.mintick) : "SELL " + str.tostring(bear.entry, format.mintick))
+    lastSigTime := time
+
+waitText(Setup s, bool on) =>
+    not on ? "off" : s.st == 0 ? "waiting for a liquidity sweep" : s.st == 1 ? "swept – waiting for V + CISD + IFVG" :
+     s.st == 2 ? "IFVG ready – waiting for retest" : "in a trade"
+
+agoText(int t) =>
+    float mins = (timenow - t) / 60000.0
+    na(t) ? "" : mins < 120 ? " (" + str.tostring(mins, "#") + " min ago)" : mins < 2880 ? " (" + str.tostring(mins / 60, "#") + " h ago)" :
+     " (" + str.tostring(mins / 1440, "#") + " days ago)"
+
+var label status = na
+if showStatus and barstate.islast
+    label.delete(status)
+    string txt = "IFVG Sniper · " + signalMode +
+         "\nBuy side: "  + waitText(bull, showBull) +
+         "\nSell side: " + waitText(bear, showBear) +
+         (useHtf ? "\n1H trend: " + (bullBias ? "up (buys only)" : bearBias ? "down (sells only)" : "flat (no trades)") : "") +
+         (useKz ? "\nKillzone: " + (inKz ? "open" : "closed") : "") +
+         "\nLast signal: " + lastSig + agoText(lastSigTime)
+    status := label.new(bar_index + 3, close, txt, color = color.new(#131722, 15), textcolor = color.silver,
+         style = label.style_label_left, textalign = text.align_left, size = size.small)
 
 // ───────────────────────── Candle highlight ─────────────────────────
 barcolor(colorBars and bEntry ? bullCol : colorBars and sEntry ? bearCol : na, title = "Signal candle")
