@@ -53,6 +53,13 @@ cObBull       = input.color(color.rgb(41, 98, 255), "Bull OB", inline = "ob", gr
 cObBear       = input.color(color.rgb(255, 152, 0), "Bear OB", inline = "ob", group = "Display")
 cOte          = input.color(color.rgb(255, 193, 7), "OTE", group = "Display")
 
+// Which events send a message through "Any alert() function call"
+alSignals     = input.bool(true, "BUY / SELL setups", group = "Alerts")
+alOutcomes    = input.bool(true, "Setup result (SL / TP3 / expired)", group = "Alerts")
+alMSS         = input.bool(true, "MSS (break after a sweep)", group = "Alerts")
+alBOS         = input.bool(false, "BOS (every structure break)", group = "Alerts")
+alSweeps      = input.bool(false, "Liquidity sweeps (BSL / SSL)", group = "Alerts")
+
 // ───────── Types and drawing helpers ─────────
 type Zone
     box   bx
@@ -614,12 +621,30 @@ plot(ctx1Bias, "H1 Bias", display = display.data_window)
 plot(ctx2Bias, "M15 Bias", display = display.data_window)
 
 // ───────── Alerts ─────────
-// Use either the alertcondition entries or "Any alert() function call"
+// Two ways to use these:
+//  1. One alert for everything: Condition "ICT Assistant Setups" -> "Any alert() function call".
+//     Which events it sends is chosen in the indicator's "Alerts" settings group.
+//  2. One alert per event: pick one of the alertcondition entries below by name.
+// Always use "Once Per Bar Close".
 alertcondition(armedNow and lifeDir == 1, "ICT buy setup", "ICT BUY setup on {{ticker}} {{interval}}")
 alertcondition(armedNow and lifeDir == -1, "ICT sell setup", "ICT SELL setup on {{ticker}} {{interval}}")
-if armedNow
-    alert(str.format("ICT {0} setup {1} | Entry {2} | SL {3} | TP1 {4} | TP2 {5} | TP3 {6}",
-          lifeDir == 1 ? "BUY" : "SELL", syminfo.ticker, f_fmt(lifeEntry), f_fmt(lifeSL),
+alertcondition(bullChain, "ICT bullish MSS", "ICT bullish MSS on {{ticker}} {{interval}}")
+alertcondition(bearChain, "ICT bearish MSS", "ICT bearish MSS on {{ticker}} {{interval}}")
+alertcondition(bullBreak or bearBreak, "ICT any structure break (BOS/MSS)", "ICT structure break on {{ticker}} {{interval}}")
+alertcondition(bullSweep or bearSweep, "ICT liquidity sweep", "ICT liquidity sweep on {{ticker}} {{interval}}")
+
+tfText = timeframe.period
+if alSignals and armedNow
+    alert(str.format("ICT {0} setup {1} {2} | Entry {3} | SL {4} | TP1 {5} | TP2 {6} | TP3 {7}",
+          lifeDir == 1 ? "BUY" : "SELL", syminfo.ticker, tfText, f_fmt(lifeEntry), f_fmt(lifeSL),
           f_fmt(lifeTP1), f_fmt(lifeTP2), f_fmt(lifeTP3)), alert.freq_once_per_bar_close)
-if endedNow
-    alert(str.format("ICT {0} setup {1} {2}", lifeDir == 1 ? "BUY" : "SELL", syminfo.ticker, endText), alert.freq_once_per_bar_close)
+if alOutcomes and endedNow
+    alert(str.format("ICT {0} setup {1} {2} {3}", lifeDir == 1 ? "BUY" : "SELL", syminfo.ticker, tfText, endText), alert.freq_once_per_bar_close)
+if bullBreak and (bullChain ? alMSS : alBOS)
+    alert(str.format("ICT bullish {0} {1} {2} | close {3} above swing high", bullChain ? "MSS" : "BOS", syminfo.ticker, tfText, f_fmt(close)), alert.freq_once_per_bar_close)
+if bearBreak and (bearChain ? alMSS : alBOS)
+    alert(str.format("ICT bearish {0} {1} {2} | close {3} below swing low", bearChain ? "MSS" : "BOS", syminfo.ticker, tfText, f_fmt(close)), alert.freq_once_per_bar_close)
+if alSweeps and bullSweep
+    alert(str.format("ICT SSL swept {0} {1} | low {2}", syminfo.ticker, tfText, f_fmt(low)), alert.freq_once_per_bar_close)
+if alSweeps and bearSweep
+    alert(str.format("ICT BSL swept {0} {1} | high {2}", syminfo.ticker, tfText, f_fmt(high)), alert.freq_once_per_bar_close)
