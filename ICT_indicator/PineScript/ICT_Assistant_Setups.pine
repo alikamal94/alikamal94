@@ -92,6 +92,7 @@ f_addZone(array<Zone> zones, int left, float top, float bot, int dir, color c, s
     if zones.size() > maxZones
         old = zones.shift()
         box.delete(old.bx)
+    true
 
 // A zone is broken once a candle closes through its far edge.
 f_updateZones(array<Zone> zones) =>
@@ -109,6 +110,7 @@ f_updateZones(array<Zone> zones) =>
                 zones.remove(i)
             else
                 box.set_right(z.bx, bar_index + 3)
+    true
 
 f_extendTrade(Trade t, int right) =>
     box.set_right(t.riskBx, right)
