@@ -3,7 +3,7 @@
 // https://github.com/khalegh2131/ICT_indicator
 //
 // Simplified port of the setup engine only:
-//   HTF bias -> liquidity sweep -> displacement -> structure break (the "chain")
+//   HTF bias (+ H1 / M15 must not oppose it) -> liquidity sweep -> displacement -> structure break (the "chain")
 //   -> retrace into OTE (62-79%) inside an OB/FVG -> entry, SL, TP1-3 -> alert.
 // Everything is evaluated on closed bars; set alerts to "Once Per Bar Close".
 //@version=6
@@ -11,6 +11,10 @@ indicator("ICT Assistant Setups", overlay = true, max_lines_count = 500, max_lab
 
 // ───────── Inputs ─────────
 biasTF       = input.timeframe("240", "Bias timeframe (H4)", group = "Bias")
+useCtx1      = input.bool(true, "Check context 1 (H1)", inline = "c1", group = "Bias")
+ctx1TF       = input.timeframe("60", "", inline = "c1", group = "Bias")
+useCtx2      = input.bool(true, "Check context 2 (M15)", inline = "c2", group = "Bias")
+ctx2TF       = input.timeframe("15", "", inline = "c2", group = "Bias")
 swL          = input.int(3, "Swing left bars", minval = 1, group = "Structure")
 swR          = input.int(3, "Swing right bars", minval = 1, group = "Structure")
 atrLen       = input.int(14, "ATR length", group = "Structure")
@@ -47,7 +51,15 @@ f_structureBias(int l, int r) =>
         sl  := na
     dir
 
-htfBias = request.security(syminfo.tickerid, biasTF, f_structureBias(swL, swR)[1], lookahead = barmerge.lookahead_on)
+htfBias  = request.security(syminfo.tickerid, biasTF, f_structureBias(swL, swR)[1], lookahead = barmerge.lookahead_on)
+ctx1Bias = request.security(syminfo.tickerid, ctx1TF, f_structureBias(swL, swR)[1], lookahead = barmerge.lookahead_on)
+ctx2Bias = request.security(syminfo.tickerid, ctx2TF, f_structureBias(swL, swR)[1], lookahead = barmerge.lookahead_on)
+
+// Like the MT5 version: a context timeframe blocks the setup only when it has a
+// direction and that direction opposes the H4 bias (no direction yet = no veto).
+f_ctxOk(bool use, int ctx, int bias) =>
+    not use or na(ctx) or ctx == 0 or ctx == bias
+ctxOk = f_ctxOk(useCtx1, ctx1Bias, htfBias) and f_ctxOk(useCtx2, ctx2Bias, htfBias)
 
 // ───────── Chart-timeframe structure ─────────
 atr = ta.atr(atrLen)
@@ -199,7 +211,7 @@ if state == 1
 // ───────── Setup engine ─────────
 armedNow = false
 fresh    = chainDir != 0 and not na(chainBar) and bar_index - chainBar <= chainLookback
-if fresh and chainDir == htfBias and legHigh > legLow
+if fresh and chainDir == htfBias and ctxOk and legHigh > legLow
     dr   = legHigh - legLow
     eq   = (legHigh + legLow) / 2
     bull = chainDir == 1
@@ -244,6 +256,8 @@ plot(showLevels and active ? lifeTP3 : na, "TP3", color.new(color.green, 0), 1, 
 plot(active ? lifeDir : 0, "Direction", display = display.data_window)
 plot(state, "State", display = display.data_window)
 plot(htfBias, "HTF Bias", display = display.data_window)
+plot(ctx1Bias, "H1 Bias", display = display.data_window)
+plot(ctx2Bias, "M15 Bias", display = display.data_window)
 
 plotshape(armedNow and lifeDir == 1, "Buy setup armed", shape.triangleup, location.belowbar, color.lime, size = size.small, text = "BUY")
 plotshape(armedNow and lifeDir == -1, "Sell setup armed", shape.triangledown, location.abovebar, color.red, size = size.small, text = "SELL")
