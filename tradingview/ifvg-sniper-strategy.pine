@@ -387,7 +387,7 @@ method openTrade(Setup s, float entry, float stopPx, float atrV) =>
                 s.tp2 := entry + d * math.max(rr2 * risk, math.abs(s.tp1 - entry) + 0.5 * risk)
         s.r1 := math.abs(s.tp1 - entry) / risk
         s.r2 := math.abs(s.tp2 - entry) / risk
-        
+
         int x2 = bar_index + 5
         string tip = "Entry " + str.tostring(s.entry, format.mintick) +
              "\nSL " + str.tostring(s.sl, format.mintick) +
