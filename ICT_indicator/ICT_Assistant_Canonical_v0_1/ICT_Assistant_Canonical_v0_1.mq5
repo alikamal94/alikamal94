@@ -24,8 +24,8 @@
 #property description "ICT · SMC · MMM · Wyckoff · S&D · AMT · RTM · Brooks — اندیکاتور آموزشی و تحلیلی چند مکتبی: رسم روی چارت همراه با توضیح فارسی کامل زیر موس. نویسنده: خالق صالحی"
 #property version   "1.01"            // MQL5 rejects a 0.x major (compiler warning 68) → the canonical core v0.1 is published as program version 1.01 (release v1.01: 32 family modules, fitted grade, single path row)
 #property indicator_chart_window
-#property indicator_buffers 0
-#property indicator_plots   0
+#property indicator_buffers 8   // setup Entry/SL/TP1-3/Dir/State/Armed for EAs (modules/34_SignalBuffers.mqh)
+#property indicator_plots   8
 
 #define ICT_EVENT_LEDGER_BASE "ICT_Assistant_V13_Events_v1"   // فاز ۲۲: نام دفتر = base + "_" + نماد + ".csv" (چند نماد دیگر قاطی هم نمی‌شوند)
 #define ICT_REPLAY_LEDGER "ICT_Assistant_Canonical_ReplayLedger.csv"
@@ -63,6 +63,7 @@
 #include "modules/31_SignalGrade.mqh"
 #include "modules/32_PendingScenario.mqh"
 #include "modules/33_SymbolProfile.mqh"
+#include "modules/34_SignalBuffers.mqh"
 
 //------------------------------------------------------------------
 // بدنهٔ کد این اندیکاتور در پوشهٔ «modules/» است — یک فایل برای هر

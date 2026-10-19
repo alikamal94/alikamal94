@@ -125,6 +125,7 @@ int OnInit()
    LoadGradeCalibration();
    WriteSymbolProfileDiag();
 
+   InitSignalBuffers();
    EventSetTimer(1);
    return INIT_SUCCEEDED;
 }

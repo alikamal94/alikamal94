@@ -176,6 +176,8 @@ void ArmSetupLifecycle(datetime barTime)
    g_setupLifeEntry=g_setup.entry;
    g_setupLifeSL=g_setup.sl;
    g_setupLifeTP1=g_setup.tp1;
+   g_setupLifeTP2=g_setup.tp2;
+   g_setupLifeTP3=g_setup.tp3;
    g_setupLifeArmTime=barTime;
    g_setupLifeChainId=g_setup.chainEventId;
    g_setupArmedCount++;

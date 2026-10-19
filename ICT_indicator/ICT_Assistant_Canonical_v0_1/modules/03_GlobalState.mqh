@@ -223,6 +223,7 @@ int  g_histOffsetDeltaMin = 0;                  // اختلاف آفست لحظ�
 string   g_setupLifeState = "IDLE";             // IDLE / TRACKING / INVALIDATED / TP1_HIT
 ENUM_DIRECTION g_setupLifeDir = DIR_NONE;
 double   g_setupLifeEntry=0, g_setupLifeSL=0, g_setupLifeTP1=0;
+double   g_setupLifeTP2=0, g_setupLifeTP3=0;   // for the EA signal buffers
 datetime g_setupLifeArmTime=0, g_setupLifeEndTime=0;
 double   g_setupLifeEndPrice=0;
 long     g_setupLifeChainId=-1;

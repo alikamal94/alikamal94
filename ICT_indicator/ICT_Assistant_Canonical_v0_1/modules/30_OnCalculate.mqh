@@ -16,6 +16,10 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    int closedIndex=inputIsSeries?1:rates_total-2;
    if(closedIndex<0) return 0;
 
+   // Signal buffers follow the orientation of the input arrays.
+   SetSignalBuffersSeries(inputIsSeries);
+   if(prev_calculated==0) ClearSignalBuffers();
+
    static datetime lastProcessedBarTime = 0;
    bool isNewBar = (time[currentIndex] != lastProcessedBarTime);
    if(isNewBar) lastProcessedBarTime = time[currentIndex];
@@ -100,6 +104,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
          q0=PROBE_T0;
          PersistPhase12Diagnostics(barT);
          PROBE_END("5.persist12",q0);
+         WriteSignalBufferBar(inputIsSeries? shift : rates_total-1-shift, barT);
       }
       PROBE_END("0.loopTotal",rt0);
       g_rebuildMode = false;
@@ -166,9 +171,11 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
       UpdatePendingScenario(atrBuf[1]);
       UpdateTrendPhase(closedBar);   // فاز ۱۲ (#۹)
       PersistPhase12Diagnostics(closedBar);
+      WriteSignalBufferBar(closedIndex, closedBar);
 
       RedrawChartObjects();
    }
+   CopySignalBufferBar(closedIndex, currentIndex);
 
    // فاز ۱۴: داشبورد رندر می‌شود و شاهد عددی همان pass نوشته می‌شود
    // (باید بعد از RenderDashboard باشد تا اعداد DashRows/DashWidth جاری باشند،
