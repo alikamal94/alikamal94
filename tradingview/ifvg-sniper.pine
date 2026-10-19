@@ -60,6 +60,10 @@ const string G4 = "4 · Retest + Second Sweep"
 retestModeIn = input.string("Sweep minor liquidity", "Retest confirmation *", options = ["Sweep minor liquidity", "Rejection candle", "Touch"], group = G4,
      tooltip = "Sweep minor liquidity: the retest candle takes the last N bars' low/high and closes back (strictest).\nRejection candle: the retest candle closes in the trade direction.\nTouch: any retest that holds the IFVG.")
 retestMaxIn = input.int(16, "Max bars to wait for retest *", minval = 1, group = G4)
+entryType = input.string("Retest confirmation", "Entry style", options = ["Retest confirmation", "Limit at IFVG edge", "IFVG flip (aggressive)"], group = G4,
+     tooltip = "Retest confirmation: enter at the close of the retest candle that passes the retest rule above.\nLimit at IFVG edge: a resting limit order at the near edge of the IFVG – the first touch fills it (sniper entry, no confirmation).\nIFVG flip (aggressive): enter at the close of the candle that inverts the FVG – no retest needed.")
+stopType  = input.string("Retest candle", "Stop placement", options = ["Retest candle", "Beyond IFVG", "Beyond sweep"], group = G4,
+     tooltip = "Retest candle: beyond the retest candle's wick (tightest).\nBeyond IFVG: beyond the far edge of the IFVG.\nBeyond sweep: beyond the liquidity-sweep extreme (widest, structural).\nWith 'Limit at IFVG edge' the retest candle is not known yet, so 'Retest candle' uses 'Beyond IFVG'. With 'IFVG flip' it uses 'Beyond sweep'.")
 minorLen  = input.int(3, "Retest sweep lookback (bars)", minval = 1, group = G4,
      tooltip = "On the retest, price must take the low (bull) / high (bear) of the previous N bars and close back.")
 
@@ -346,6 +350,68 @@ method setTradeX(Setup s, int x) =>
     label.set_x(s.bT2, x)
     true
 
+// Opens a trade at entry with the stop at stopPx (risk widened to minSlAtr), after the stop-size,
+// draw-on-liquidity and discount / premium filters. Returns true when the trade was opened.
+method openTrade(Setup s, float entry, float stopPx, float atrV) =>
+    int   d   = s.dir
+    color c   = d == 1 ? bullCol : bearCol
+    float adv = d == 1 ? low : high
+    float legSz = math.abs(s.far - s.ext)
+    float depth = legSz > 0 ? d * (s.far - entry) / legSz : 0.0
+    float risk  = math.max(math.abs(entry - stopPx), minSlAtr * atrV)
+    [dol, dol2] = findTargets(d, entry, rr1 * risk)
+    bool okSize = risk <= maxSlAtr * atrV
+    bool okDol  = not requireDol or not na(dol)
+    bool okPd   = depth >= pdMin
+    // An entry that fails the stop-size / DOL / discount filters is skipped; the zone stays armed.
+    bool ok = okSize and okDol and okPd
+    if ok
+        s.st       := 3
+        s.entryBar := bar_index
+        s.entry    := entry
+        s.risk     := risk
+        s.sl       := entry - d * risk
+        float cap1 = entry + d * rr1 * risk
+        float cap2 = entry + d * rr2 * risk
+        if tpMode == "Fixed R:R"
+            s.tp1 := cap1
+            s.tp2 := cap2
+        else
+            [t1, t2] = findTargets(d, entry, 0.5 * risk)
+            s.tp1 := na(t1) or d * (t1 - cap1) > 0 ? cap1 : t1
+            s.tp2 := na(t2) or d * (t2 - cap2) > 0 ? cap2 : t2
+            if d * (s.tp2 - s.tp1) <= 0
+                s.tp2 := entry + d * math.max(rr2 * risk, math.abs(s.tp1 - entry) + 0.5 * risk)
+        s.r1 := math.abs(s.tp1 - entry) / risk
+        s.r2 := math.abs(s.tp2 - entry) / risk
+        
+        int x2 = bar_index + 5
+        string tip = "Entry " + str.tostring(s.entry, format.mintick) +
+             "\nSL " + str.tostring(s.sl, format.mintick) +
+             "\nTP1 " + str.tostring(s.tp1, format.mintick) + " (" + str.tostring(s.r1, "#.##") + "R)" +
+             "\nTP2 " + str.tostring(s.tp2, format.mintick) + " (" + str.tostring(s.r2, "#.##") + "R)" +
+             "\nDraw on liquidity " + (na(dol) ? "none beyond TP1" : str.tostring(dol, format.mintick)) +
+             "\nRetracement " + str.tostring(depth * 100, "#") + "% of V leg"
+        string sig = (d == 1 ? "BUY  " : "SELL  ") + str.tostring(s.entry, format.mintick) +
+             "\nSL  " + str.tostring(s.sl, format.mintick) +
+             "\nTP1 " + str.tostring(s.tp1, format.mintick) +
+             "\nTP2 " + str.tostring(s.tp2, format.mintick)
+        label.new(bar_index, adv, sig, color = c, textcolor = color.white, textalign = text.align_left,
+             style = d == 1 ? label.style_label_up : label.style_label_down, size = lblSz, tooltip = tip)
+        box.set_border_width(s.zBox, 2)
+        s.bxRisk := box.new(bar_index, math.max(s.entry, s.sl), x2, math.min(s.entry, s.sl),
+             border_color = color.new(slCol, 50), bgcolor = color.new(slCol, 80))
+        s.bxRew  := box.new(bar_index, math.max(s.entry, s.tp2), x2, math.min(s.entry, s.tp2),
+             border_color = color.new(tgtCol, 50), bgcolor = color.new(tgtCol, 80))
+        s.lT1 := line.new(bar_index, s.tp1, x2, s.tp1, color = tgtCol, style = line.style_dashed)
+        s.bS  := label.new(x2, s.sl, "SL  " + str.tostring(s.sl, format.mintick), color = color(na),
+             textcolor = slCol, style = label.style_label_left, size = lblSz)
+        s.bT1 := label.new(x2, s.tp1, "TP1  " + str.tostring(s.r1, "#.#") + "R", color = color(na),
+             textcolor = tgtCol, style = label.style_label_left, size = lblSz)
+        s.bT2 := label.new(x2, s.tp2, "TP2  " + str.tostring(s.r2, "#.#") + "R", color = color(na),
+             textcolor = tgtCol, style = label.style_label_left, size = lblSz)
+    ok
+
 // bias: HTF bias agrees with this direction · allow: killzone, daily limits and no open opposite trade
 method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar, bool bias, bool allow) =>
     int   d   = s.dir
@@ -407,6 +473,10 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar,
             s.zBox := box.new(s.zBar, math.max(s.zTop, s.zBot), bar_index, math.min(s.zTop, s.zBot),
                  border_color = c, bgcolor = color.new(c, 82), text = "IFVG", text_color = c,
                  text_size = stepSz, text_halign = text.align_left, text_valign = text.align_center)
+            if entryType == "IFVG flip (aggressive)" and bias and allow
+                float zFarA = d == 1 ? s.zBot : s.zTop
+                if s.openTrade(close, (stopType == "Beyond IFVG" ? zFarA : s.ext) - d * slBuf * atrV, atrV)
+                    evEntry := true
         else if bar_index - s.sweepBar > alignBars or (not s.vDone and bar_index - s.extBar > vMaxBars)
             s.reset()
 
@@ -422,7 +492,19 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar,
             bool sweep2  = d * (adv - minorLvl) < 0 and d * (close - minorLvl) > 0
             bool confirm = retestMode == "Sweep minor liquidity" ? sweep2 : retestMode == "Rejection candle" ? d * (close - open) > 0 : true
             bool holds   = d * (close - zFar) >= 0
-            if broke or expired
+            bool  limitFill = entryType == "Limit at IFVG edge" and touched and bias and allow
+            float bufP      = d * slBuf * atrV
+            if limitFill and s.openTrade(zNear, (stopType == "Beyond sweep" ? s.ext : zFar) - bufP, atrV)
+                evEntry := true
+                // the limit order filled inside this candle – if the same candle also reached the stop, it's a loss
+                if d * (adv - s.sl) <= 0
+                    evSl := true
+                    resR := -1.0
+                    label.new(bar_index, adv, "✕ SL " + fmtR(resR), color = slCol, textcolor = color.white,
+                         style = d == 1 ? label.style_label_up : label.style_label_down, size = lblSz)
+                    s.setTradeX(bar_index)
+                    s.reset()
+            else if broke or expired
                 line.delete(s.dSweepLn)
                 label.delete(s.dSweepLb)
                 label.delete(s.dVLb)
@@ -436,63 +518,10 @@ method update(Setup s, float atrV, float minorLvl, float zt, float zb, int zbar,
                 else
                     box.delete(s.zBox)
                 s.reset()
-            else if touched and confirm and holds and bias and allow
-                float entry = close
-                float legSz = math.abs(s.far - s.ext)
-                float depth = legSz > 0 ? d * (s.far - entry) / legSz : 0.0
-                float risk  = math.max(math.abs(entry - (adv - d * slBuf * atrV)), minSlAtr * atrV)
-                [dol, dol2] = findTargets(d, entry, rr1 * risk)
-                bool okSize = risk <= maxSlAtr * atrV
-                bool okDol  = not requireDol or not na(dol)
-                bool okPd   = depth >= pdMin
-                // A retest that fails the stop-size / DOL / discount filters is skipped; the zone stays armed.
-                if okSize and okDol and okPd
-                    s.st       := 3
-                    s.entryBar := bar_index
-                    s.entry    := entry
-                    s.risk     := risk
-                    s.sl       := entry - d * risk
-                    float cap1 = entry + d * rr1 * risk
-                    float cap2 = entry + d * rr2 * risk
-                    if tpMode == "Fixed R:R"
-                        s.tp1 := cap1
-                        s.tp2 := cap2
-                    else
-                        [t1, t2] = findTargets(d, entry, 0.5 * risk)
-                        s.tp1 := na(t1) or d * (t1 - cap1) > 0 ? cap1 : t1
-                        s.tp2 := na(t2) or d * (t2 - cap2) > 0 ? cap2 : t2
-                        if d * (s.tp2 - s.tp1) <= 0
-                            s.tp2 := entry + d * math.max(rr2 * risk, math.abs(s.tp1 - entry) + 0.5 * risk)
-                    s.r1 := math.abs(s.tp1 - entry) / risk
-                    s.r2 := math.abs(s.tp2 - entry) / risk
+            else if entryType == "Retest confirmation" and touched and confirm and holds and bias and allow
+                float stopPx = stopType == "Beyond sweep" ? s.ext : stopType == "Beyond IFVG" ? zFar : adv
+                if s.openTrade(close, stopPx - bufP, atrV)
                     evEntry := true
-
-                    int x2 = bar_index + 5
-                    string tip = "Entry " + str.tostring(s.entry, format.mintick) +
-                         "\nSL " + str.tostring(s.sl, format.mintick) +
-                         "\nTP1 " + str.tostring(s.tp1, format.mintick) + " (" + str.tostring(s.r1, "#.##") + "R)" +
-                         "\nTP2 " + str.tostring(s.tp2, format.mintick) + " (" + str.tostring(s.r2, "#.##") + "R)" +
-                         "\nDraw on liquidity " + (na(dol) ? "none beyond TP1" : str.tostring(dol, format.mintick)) +
-                         "\nRetracement " + str.tostring(depth * 100, "#") + "% of V leg"
-                    string sig = (d == 1 ? "BUY  " : "SELL  ") + str.tostring(s.entry, format.mintick) +
-                         "\nSL  " + str.tostring(s.sl, format.mintick) +
-                         "\nTP1 " + str.tostring(s.tp1, format.mintick) +
-                         "\nTP2 " + str.tostring(s.tp2, format.mintick)
-                    label.new(bar_index, adv, sig, color = c, textcolor = color.white, textalign = text.align_left,
-                         style = d == 1 ? label.style_label_up : label.style_label_down, size = lblSz, tooltip = tip)
-                    box.set_border_width(s.zBox, 2)
-                    s.bxRisk := box.new(bar_index, math.max(s.entry, s.sl), x2, math.min(s.entry, s.sl),
-                         border_color = color.new(slCol, 50), bgcolor = color.new(slCol, 80))
-                    s.bxRew  := box.new(bar_index, math.max(s.entry, s.tp2), x2, math.min(s.entry, s.tp2),
-                         border_color = color.new(tgtCol, 50), bgcolor = color.new(tgtCol, 80))
-                    s.lT1 := line.new(bar_index, s.tp1, x2, s.tp1, color = tgtCol, style = line.style_dashed)
-                    s.bS  := label.new(x2, s.sl, "SL  " + str.tostring(s.sl, format.mintick), color = color(na),
-                         textcolor = slCol, style = label.style_label_left, size = lblSz)
-                    s.bT1 := label.new(x2, s.tp1, "TP1  " + str.tostring(s.r1, "#.#") + "R", color = color(na),
-                         textcolor = tgtCol, style = label.style_label_left, size = lblSz)
-                    s.bT2 := label.new(x2, s.tp2, "TP2  " + str.tostring(s.r2, "#.#") + "R", color = color(na),
-                         textcolor = tgtCol, style = label.style_label_left, size = lblSz)
-
     else if s.st == 3
         if bar_index > s.entryBar
             s.setTradeX(bar_index + 5)

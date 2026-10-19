@@ -11,6 +11,21 @@
 | 5 | **Retest + second sweep** | Price comes back into the IFVG, takes out the low of the previous `N` bars (minor liquidity), and closes back above that low without closing below the IFVG. This is the **BUY** signal, and entry is at that candle's close. |
 | 6 | **Targets** | By default TP1 is at 1R and TP2 at 2R. The stop goes below the retest-sweep low plus a small ATR buffer. At TP1, 50% is closed and the stop moves to entry. In `Liquidity (capped at R:R)` mode, each target is the nearest untouched swing or previous-day level, but never further than 1R / 2R. |
 
+### Entry style and stop placement (section 4 of the settings)
+| Entry style | When it enters | Default stop |
+|---|---|---|
+| **Retest confirmation** (default) | At the close of the retest candle that passes the retest rule for the signal mode. | Beyond the retest candle's wick |
+| **Limit at IFVG edge** | A resting limit order at the near edge of the IFVG. The first touch fills it (sniper entry, no confirmation). | Beyond the far edge of the IFVG |
+| **IFVG flip (aggressive)** | At the close of the candle that inverts the FVG. No retest needed. | Beyond the sweep extreme |
+
+**Stop placement** can be *Retest candle*, *Beyond IFVG* or *Beyond sweep*:
+- With **Limit at IFVG edge**, the retest candle isn't known yet when the order is placed, so *Retest candle* uses *Beyond IFVG*.
+- With **IFVG flip**, *Retest candle* uses *Beyond sweep*.
+
+In the strategy version, *Limit at IFVG edge* places a real resting limit order with its stop and targets attached, so the Strategy Tester fills it at the limit price.
+
+**Which one is best?** Run the strategy version on gold 15M and compare the 3 entry styles in the Strategy Tester. In a replay of the logic on 5,000 hourly EURUSD bars (the only data available offline), none of the 3 styles was profitable, and with 10–27 trades per sample the differences were within noise. Treat every setting as unproven until it holds up on your own instrument and timeframe.
+
 ### Signal mode (first setting)
 Pick how strict the indicator is. The model stays the same in every mode (sweep → V → CISD → IFVG → retest). Only the filters loosen.
 
