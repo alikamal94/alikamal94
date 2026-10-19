@@ -142,6 +142,26 @@ void UpdateSetupLifecycle(datetime barTime, double closePrice, double highPrice,
    }
 }
 
+// اعلان ستاپ مسلح: Alert / Push / Sound — فقط روی کندل زنده، نه هنگام بازسازی تاریخچه.
+void NotifySetupArmed(datetime barTime)
+{
+   if(g_rebuildMode) return;
+   if(!InpAlertOnSetupArmed && !InpPushOnSetupArmed && !InpSoundOnSetupArmed) return;
+   // کندل‌های قدیمی (مثلاً بعد از وصل‌شدن دوباره) اعلان نمی‌دهند.
+   if(TimeCurrent()-barTime > 2*PeriodSeconds(_Period)) return;
+
+   string msg=StringFormat("ICT %s %s: setup ARMED %s | Entry %s | SL %s | TP1 %s | TP2 %s | TP3 %s",
+                           _Symbol, EnumToString(_Period), DirToStr(g_setup.dir),
+                           DoubleToString(g_setup.entry,_Digits), DoubleToString(g_setup.sl,_Digits),
+                           DoubleToString(g_setup.tp1,_Digits), DoubleToString(g_setup.tp2,_Digits),
+                           DoubleToString(g_setup.tp3,_Digits));
+   if(InpAlertOnSetupArmed) Alert(msg);
+   if(InpPushOnSetupArmed && !SendNotification(msg))
+      Print("ICT | push notification failed, error ", GetLastError(),
+            " (enable Tools > Options > Notifications and set MetaQuotes ID)");
+   if(InpSoundOnSetupArmed) PlaySound(InpSetupArmedSound);
+}
+
 // پس از UpdateSetup: اگر ستاپ READY شد، پیگیری از همین کندل مسلح می‌شود.
 // تنها یک ستاپ در هر لحظه پیگیری می‌شود (آخرین زنجیرهٔ اثبات‌شده).
 void ArmSetupLifecycle(datetime barTime)
@@ -169,7 +189,9 @@ void ArmSetupLifecycle(datetime barTime)
             DoubleToString(g_setup.sl,_Digits), DoubleToString(g_setup.tp1,_Digits), DirToStr(g_setup.dir),
             IdToStr(g_setup.chainEventId), g_setupArmedCount));
    PersistSetupLifecycleEvent("ARMED", barTime, g_setup.entry);
+   NotifySetupArmed(barTime);
 }
+
 
 // شاهد عددی فاز ۱۵ : آفست تاریخی/قاعدهٔ DST بروکر + وضعیت چرخهٔ عمر ستاپ.
 // یک ردیف در هر کندل بسته (یا هر بار که مقدار کلیدی عوض شود) — به‌سبک فاز ۱۲.

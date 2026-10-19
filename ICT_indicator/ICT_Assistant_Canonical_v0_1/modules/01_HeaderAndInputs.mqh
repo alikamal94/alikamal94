@@ -281,6 +281,10 @@ input group "== Phase 15: historical DST offset, setup lifecycle, HTF events =="
 input ENUM_BROKER_DST_RULE InpBrokerDSTRule        = BDST_AUTO; // قاعدهٔ DST بروکر برای بازسازی آفست تاریخی
 input bool   InpUseHistoricalBrokerOffset = true;  // آفست هر لحظهٔ تاریخی محاسبه شود (false = رفتار قدیمی: آفست امروز)
 input bool   InpTrackSetupLifecycle       = true;  // #۶۶ ثبت ابطال ستاپ با عبور بستهٔ قیمت از SL
+input bool   InpAlertOnSetupArmed         = true;  // Alert popup when a setup is ARMED (live bars only)
+input bool   InpPushOnSetupArmed          = false; // Push notification to MT5 mobile when a setup is ARMED (needs MetaQuotes ID)
+input bool   InpSoundOnSetupArmed         = false; // Play a sound when a setup is ARMED
+input string InpSetupArmedSound           = "alert.wav"; // Sound file (MQL5\\Sounds or terminal Sounds folder)
 input bool   InpDrawHTFEvents             = true;  // رسم رویداد ساختاری HTF روی چارت (قبلاً هیچ آبجکتی نداشت)
 input int    InpMaxDrawnHTFEvents         = 4;     // سقف رسم رویداد HTF (قبلاً ۸)
 input bool   InpWritePhase15Diagnostics   = true;  // نوشتن ICT_Assistant_Canonical_Phase15_Diag.csv
