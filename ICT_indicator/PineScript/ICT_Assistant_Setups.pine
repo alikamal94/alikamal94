@@ -1,0 +1,261 @@
+// This Pine Script® code is subject to the terms of the MIT License.
+// Setup rules adapted from ICT Assistant for MT5 (c) 2026 Khaleq Salehi, MIT License
+// https://github.com/khalegh2131/ICT_indicator
+//
+// Simplified port of the setup engine only:
+//   HTF bias -> liquidity sweep -> displacement -> structure break (the "chain")
+//   -> retrace into OTE (62-79%) inside an OB/FVG -> entry, SL, TP1-3 -> alert.
+// Everything is evaluated on closed bars; set alerts to "Once Per Bar Close".
+//@version=6
+indicator("ICT Assistant Setups", overlay = true, max_lines_count = 500, max_labels_count = 500)
+
+// ───────── Inputs ─────────
+biasTF       = input.timeframe("240", "Bias timeframe (H4)", group = "Bias")
+swL          = input.int(3, "Swing left bars", minval = 1, group = "Structure")
+swR          = input.int(3, "Swing right bars", minval = 1, group = "Structure")
+atrLen       = input.int(14, "ATR length", group = "Structure")
+dispBody     = input.float(0.65, "Displacement min body/range", group = "Structure")
+dispRange    = input.float(1.5, "Displacement min range/ATR", group = "Structure")
+chainLookback = input.int(96, "Chain freshness (bars)", group = "Structure")
+obLookback   = input.int(10, "Order block search (bars)", group = "Structure")
+oteLowPct    = input.float(0.62, "OTE low", group = "Setup")
+oteHighPct   = input.float(0.79, "OTE high", group = "Setup")
+rrTP1        = input.float(1.0, "TP1 R", group = "Setup")
+rrTP2        = input.float(2.0, "TP2 R", group = "Setup")
+rrTP3        = input.float(3.0, "TP3 R", group = "Setup")
+slAtrBuf     = input.float(0.5, "SL buffer (x ATR)", group = "Setup")
+slMinTicks   = input.int(20, "SL buffer floor (ticks)", group = "Setup")
+minRR        = input.float(1.5, "Min R:R to TP3", group = "Setup")
+showLevels   = input.bool(true, "Show entry / SL / TP lines", group = "Display")
+
+// ───────── HTF bias (no repaint: previous closed HTF bar) ─────────
+f_structureBias(int l, int r) =>
+    var int   dir = 0
+    var float sh  = na
+    var float sl  = na
+    ph = ta.pivothigh(high, l, r)
+    pl = ta.pivotlow(low, l, r)
+    if not na(ph)
+        sh := ph
+    if not na(pl)
+        sl := pl
+    if not na(sh) and close > sh
+        dir := 1
+        sh  := na
+    if not na(sl) and close < sl
+        dir := -1
+        sl  := na
+    dir
+
+htfBias = request.security(syminfo.tickerid, biasTF, f_structureBias(swL, swR)[1], lookahead = barmerge.lookahead_on)
+
+// ───────── Chart-timeframe structure ─────────
+atr = ta.atr(atrLen)
+ph  = ta.pivothigh(high, swL, swR)
+pl  = ta.pivotlow(low, swL, swR)
+
+var float lastSH = na      // unswept swing high (buy-side liquidity)
+var float lastSL = na      // unswept swing low (sell-side liquidity)
+if not na(ph)
+    lastSH := ph
+if not na(pl)
+    lastSL := pl
+
+// Sweep: wick through the level, close back inside
+var int   bullSweepBar = na
+var int   bearSweepBar = na
+var float bullLegLow   = na
+var float bearLegHigh  = na
+bullSweep = not na(lastSL) and low < lastSL and close > lastSL
+bearSweep = not na(lastSH) and high > lastSH and close < lastSH
+if bullSweep
+    bullSweepBar := bar_index
+    bullLegLow   := low
+    lastSL       := na
+if bearSweep
+    bearSweepBar := bar_index
+    bearLegHigh  := high
+    lastSH       := na
+if not na(bullSweepBar) and not bullSweep
+    bullLegLow := math.min(bullLegLow, low)
+if not na(bearSweepBar) and not bearSweep
+    bearLegHigh := math.max(bearLegHigh, high)
+
+// Displacement: large-bodied candle relative to ATR
+rng       = high - low
+dispOk    = rng > 0 and math.abs(close - open) / rng >= dispBody and rng >= dispRange * atr
+var int lastBullDispBar = na
+var int lastBearDispBar = na
+if dispOk and close > open
+    lastBullDispBar := bar_index
+if dispOk and close < open
+    lastBearDispBar := bar_index
+
+// Fair value gaps formed after the sweep (latest one, until closed through)
+var float bullFvgTop = na
+var float bullFvgBot = na
+var float bearFvgTop = na
+var float bearFvgBot = na
+if low > high[2] and not na(bullSweepBar)
+    bullFvgTop := low
+    bullFvgBot := high[2]
+if high < low[2] and not na(bearSweepBar)
+    bearFvgTop := low[2]
+    bearFvgBot := high
+if not na(bullFvgBot) and close < bullFvgBot
+    bullFvgTop := na
+    bullFvgBot := na
+if not na(bearFvgTop) and close > bearFvgTop
+    bearFvgTop := na
+    bearFvgBot := na
+
+// Chain: sweep -> displacement -> close beyond the opposite swing
+var int   chainDir = 0
+var int   chainBar = na
+var int   chainId  = 0
+var float legHigh  = na
+var float legLow   = na
+var float obTop    = na
+var float obBot    = na
+
+bullBreak = not na(lastSH) and close > lastSH
+bearBreak = not na(lastSL) and close < lastSL
+bullChain = bullBreak and not na(bullSweepBar) and not na(lastBullDispBar) and lastBullDispBar >= bullSweepBar
+bearChain = bearBreak and not na(bearSweepBar) and not na(lastBearDispBar) and lastBearDispBar >= bearSweepBar
+
+if bullBreak
+    lastSH := na
+if bearBreak
+    lastSL := na
+
+if bullChain
+    chainDir := 1
+    chainBar := bar_index
+    chainId  += 1
+    legLow   := bullLegLow
+    legHigh  := high
+    obTop    := na
+    obBot    := na
+    for i = 1 to obLookback
+        if close[i] < open[i]
+            obTop := high[i]
+            obBot := low[i]
+            break
+    bullSweepBar := na
+else if bearChain
+    chainDir := -1
+    chainBar := bar_index
+    chainId  += 1
+    legHigh  := bearLegHigh
+    legLow   := low
+    obTop    := na
+    obBot    := na
+    for i = 1 to obLookback
+        if close[i] > open[i]
+            obTop := high[i]
+            obBot := low[i]
+            break
+    bearSweepBar := na
+else if chainDir == 1
+    legHigh := math.max(legHigh, high)
+    if close < legLow
+        chainDir := 0
+else if chainDir == -1
+    legLow := math.min(legLow, low)
+    if close > legHigh
+        chainDir := 0
+
+// Order block is void once closed through
+if chainDir == 1 and not na(obBot) and close < obBot
+    obTop := na
+    obBot := na
+if chainDir == -1 and not na(obTop) and close > obTop
+    obTop := na
+    obBot := na
+
+// ───────── Setup lifecycle (checked before arming, like the MT5 version) ─────────
+// state: 0 idle, 1 armed/tracking, 2 TP1 hit, -1 invalidated
+var int   state      = 0
+var int   lifeDir    = 0
+var float lifeEntry  = na
+var float lifeSL     = na
+var float lifeTP1    = na
+var float lifeTP2    = na
+var float lifeTP3    = na
+var int   armedChain = 0
+
+if state == 1
+    if lifeDir == 1
+        if close < lifeSL
+            state := -1
+        else if high >= lifeTP1
+            state := 2
+    else
+        if close > lifeSL
+            state := -1
+        else if low <= lifeTP1
+            state := 2
+
+// ───────── Setup engine ─────────
+armedNow = false
+fresh    = chainDir != 0 and not na(chainBar) and bar_index - chainBar <= chainLookback
+if fresh and chainDir == htfBias and legHigh > legLow
+    dr   = legHigh - legLow
+    eq   = (legHigh + legLow) / 2
+    bull = chainDir == 1
+    oteA = bull ? legHigh - dr * oteHighPct : legLow + dr * oteLowPct
+    oteB = bull ? legHigh - dr * oteLowPct  : legLow + dr * oteHighPct
+    sideOk = bull ? close <= eq : close >= eq
+    // Zone priority: order block, then FVG
+    zTop = not na(obTop) ? obTop : (bull ? bullFvgTop : bearFvgTop)
+    zBot = not na(obTop) ? obBot : (bull ? bullFvgBot : bearFvgBot)
+    if sideOk and not na(zTop) and zTop > zBot
+        entry = (zTop + zBot) / 2
+        if entry >= oteA and entry <= oteB
+            buf  = math.max(atr * slAtrBuf, slMinTicks * syminfo.mintick)
+            sl   = bull ? zBot - buf : zTop + buf
+            risk = math.abs(entry - sl)
+            dol  = bull ? legHigh : legLow     // draw on liquidity: the leg extreme
+            dolOk = bull ? dol > entry : dol < entry
+            if risk > 0 and dolOk
+                sgn = bull ? 1.0 : -1.0
+                tp1 = entry + sgn * risk * rrTP1
+                tp2 = entry + sgn * risk * rrTP2
+                tp3a = entry + sgn * risk * rrTP3
+                tp3 = bull ? math.max(tp3a, dol) : math.min(tp3a, dol)
+                if math.abs(tp3 - entry) / risk >= minRR and armedChain != chainId
+                    state      := 1
+                    lifeDir    := chainDir
+                    lifeEntry  := entry
+                    lifeSL     := sl
+                    lifeTP1    := tp1
+                    lifeTP2    := tp2
+                    lifeTP3    := tp3
+                    armedChain := chainId
+                    armedNow   := true
+
+// ───────── Output ─────────
+active = state != 0
+plot(showLevels and active ? lifeEntry : na, "Entry", color.new(color.blue, 0), 2, plot.style_linebr)
+plot(showLevels and active ? lifeSL : na, "SL", color.new(color.red, 0), 2, plot.style_linebr)
+plot(showLevels and active ? lifeTP1 : na, "TP1", color.new(color.green, 30), 1, plot.style_linebr)
+plot(showLevels and active ? lifeTP2 : na, "TP2", color.new(color.green, 15), 1, plot.style_linebr)
+plot(showLevels and active ? lifeTP3 : na, "TP3", color.new(color.green, 0), 1, plot.style_linebr)
+plot(active ? lifeDir : 0, "Direction", display = display.data_window)
+plot(state, "State", display = display.data_window)
+plot(htfBias, "HTF Bias", display = display.data_window)
+
+plotshape(armedNow and lifeDir == 1, "Buy setup armed", shape.triangleup, location.belowbar, color.lime, size = size.small, text = "BUY")
+plotshape(armedNow and lifeDir == -1, "Sell setup armed", shape.triangledown, location.abovebar, color.red, size = size.small, text = "SELL")
+plotshape(state == -1 and state[1] == 1, "Setup invalidated", shape.xcross, location.abovebar, color.gray, size = size.tiny)
+plotshape(state == 2 and state[1] == 1, "TP1 hit", shape.diamond, location.abovebar, color.green, size = size.tiny)
+
+// Alerts: use either the alertcondition entries or "Any alert() function call"
+alertcondition(armedNow and lifeDir == 1, "ICT buy setup armed", "ICT BUY setup armed on {{ticker}} {{interval}}")
+alertcondition(armedNow and lifeDir == -1, "ICT sell setup armed", "ICT SELL setup armed on {{ticker}} {{interval}}")
+if armedNow
+    alert(str.format("ICT {0} setup armed {1} | Entry {2} | SL {3} | TP1 {4} | TP2 {5} | TP3 {6}",
+          lifeDir == 1 ? "BUY" : "SELL", syminfo.ticker,
+          str.tostring(lifeEntry, format.mintick), str.tostring(lifeSL, format.mintick),
+          str.tostring(lifeTP1, format.mintick), str.tostring(lifeTP2, format.mintick),
+          str.tostring(lifeTP3, format.mintick)), alert.freq_once_per_bar_close)
