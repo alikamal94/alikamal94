@@ -46,6 +46,7 @@ showStruct    = input.bool(true, "Structure breaks (BOS / MSS)", group = "PD arr
 showRange     = input.bool(true, "Premium / Discount + OTE", group = "PD arrays")
 
 showDash      = input.bool(true, "Dashboard", group = "Display")
+showStats     = input.bool(true, "Win-rate statistics in dashboard", group = "Display")
 maxTrades     = input.int(10, "Setups kept on chart", minval = 1, maxval = 40, group = "Display")
 cBull         = input.color(color.rgb(8, 153, 129), "Bullish", inline = "col", group = "Display")
 cBear         = input.color(color.rgb(242, 54, 69), "Bearish", inline = "col", group = "Display")
@@ -75,8 +76,11 @@ type Trade
     float tp1
     float tp2
     float tp3
-    bool  hit1 = false
-    bool  hit2 = false
+    bool  filled  = false
+    bool  hit1    = false
+    bool  hit2    = false
+    bool  hit3    = false
+    bool  stopped = false
     box   riskBx
     box   rewardBx
     line  entryLn
@@ -143,6 +147,27 @@ f_deleteTrade(Trade t) =>
     label.delete(t.lTP1)
     label.delete(t.lTP2)
     label.delete(t.lTP3)
+
+// Win-rate statistics, counted when a setup finishes.
+// 0 filled, 1 reached TP1, 2 reached TP2, 3 reached TP3, 4 SL before TP1, 5 never filled
+f_record(Trade t, array<int> st) =>
+    if t.filled
+        st.set(0, st.get(0) + 1)
+        if t.hit1
+            st.set(1, st.get(1) + 1)
+        if t.hit2
+            st.set(2, st.get(2) + 1)
+        if t.hit3
+            st.set(3, st.get(3) + 1)
+        if t.stopped and not t.hit1
+            st.set(4, st.get(4) + 1)
+    else
+        st.set(5, st.get(5) + 1)
+    true
+
+f_pct(array<int> st, int i) =>
+    n = st.get(0)
+    n == 0 ? "—" : str.tostring(100.0 * st.get(i) / n, "#.#") + "%  (" + str.tostring(st.get(i)) + ")"
 
 f_biasText(int b) =>
     na(b) or b == 0 ? "— none" : b == 1 ? "▲ Bullish" : "▼ Bearish"
@@ -453,6 +478,7 @@ if showRange and fresh and legHigh > legLow
 // state: 0 idle, 1 armed, 2 TP1 hit (still running), 3 TP3 hit, -1 stopped out
 var trades    = array.new<Trade>()
 var Trade cur = na
+var stats     = array.new<int>(6, 0)
 var bool  live      = false
 var int   state     = 0
 var int   armedChain = 0
@@ -474,32 +500,47 @@ f_endTrade(Trade t, string txt, color c, float y, bool above) =>
 if live and not na(cur)
     bull = cur.dir == 1
     f_extendTrade(cur, bar_index + 5)
+    // Targets only count from the bar after the entry price was reached, so a
+    // candle that touches entry and TP together is never scored as a win.
+    wasFilled = cur.filled
+    if not cur.filled and (bull ? low <= cur.entry : high >= cur.entry)
+        cur.filled := true
     if bull ? close < cur.sl : close > cur.sl
+        cur.stopped := true
         f_endTrade(cur, "SL ✕", cBear, bull ? low : high, not bull)
+        f_record(cur, stats)
         state    := -1
         live     := false
         endedNow := true
         endText  := "stopped out (SL)"
-    else if bull ? high >= cur.tp3 : low <= cur.tp3
+    else if wasFilled and (bull ? high >= cur.tp3 : low <= cur.tp3)
+        cur.hit1 := true
+        cur.hit2 := true
+        cur.hit3 := true
         f_endTrade(cur, "TP3 ✓", cBull, bull ? high : low, bull)
+        f_record(cur, stats)
         state    := 3
         live     := false
         endedNow := true
         endText  := "hit TP3"
     else
-        if not cur.hit1 and (bull ? high >= cur.tp1 : low <= cur.tp1)
+        if wasFilled and not cur.hit1 and (bull ? high >= cur.tp1 : low <= cur.tp1)
             cur.hit1 := true
             state    := 2
             label.new(bar_index, cur.tp1, "TP1 ✓", style = label.style_label_center, color = color.new(cBull, 20), textcolor = color.white, size = size.tiny)
-        if not cur.hit2 and (bull ? high >= cur.tp2 : low <= cur.tp2)
+        if wasFilled and not cur.hit2 and (bull ? high >= cur.tp2 : low <= cur.tp2)
             cur.hit2 := true
             label.new(bar_index, cur.tp2, "TP2 ✓", style = label.style_label_center, color = color.new(cBull, 20), textcolor = color.white, size = size.tiny)
         if bar_index - cur.startBar >= maxTradeBars
-            f_extendTrade(cur, bar_index)
+            if cur.filled
+                f_extendTrade(cur, bar_index)
+            else
+                f_endTrade(cur, "Not filled", color.gray, cur.entry, bull)
+            f_record(cur, stats)
             state    := 0
             live     := false
             endedNow := true
-            endText  := "expired"
+            endText  := cur.filled ? "expired" : "expired, entry never reached"
 
 // ───────── Setup engine ─────────
 armedNow = false
@@ -550,6 +591,7 @@ else if legHigh > legLow
                     // A new setup replaces a running one
                     if live and not na(cur)
                         f_extendTrade(cur, bar_index)
+                        f_record(cur, stats)
                     c  = bull ? cBull : cBear
                     rx = bar_index + 5
                     t  = Trade.new(dir = chainDir, startBar = bar_index, entry = entry, sl = sl, tp1 = tp1, tp2 = tp2, tp3 = tp3)
@@ -591,7 +633,7 @@ else
     status := "Waiting: dealing range"
 
 // ───────── Dashboard ─────────
-var table dash = table.new(position.top_right, 2, 6, bgcolor = color.new(color.black, 25), border_color = color.new(color.gray, 70), border_width = 1)
+var table dash = table.new(position.top_right, 2, 13, bgcolor = color.new(color.black, 25), border_color = color.new(color.gray, 70), border_width = 1)
 if showDash and barstate.islast
     liveText = live and not na(cur) ? ((cur.dir == 1 ? "BUY" : "SELL") + " running" + (cur.hit2 ? " · TP2 ✓" : cur.hit1 ? " · TP1 ✓" : "")) : status
     liveCol  = live and not na(cur) ? (cur.dir == 1 ? cBull : cBear) : color.silver
@@ -607,6 +649,21 @@ if showDash and barstate.islast
     table.cell(dash, 1, 4, liveText, text_color = liveCol, text_size = size.small, text_halign = text.align_left)
     table.cell(dash, 0, 5, "Last signal", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
     table.cell(dash, 1, 5, lastSignal, text_color = color.white, text_size = size.small, text_halign = text.align_left)
+    if showStats
+        table.cell(dash, 0, 6, "Results on this chart", text_color = color.white, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 6, "", text_size = size.small)
+        table.cell(dash, 0, 7, "Filled setups", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 7, str.tostring(stats.get(0)), text_color = color.white, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 0, 8, "Reached TP1", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 8, f_pct(stats, 1), text_color = cBull, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 0, 9, "Reached TP2", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 9, f_pct(stats, 2), text_color = cBull, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 0, 10, "Reached TP3", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 10, f_pct(stats, 3), text_color = cBull, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 0, 11, "SL before TP1", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 11, f_pct(stats, 4), text_color = cBear, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 0, 12, "Never filled", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 12, str.tostring(stats.get(5)), text_color = color.gray, text_size = size.small, text_halign = text.align_left)
 
 // ───────── Data window (for reading values) ─────────
 plot(live ? lifeEntry : na, "Entry", display = display.data_window)
