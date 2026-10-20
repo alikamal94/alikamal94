@@ -54,6 +54,21 @@ cObBull       = input.color(color.rgb(41, 98, 255), "Bull OB", inline = "ob", gr
 cObBear       = input.color(color.rgb(255, 152, 0), "Bear OB", inline = "ob", group = "Display")
 cOte          = input.color(color.rgb(255, 193, 7), "OTE", group = "Display")
 
+// Optional filters: all off by default. Switch one on at a time and compare
+// "Avg R / trade" in the dashboard before and after.
+fKZ           = input.bool(false, "Killzones only (New York time)", group = "Filters")
+kzLondon      = input.session("0200-0500", "London killzone", group = "Filters")
+kzNY          = input.session("0700-1000", "New York AM killzone", group = "Filters")
+fStrict       = input.bool(false, "Strict: H1 and M15 must agree with H4", group = "Filters")
+fFVG          = input.bool(false, "Require an FVG left by the move", group = "Filters")
+fBE           = input.bool(false, "Move SL to breakeven after TP1", group = "Filters")
+fCancelBars   = input.int(0, "Cancel if entry not reached within (bars, 0 = off)", minval = 0, group = "Filters")
+
+// How you take profit; used only for the dashboard statistics
+pctTP1        = input.float(20, "% closed at TP1", minval = 0, maxval = 100, group = "Exit plan (statistics)")
+pctTP2        = input.float(40, "% closed at TP2", minval = 0, maxval = 100, group = "Exit plan (statistics)")
+pctTP3        = input.float(40, "% closed at TP3", minval = 0, maxval = 100, group = "Exit plan (statistics)")
+
 // Which events send a message through "Any alert() function call"
 alSignals     = input.bool(true, "BUY / SELL setups", group = "Alerts")
 alOutcomes    = input.bool(true, "Setup result (SL / TP3 / expired)", group = "Alerts")
@@ -148,10 +163,22 @@ f_deleteTrade(Trade t) =>
     label.delete(t.lTP2)
     label.delete(t.lTP3)
 
-// Win-rate statistics, counted when a setup finishes.
-// 0 filled, 1 reached TP1, 2 reached TP2, 3 reached TP3, 4 SL before TP1, 5 never filled
-f_record(Trade t, array<int> st) =>
+// Statistics, counted when a setup finishes.
+// 0 filled, 1 reached TP1, 2 reached TP2, 3 reached TP3, 4 SL before TP1,
+// 5 never filled / cancelled, 6 winning trades (R > 0), 7 total R, 8 breakeven exits
+// exitR is what the part of the position still open at the end made:
+// -1 at SL, 0 at breakeven, or the open result at expiry / replacement.
+f_record(Trade t, array<float> st, float exitR) =>
     if t.filled
+        risk  = math.abs(t.entry - t.sl)
+        wSum  = pctTP1 + pctTP2 + pctTP3
+        w1    = wSum > 0 ? pctTP1 / wSum : 0.0
+        w2    = wSum > 0 ? pctTP2 / wSum : 0.0
+        w3    = wSum > 0 ? pctTP3 / wSum : 0.0
+        r1    = math.abs(t.tp1 - t.entry) / risk
+        r2    = math.abs(t.tp2 - t.entry) / risk
+        r3    = math.abs(t.tp3 - t.entry) / risk
+        r     = w1 * (t.hit1 ? r1 : exitR) + w2 * (t.hit2 ? r2 : exitR) + w3 * (t.hit3 ? r3 : exitR)
         st.set(0, st.get(0) + 1)
         if t.hit1
             st.set(1, st.get(1) + 1)
@@ -161,13 +188,20 @@ f_record(Trade t, array<int> st) =>
             st.set(3, st.get(3) + 1)
         if t.stopped and not t.hit1
             st.set(4, st.get(4) + 1)
+        if r > 0
+            st.set(6, st.get(6) + 1)
+        st.set(7, st.get(7) + r)
     else
         st.set(5, st.get(5) + 1)
     true
 
-f_pct(array<int> st, int i) =>
+f_pct(array<float> st, int i) =>
     n = st.get(0)
-    n == 0 ? "—" : str.tostring(100.0 * st.get(i) / n, "#.#") + "%  (" + str.tostring(st.get(i)) + ")"
+    n == 0 ? "—" : str.tostring(100.0 * st.get(i) / n, "#.#") + "%  (" + str.tostring(st.get(i), "#") + ")"
+
+// Open result of a filled setup at the current close, in R
+f_openR(Trade t) =>
+    (t.dir == 1 ? close - t.entry : t.entry - close) / math.abs(t.entry - t.sl)
 
 f_biasText(int b) =>
     na(b) or b == 0 ? "— none" : b == 1 ? "▲ Bullish" : "▼ Bearish"
@@ -201,7 +235,7 @@ ctx2Bias = request.security(syminfo.tickerid, ctx2TF, f_structureBias(swL, swR)[
 // Like the MT5 version: a context timeframe blocks the setup only when it has a
 // direction and that direction opposes the H4 bias (no direction yet = no veto).
 f_ctxOk(bool use, int ctx, int bias) =>
-    not use or na(ctx) or ctx == 0 or ctx == bias
+    not use or (fStrict ? ctx == bias : (na(ctx) or ctx == 0 or ctx == bias))
 ctxOk = f_ctxOk(useCtx1, ctx1Bias, htfBias) and f_ctxOk(useCtx2, ctx2Bias, htfBias)
 
 // ───────── Chart-timeframe structure ─────────
@@ -436,6 +470,9 @@ if chainDir == -1 and not na(obTop) and close > obTop
 
 fresh = chainDir != 0 and not na(chainBar) and bar_index - chainBar <= chainLookback
 
+inKZ = not na(time(timeframe.period, kzLondon + ":1234567", "America/New_York")) or
+       not na(time(timeframe.period, kzNY + ":1234567", "America/New_York"))
+
 // ───────── Premium / Discount + OTE of the current dealing range ─────────
 var box  premBx = na
 var box  discBx = na
@@ -475,10 +512,10 @@ if showRange and fresh and legHigh > legLow
         line.set_xy2(eqLn, rx, eqR)
 
 // ───────── Live setup tracking (checked before arming, like the MT5 version) ─────────
-// state: 0 idle, 1 armed, 2 TP1 hit (still running), 3 TP3 hit, -1 stopped out
+// state: 0 idle/expired/cancelled, 1 armed, 2 TP1 hit (still running), 3 TP3 hit, -1 stopped out, -2 breakeven
 var trades    = array.new<Trade>()
 var Trade cur = na
-var stats     = array.new<int>(6, 0)
+var stats     = array.new<float>(9, 0.0)
 var bool  live      = false
 var int   state     = 0
 var int   armedChain = 0
@@ -503,12 +540,21 @@ if live and not na(cur)
     // Targets only count from the bar after the entry price was reached, so a
     // candle that touches entry and TP together is never scored as a win.
     wasFilled = cur.filled
+    wasHit1   = cur.hit1
     if not cur.filled and (bull ? low <= cur.entry : high >= cur.entry)
         cur.filled := true
-    if bull ? close < cur.sl : close > cur.sl
+    if fBE and wasHit1 and (bull ? low <= cur.entry : high >= cur.entry)
+        f_endTrade(cur, "BE", color.gray, cur.entry, not bull)
+        f_record(cur, stats, 0.0)
+        stats.set(8, stats.get(8) + 1)
+        state    := -2
+        live     := false
+        endedNow := true
+        endText  := "closed at breakeven after TP1"
+    else if bull ? close < cur.sl : close > cur.sl
         cur.stopped := true
         f_endTrade(cur, "SL ✕", cBear, bull ? low : high, not bull)
-        f_record(cur, stats)
+        f_record(cur, stats, -1.0)
         state    := -1
         live     := false
         endedNow := true
@@ -518,11 +564,18 @@ if live and not na(cur)
         cur.hit2 := true
         cur.hit3 := true
         f_endTrade(cur, "TP3 ✓", cBull, bull ? high : low, bull)
-        f_record(cur, stats)
+        f_record(cur, stats, 0.0)
         state    := 3
         live     := false
         endedNow := true
         endText  := "hit TP3"
+    else if fCancelBars > 0 and not cur.filled and bar_index - cur.startBar >= fCancelBars
+        f_endTrade(cur, "Cancelled", color.gray, cur.entry, bull)
+        f_record(cur, stats, 0.0)
+        state    := 0
+        live     := false
+        endedNow := true
+        endText  := "cancelled, entry not reached in time"
     else
         if wasFilled and not cur.hit1 and (bull ? high >= cur.tp1 : low <= cur.tp1)
             cur.hit1 := true
@@ -536,7 +589,7 @@ if live and not na(cur)
                 f_extendTrade(cur, bar_index)
             else
                 f_endTrade(cur, "Not filled", color.gray, cur.entry, bull)
-            f_record(cur, stats)
+            f_record(cur, stats, cur.filled ? f_openR(cur) : 0.0)
             state    := 0
             live     := false
             endedNow := true
@@ -561,7 +614,10 @@ else if legHigh > legLow
     // Zone priority: order block, then FVG
     zTop = not na(obTop) ? obTop : (bull ? bullFvgTop : bearFvgTop)
     zBot = not na(obTop) ? obBot : (bull ? bullFvgBot : bearFvgBot)
-    if not sideOk
+    hasFvg = not na(bull ? bullFvgTop : bearFvgTop)
+    if fFVG and not hasFvg
+        status := "Waiting: FVG left by the move"
+    else if not sideOk
         status := bull ? "Waiting: retrace into discount" : "Waiting: retrace into premium"
     else if na(zTop) or zTop <= zBot
         status := "Waiting: OB / FVG to enter from"
@@ -587,11 +643,13 @@ else if legHigh > legLow
                     status := "Skipped: R:R below minimum"
                 else if armedChain == chainId
                     status := "Setup for this leg already given"
+                else if fKZ and not inKZ
+                    status := "Waiting: killzone"
                 else
                     // A new setup replaces a running one
                     if live and not na(cur)
                         f_extendTrade(cur, bar_index)
-                        f_record(cur, stats)
+                        f_record(cur, stats, cur.filled ? f_openR(cur) : 0.0)
                     c  = bull ? cBull : cBear
                     rx = bar_index + 5
                     t  = Trade.new(dir = chainDir, startBar = bar_index, entry = entry, sl = sl, tp1 = tp1, tp2 = tp2, tp3 = tp3)
@@ -633,7 +691,7 @@ else
     status := "Waiting: dealing range"
 
 // ───────── Dashboard ─────────
-var table dash = table.new(position.top_right, 2, 13, bgcolor = color.new(color.black, 25), border_color = color.new(color.gray, 70), border_width = 1)
+var table dash = table.new(position.top_right, 2, 18, bgcolor = color.new(color.black, 25), border_color = color.new(color.gray, 70), border_width = 1)
 if showDash and barstate.islast
     liveText = live and not na(cur) ? ((cur.dir == 1 ? "BUY" : "SELL") + " running" + (cur.hit2 ? " · TP2 ✓" : cur.hit1 ? " · TP1 ✓" : "")) : status
     liveCol  = live and not na(cur) ? (cur.dir == 1 ? cBull : cBear) : color.silver
@@ -650,20 +708,34 @@ if showDash and barstate.islast
     table.cell(dash, 0, 5, "Last signal", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
     table.cell(dash, 1, 5, lastSignal, text_color = color.white, text_size = size.small, text_halign = text.align_left)
     if showStats
+        n      = stats.get(0)
+        avgR   = n > 0 ? stats.get(7) / n : 0.0
+        filt   = (fKZ ? "KZ " : "") + (fStrict ? "Strict " : "") + (fFVG ? "FVG " : "") + (fBE ? "BE " : "") + (fCancelBars > 0 ? "Cancel " : "")
+        plan   = "TP1 " + str.tostring(pctTP1, "#") + "% · TP2 " + str.tostring(pctTP2, "#") + "% · TP3 " + str.tostring(pctTP3, "#") + "%"
         table.cell(dash, 0, 6, "Results on this chart", text_color = color.white, text_size = size.small, text_halign = text.align_left)
-        table.cell(dash, 1, 6, "", text_size = size.small)
+        table.cell(dash, 1, 6, plan, text_color = color.silver, text_size = size.small, text_halign = text.align_left)
         table.cell(dash, 0, 7, "Filled setups", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
-        table.cell(dash, 1, 7, str.tostring(stats.get(0)), text_color = color.white, text_size = size.small, text_halign = text.align_left)
-        table.cell(dash, 0, 8, "Reached TP1", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
-        table.cell(dash, 1, 8, f_pct(stats, 1), text_color = cBull, text_size = size.small, text_halign = text.align_left)
-        table.cell(dash, 0, 9, "Reached TP2", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
-        table.cell(dash, 1, 9, f_pct(stats, 2), text_color = cBull, text_size = size.small, text_halign = text.align_left)
-        table.cell(dash, 0, 10, "Reached TP3", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
-        table.cell(dash, 1, 10, f_pct(stats, 3), text_color = cBull, text_size = size.small, text_halign = text.align_left)
-        table.cell(dash, 0, 11, "SL before TP1", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
-        table.cell(dash, 1, 11, f_pct(stats, 4), text_color = cBear, text_size = size.small, text_halign = text.align_left)
-        table.cell(dash, 0, 12, "Never filled", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
-        table.cell(dash, 1, 12, str.tostring(stats.get(5)), text_color = color.gray, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 7, str.tostring(n, "#"), text_color = color.white, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 0, 8, "Win rate (R > 0)", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 8, f_pct(stats, 6), text_color = cBull, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 0, 9, "Avg R / trade", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 9, n > 0 ? str.tostring(avgR, "+#.##;-#.##") + " R" : "—", text_color = avgR >= 0 ? cBull : cBear, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 0, 10, "Total R", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 10, n > 0 ? str.tostring(stats.get(7), "+#.#;-#.#") + " R" : "—", text_color = stats.get(7) >= 0 ? cBull : cBear, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 0, 11, "Reached TP1", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 11, f_pct(stats, 1), text_color = cBull, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 0, 12, "Reached TP2", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 12, f_pct(stats, 2), text_color = cBull, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 0, 13, "Reached TP3", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 13, f_pct(stats, 3), text_color = cBull, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 0, 14, "SL before TP1", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 14, f_pct(stats, 4), text_color = cBear, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 0, 15, "Breakeven exits", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 15, fBE ? f_pct(stats, 8) : "off", text_color = color.gray, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 0, 16, "Never filled / cancelled", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 16, str.tostring(stats.get(5), "#"), text_color = color.gray, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 0, 17, "Filters on", text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 1, 17, filt == "" ? "none" : filt, text_color = color.white, text_size = size.small, text_halign = text.align_left)
 
 // ───────── Data window (for reading values) ─────────
 plot(live ? lifeEntry : na, "Entry", display = display.data_window)
