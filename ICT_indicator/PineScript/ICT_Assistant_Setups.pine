@@ -12,6 +12,8 @@
 indicator("ICT Assistant Setups", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
 
 // ───────── Inputs ─────────
+showDash      = input.bool(true, "Show dashboard table", inline = "dash", group = "Dashboard")
+dashPos       = input.string("Top right", "", options = ["Top right", "Top left", "Bottom right", "Bottom left", "Middle right"], inline = "dash", group = "Dashboard")
 biasTF        = input.timeframe("240", "Bias timeframe (H4)", group = "Bias")
 useCtx1       = input.bool(true, "Check context 1 (H1)", inline = "c1", group = "Bias")
 ctx1TF        = input.timeframe("60", "", inline = "c1", group = "Bias")
@@ -48,7 +50,6 @@ showPOI       = input.bool(true, "Nearest POI above / below in dashboard", group
 f30m          = input.bool(false, "30M rule: OBs that caused a BOS and left an FVG", inline = "m30", group = "PD arrays")
 m30TF         = input.timeframe("30", "", inline = "m30", group = "PD arrays")
 
-showDash      = input.bool(true, "Dashboard", group = "Display")
 showStats     = input.bool(true, "Win-rate statistics in dashboard", group = "Display")
 maxTrades     = input.int(10, "Setups kept on chart", minval = 1, maxval = 40, group = "Display")
 cBull         = input.color(color.rgb(8, 153, 129), "Bullish", inline = "col", group = "Display")
@@ -775,7 +776,13 @@ else
     status := "Waiting: dealing range"
 
 // ───────── Dashboard ─────────
-var table dash = table.new(position.top_right, 2, 24, bgcolor = color.new(color.black, 25), border_color = color.new(color.gray, 70), border_width = 1)
+dashPosition = switch dashPos
+    "Top left"     => position.top_left
+    "Bottom right" => position.bottom_right
+    "Bottom left"  => position.bottom_left
+    "Middle right" => position.middle_right
+    => position.top_right
+var table dash = table.new(dashPosition, 2, 24, bgcolor = color.new(color.black, 25), border_color = color.new(color.gray, 70), border_width = 1)
 f_row(table tb, int row, string a, string b, color cb) =>
     table.cell(tb, 0, row, a, text_color = color.silver, text_size = size.small, text_halign = text.align_left)
     table.cell(tb, 1, row, b, text_color = cb, text_size = size.small, text_halign = text.align_left)
