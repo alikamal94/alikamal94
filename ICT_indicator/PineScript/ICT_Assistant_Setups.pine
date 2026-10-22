@@ -47,6 +47,7 @@ showLiq       = input.bool(true, "Liquidity (BSL / SSL) + sweeps", group = "PD a
 showStruct    = input.bool(true, "Structure breaks (BOS / MSS)", group = "PD arrays")
 showRange     = input.bool(true, "Premium / Discount + OTE", group = "PD arrays")
 showPOI       = input.bool(true, "Nearest POI above / below in dashboard", group = "PD arrays")
+markPOI       = input.bool(true, "Mark nearest POI above / below on chart", group = "PD arrays")
 f30m          = input.bool(false, "30M rule: OBs that caused a BOS and left an FVG", inline = "m30", group = "PD arrays")
 m30TF         = input.timeframe("30", "", inline = "m30", group = "PD arrays")
 
@@ -210,26 +211,29 @@ f_openR(Trade t) =>
     (t.dir == 1 ? close - t.entry : t.entry - close) / math.abs(t.entry - t.sl)
 
 // Nearest zone above / below price, and the zone price is inside (if any)
-f_scanPOI(array<Zone> zs, float aD, string aT, float bD, string bT, string iT) =>
-    ad = aD
-    at = aT
-    bd = bD
-    bt = bT
-    it = iT
+f_nearest(array<Zone> zs) =>
+    Zone  za = na
+    Zone  zb = na
+    Zone  zi = na
+    float ad = na
+    float bd = na
     for z in zs
         if z.bot > close
             d = z.bot - close
             if na(ad) or d < ad
                 ad := d
-                at := z.kind + "  " + str.tostring(z.bot, format.mintick) + " – " + str.tostring(z.top, format.mintick)
+                za := z
         else if z.top < close
             d = close - z.top
             if na(bd) or d < bd
                 bd := d
-                bt := z.kind + "  " + str.tostring(z.top, format.mintick) + " – " + str.tostring(z.bot, format.mintick)
-        else if it == ""
-            it := z.kind + "  " + str.tostring(z.bot, format.mintick) + " – " + str.tostring(z.top, format.mintick)
-    [ad, at, bd, bt, it]
+                zb := z
+        else if na(zi)
+            zi := z
+    [za, zb, zi]
+
+f_range(Zone z) =>
+    str.tostring(z.bot, format.mintick) + " – " + str.tostring(z.top, format.mintick)
 
 // 30M rule, evaluated on the 30M chart: an order block (last opposite candle)
 // whose move closed beyond the swing (BOS) and left an FVG in the last 3 candles.
@@ -775,6 +779,43 @@ else if legHigh > legLow
 else
     status := "Waiting: dealing range"
 
+// ───────── Nearest POI (dashboard text + chart marks) ─────────
+var string poiAboveTxt  = "—"
+var string poiBelowTxt  = "—"
+var string poiInsideTxt = "—"
+var box    poiAboveBx   = na
+var box    poiBelowBx   = na
+if barstate.islast and (showPOI or markPOI)
+    box.delete(poiAboveBx)
+    box.delete(poiBelowBx)
+    poiAboveBx := na
+    poiBelowBx := na
+    allZones = fvgZones.copy()
+    allZones.concat(obZones)
+    allZones.concat(m30Zones)
+    [za, zb, zi] = f_nearest(allZones)
+    poiAboveTxt  := "—"
+    poiBelowTxt  := "—"
+    poiInsideTxt := na(zi) ? "—" : zi.kind + "  " + f_range(zi)
+    if not na(za)
+        d = za.bot - close
+        dTxt = "+" + str.tostring(d, format.mintick) + " · " + str.tostring(d / atr, "#.#") + " ATR"
+        poiAboveTxt := za.kind + "  " + f_range(za) + "  (" + dTxt + ")"
+        if markPOI
+            poiAboveBx := box.new(bar_index + 2, za.top, bar_index + 30, za.bot, border_color = cBear, border_width = 2,
+                             border_style = line.style_dashed, bgcolor = color.new(cBear, 75),
+                             text = "▲ Nearest POI above: " + za.kind + "  (" + dTxt + ")", text_size = size.small,
+                             text_color = color.white, text_halign = text.align_center, text_valign = text.align_center)
+    if not na(zb)
+        d = close - zb.top
+        dTxt = "−" + str.tostring(d, format.mintick) + " · " + str.tostring(d / atr, "#.#") + " ATR"
+        poiBelowTxt := zb.kind + "  " + f_range(zb) + "  (" + dTxt + ")"
+        if markPOI
+            poiBelowBx := box.new(bar_index + 2, zb.top, bar_index + 30, zb.bot, border_color = cBull, border_width = 2,
+                             border_style = line.style_dashed, bgcolor = color.new(cBull, 75),
+                             text = "▼ Nearest POI below: " + zb.kind + "  (" + dTxt + ")", text_size = size.small,
+                             text_color = color.white, text_halign = text.align_center, text_valign = text.align_center)
+
 // ───────── Dashboard ─────────
 dashPosition = switch dashPos
     "Top left"     => position.top_left
@@ -805,17 +846,12 @@ if showDash and barstate.islast
     row += 1
     f_row(dash, row, "Last signal", lastSignal, color.white)
     if showPOI
-        [ad1, at1, bd1, bt1, it1] = f_scanPOI(fvgZones, float(na), "—", float(na), "—", "")
-        [ad2, at2, bd2, bt2, it2] = f_scanPOI(obZones, ad1, at1, bd1, bt1, it1)
-        [ad3, at3, bd3, bt3, it3] = f_scanPOI(m30Zones, ad2, at2, bd2, bt2, it2)
-        aboveTxt = na(ad3) ? "—" : at3 + "  (+" + str.tostring(ad3, format.mintick) + " · " + str.tostring(ad3 / atr, "#.#") + " ATR)"
-        belowTxt = na(bd3) ? "—" : bt3 + "  (−" + str.tostring(bd3, format.mintick) + " · " + str.tostring(bd3 / atr, "#.#") + " ATR)"
         row += 1
-        f_row(dash, row, "POI above", aboveTxt, cBear)
+        f_row(dash, row, "POI above", poiAboveTxt, cBear)
         row += 1
-        f_row(dash, row, "Price inside", it3 == "" ? "—" : it3, cOte)
+        f_row(dash, row, "Price inside", poiInsideTxt, cOte)
         row += 1
-        f_row(dash, row, "POI below", belowTxt, cBull)
+        f_row(dash, row, "POI below", poiBelowTxt, cBull)
     if showStats
         n      = stats.get(0)
         avgR   = n > 0 ? stats.get(7) / n : 0.0
