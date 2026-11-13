@@ -12,6 +12,8 @@ Signals are only checked on **closed** candles of the signal timeframe.
 
 **Quick way (Windows):** put `ORB_NY_EA.mq5`, `install.bat` and `install.ps1` in one folder and double-click `install.bat`. It copies the EA into MT5 and compiles it. Then go to step 3 below.
 
+**Quick way (Mac):** download `install-mac.sh`, open **Terminal** and run `bash ~/Downloads/install-mac.sh`. It finds MetaTrader 5, copies the EA in and tries to compile it.
+
 **Manual way:**
 
 1. In MT5 go to **File → Open Data Folder → MQL5 → Experts** and copy `ORB_NY_EA.mq5` there.
