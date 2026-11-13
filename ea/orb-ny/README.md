@@ -10,6 +10,10 @@ Signals are only checked on **closed** candles of the signal timeframe.
 
 ## Install
 
+**Quick way (Windows):** put `ORB_NY_EA.mq5`, `install.bat` and `install.ps1` in one folder and double-click `install.bat`. It copies the EA into MT5 and compiles it. Then go to step 3 below.
+
+**Manual way:**
+
 1. In MT5 go to **File → Open Data Folder → MQL5 → Experts** and copy `ORB_NY_EA.mq5` there.
 2. Open it in **MetaEditor** and press **Compile** (F7).
 3. Drag **ORB_NY_EA** onto a chart (for example XAUUSD) and turn on **Algo Trading**.
