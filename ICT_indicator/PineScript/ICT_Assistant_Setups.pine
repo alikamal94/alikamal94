@@ -13,6 +13,7 @@ indicator("ICT Assistant Setups", overlay = true, max_boxes_count = 500, max_lin
 
 // ───────── Inputs ─────────
 showDash      = input.bool(true, "Show dashboard table", inline = "dash", group = "Dashboard")
+showSignals   = input.bool(true, "Show BUY / SELL setups on chart", group = "Signals")
 dashPos       = input.string("Top right", "", options = ["Top right", "Top left", "Bottom right", "Bottom left", "Middle right"], inline = "dash", group = "Dashboard")
 biasTF        = input.timeframe("240", "Bias timeframe (H4)", group = "Bias")
 useCtx1       = input.bool(true, "Check context 1 (H1)", inline = "c1", group = "Bias")
@@ -621,7 +622,9 @@ endText    = ""
 
 f_endTrade(Trade t, string txt, color c, float y, bool above) =>
     f_extendTrade(t, bar_index)
-    label.new(bar_index, y, txt, style = above ? label.style_label_down : label.style_label_up, color = c, textcolor = color.white, size = size.small)
+    if showSignals
+        label.new(bar_index, y, txt, style = above ? label.style_label_down : label.style_label_up, color = c, textcolor = color.white, size = size.small)
+    true
 
 if live and not na(cur)
     bull = cur.dir == 1
@@ -669,10 +672,12 @@ if live and not na(cur)
         if wasFilled and not cur.hit1 and (bull ? high >= cur.tp1 : low <= cur.tp1)
             cur.hit1 := true
             state    := 2
-            label.new(bar_index, cur.tp1, "TP1 ✓", style = label.style_label_center, color = color.new(cBull, 20), textcolor = color.white, size = size.tiny)
+            if showSignals
+                label.new(bar_index, cur.tp1, "TP1 ✓", style = label.style_label_center, color = color.new(cBull, 20), textcolor = color.white, size = size.tiny)
         if wasFilled and not cur.hit2 and (bull ? high >= cur.tp2 : low <= cur.tp2)
             cur.hit2 := true
-            label.new(bar_index, cur.tp2, "TP2 ✓", style = label.style_label_center, color = color.new(cBull, 20), textcolor = color.white, size = size.tiny)
+            if showSignals
+                label.new(bar_index, cur.tp2, "TP2 ✓", style = label.style_label_center, color = color.new(cBull, 20), textcolor = color.white, size = size.tiny)
         if bar_index - cur.startBar >= maxTradeBars
             if cur.filled
                 f_extendTrade(cur, bar_index)
@@ -742,24 +747,26 @@ else if legHigh > legLow
                     c  = bull ? cBull : cBear
                     rx = bar_index + 5
                     t  = Trade.new(dir = chainDir, startBar = bar_index, entry = entry, sl = sl, tp1 = tp1, tp2 = tp2, tp3 = tp3)
-                    t.riskBx   := box.new(bar_index, math.max(entry, sl), rx, math.min(entry, sl), border_color = color.new(cBear, 60), bgcolor = color.new(cBear, 82))
-                    t.rewardBx := box.new(bar_index, math.max(entry, tp3), rx, math.min(entry, tp3), border_color = color.new(cBull, 60), bgcolor = color.new(cBull, 82))
-                    t.entryLn  := line.new(bar_index, entry, rx, entry, color = color.white, width = 2)
-                    t.tp1Ln    := line.new(bar_index, tp1, rx, tp1, color = color.new(cBull, 20), style = line.style_dotted)
-                    t.tp2Ln    := line.new(bar_index, tp2, rx, tp2, color = color.new(cBull, 20), style = line.style_dotted)
-                    tip = (bull ? "BUY" : "SELL") + " setup\n" +
-                          "• H4 bias " + (bull ? "bullish" : "bearish") + ", H1/M15 not against it\n" +
-                          "• " + (bull ? "Sell-side" : "Buy-side") + " liquidity swept, displacement, MSS\n" +
-                          "• Price back in " + (bull ? "discount" : "premium") + ", " + (not na(obTop) ? "order block" : "FVG") + " inside OTE\n\n" +
-                          "Entry " + f_fmt(entry) + "\nSL " + f_fmt(sl) + "\nTP1 " + f_fmt(tp1) + "  TP2 " + f_fmt(tp2) + "  TP3 " + f_fmt(tp3) +
-                          "\nR:R to TP3 " + str.tostring(math.abs(tp3 - entry) / risk, "#.##")
-                    t.sig    := label.new(bar_index, bull ? low : high, bull ? "▲ BUY" : "▼ SELL",
-                                   style = bull ? label.style_label_up : label.style_label_down, color = c, textcolor = color.white, size = size.normal, tooltip = tip)
-                    t.lEntry := label.new(rx, entry, "Entry " + f_fmt(entry), style = label.style_label_left, color = color.new(color.gray, 10), textcolor = color.white, size = size.small)
-                    t.lSL    := label.new(rx, sl, "SL " + f_fmt(sl), style = label.style_label_left, color = cBear, textcolor = color.white, size = size.small)
-                    t.lTP1   := label.new(rx, tp1, "TP1 " + f_fmt(tp1), style = label.style_label_left, color = color.new(cBull, 40), textcolor = color.white, size = size.small)
-                    t.lTP2   := label.new(rx, tp2, "TP2 " + f_fmt(tp2), style = label.style_label_left, color = color.new(cBull, 25), textcolor = color.white, size = size.small)
-                    t.lTP3   := label.new(rx, tp3, "TP3 " + f_fmt(tp3), style = label.style_label_left, color = cBull, textcolor = color.white, size = size.small)
+                    // Drawings only when signals are shown; tracking, stats and alerts run either way
+                    if showSignals
+                        t.riskBx   := box.new(bar_index, math.max(entry, sl), rx, math.min(entry, sl), border_color = color.new(cBear, 60), bgcolor = color.new(cBear, 82))
+                        t.rewardBx := box.new(bar_index, math.max(entry, tp3), rx, math.min(entry, tp3), border_color = color.new(cBull, 60), bgcolor = color.new(cBull, 82))
+                        t.entryLn  := line.new(bar_index, entry, rx, entry, color = color.white, width = 2)
+                        t.tp1Ln    := line.new(bar_index, tp1, rx, tp1, color = color.new(cBull, 20), style = line.style_dotted)
+                        t.tp2Ln    := line.new(bar_index, tp2, rx, tp2, color = color.new(cBull, 20), style = line.style_dotted)
+                        tip = (bull ? "BUY" : "SELL") + " setup\n" +
+                              "• H4 bias " + (bull ? "bullish" : "bearish") + ", H1/M15 not against it\n" +
+                              "• " + (bull ? "Sell-side" : "Buy-side") + " liquidity swept, displacement, MSS\n" +
+                              "• Price back in " + (bull ? "discount" : "premium") + ", " + (not na(obTop) ? "order block" : "FVG") + " inside OTE\n\n" +
+                              "Entry " + f_fmt(entry) + "\nSL " + f_fmt(sl) + "\nTP1 " + f_fmt(tp1) + "  TP2 " + f_fmt(tp2) + "  TP3 " + f_fmt(tp3) +
+                              "\nR:R to TP3 " + str.tostring(math.abs(tp3 - entry) / risk, "#.##")
+                        t.sig    := label.new(bar_index, bull ? low : high, bull ? "▲ BUY" : "▼ SELL",
+                                       style = bull ? label.style_label_up : label.style_label_down, color = c, textcolor = color.white, size = size.normal, tooltip = tip)
+                        t.lEntry := label.new(rx, entry, "Entry " + f_fmt(entry), style = label.style_label_left, color = color.new(color.gray, 10), textcolor = color.white, size = size.small)
+                        t.lSL    := label.new(rx, sl, "SL " + f_fmt(sl), style = label.style_label_left, color = cBear, textcolor = color.white, size = size.small)
+                        t.lTP1   := label.new(rx, tp1, "TP1 " + f_fmt(tp1), style = label.style_label_left, color = color.new(cBull, 40), textcolor = color.white, size = size.small)
+                        t.lTP2   := label.new(rx, tp2, "TP2 " + f_fmt(tp2), style = label.style_label_left, color = color.new(cBull, 25), textcolor = color.white, size = size.small)
+                        t.lTP3   := label.new(rx, tp3, "TP3 " + f_fmt(tp3), style = label.style_label_left, color = cBull, textcolor = color.white, size = size.small)
                     trades.push(t)
                     if trades.size() > maxTrades
                         f_deleteTrade(trades.shift())
