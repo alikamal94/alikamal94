@@ -12,8 +12,8 @@
 indicator("ICT Assistant Setups", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
 
 // ───────── Inputs ─────────
-showDash      = input.bool(true, "Show dashboard table", inline = "dash", group = "Dashboard")
 showSignals   = input.bool(true, "Show BUY / SELL setups on chart", group = "Signals")
+showDash      = input.bool(true, "Show dashboard table", inline = "dash", group = "Dashboard")
 dashPos       = input.string("Top right", "", options = ["Top right", "Top left", "Bottom right", "Bottom left", "Middle right"], inline = "dash", group = "Dashboard")
 biasTF        = input.timeframe("240", "Bias timeframe (H4)", group = "Bias")
 useCtx1       = input.bool(true, "Check context 1 (H1)", inline = "c1", group = "Bias")
