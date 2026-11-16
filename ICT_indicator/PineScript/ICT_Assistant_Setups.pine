@@ -15,6 +15,7 @@ indicator("ICT Assistant Setups", overlay = true, max_boxes_count = 500, max_lin
 showSignals   = input.bool(true, "Show BUY / SELL setups on chart", group = "Signals")
 showDash      = input.bool(true, "Show dashboard table", inline = "dash", group = "Dashboard")
 dashPos       = input.string("Top right", "", options = ["Top right", "Top left", "Bottom right", "Bottom left", "Middle right"], inline = "dash", group = "Dashboard")
+dashSizeIn    = input.string("Tiny", "Dashboard size", options = ["Tiny", "Small", "Normal", "Large"], group = "Dashboard")
 biasTF        = input.timeframe("240", "Bias timeframe (H4)", group = "Bias")
 useCtx1       = input.bool(true, "Check context 1 (H1)", inline = "c1", group = "Bias")
 ctx1TF        = input.timeframe("60", "", inline = "c1", group = "Bias")
@@ -830,18 +831,23 @@ dashPosition = switch dashPos
     "Bottom left"  => position.bottom_left
     "Middle right" => position.middle_right
     => position.top_right
+dSize = switch dashSizeIn
+    "Small"  => size.small
+    "Normal" => size.normal
+    "Large"  => size.large
+    => size.tiny
 var table dash = table.new(dashPosition, 2, 24, bgcolor = color.new(color.black, 25), border_color = color.new(color.gray, 70), border_width = 1)
 f_row(table tb, int row, string a, string b, color cb) =>
-    table.cell(tb, 0, row, a, text_color = color.silver, text_size = size.small, text_halign = text.align_left)
-    table.cell(tb, 1, row, b, text_color = cb, text_size = size.small, text_halign = text.align_left)
+    table.cell(tb, 0, row, a, text_color = color.silver, text_size = dSize, text_halign = text.align_left)
+    table.cell(tb, 1, row, b, text_color = cb, text_size = dSize, text_halign = text.align_left)
 
 if showDash and barstate.islast
     table.clear(dash, 0, 0, 1, 23)
     liveText = live and not na(cur) ? ((cur.dir == 1 ? "BUY" : "SELL") + " running" + (cur.hit2 ? " · TP2 ✓" : cur.hit1 ? " · TP1 ✓" : "")) : status
     liveCol  = live and not na(cur) ? (cur.dir == 1 ? cBull : cBear) : color.silver
     row = 0
-    table.cell(dash, 0, row, "ICT Setups", text_color = color.white, text_size = size.small, text_halign = text.align_left)
-    table.cell(dash, 1, row, "", text_size = size.small)
+    table.cell(dash, 0, row, "ICT Setups", text_color = color.white, text_size = dSize, text_halign = text.align_left)
+    table.cell(dash, 1, row, "", text_size = dSize)
     row += 1
     f_row(dash, row, "H4 bias", f_biasText(htfBias), f_biasColor(htfBias))
     row += 1
@@ -865,8 +871,8 @@ if showDash and barstate.islast
         filt   = (fKZ ? "KZ " : "") + (fStrict ? "Strict " : "") + (fFVG ? "FVG " : "") + (fBE ? "BE " : "") + (fCancelBars > 0 ? "Cancel " : "")
         plan   = "TP1 " + str.tostring(pctTP1, "#") + "% · TP2 " + str.tostring(pctTP2, "#") + "% · TP3 " + str.tostring(pctTP3, "#") + "%"
         row += 1
-        table.cell(dash, 0, row, "Results on this chart", text_color = color.white, text_size = size.small, text_halign = text.align_left)
-        table.cell(dash, 1, row, plan, text_color = color.silver, text_size = size.small, text_halign = text.align_left)
+        table.cell(dash, 0, row, "Results on this chart", text_color = color.white, text_size = dSize, text_halign = text.align_left)
+        table.cell(dash, 1, row, plan, text_color = color.silver, text_size = dSize, text_halign = text.align_left)
         row += 1
         f_row(dash, row, "Filled setups", str.tostring(n, "#"), color.white)
         row += 1
