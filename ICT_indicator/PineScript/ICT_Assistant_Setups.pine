@@ -16,6 +16,26 @@ showSignals   = input.bool(true, "Show BUY / SELL setups on chart", group = "Sig
 showDash      = input.bool(true, "Show dashboard table", inline = "dash", group = "Dashboard")
 dashPos       = input.string("Top right", "", options = ["Top right", "Top left", "Bottom right", "Bottom left", "Middle right"], inline = "dash", group = "Dashboard")
 dashSizeIn    = input.string("Tiny", "Dashboard size", options = ["Tiny", "Small", "Normal", "Large"], group = "Dashboard")
+// What the dashboard shows: one checkbox per row
+rBias         = input.bool(true,  "H4 bias",       inline = "r1", group = "Dashboard rows")
+rH1           = input.bool(true,  "H1",            inline = "r1", group = "Dashboard rows")
+rM15          = input.bool(true,  "M15",           inline = "r1", group = "Dashboard rows")
+rNow          = input.bool(true,  "Now (status)",  inline = "r2", group = "Dashboard rows")
+rLast         = input.bool(true,  "Last signal",   inline = "r2", group = "Dashboard rows")
+rPoiA         = input.bool(true,  "POI above",     inline = "r3", group = "Dashboard rows")
+rInside       = input.bool(true,  "Price inside",  inline = "r3", group = "Dashboard rows")
+rPoiB         = input.bool(true,  "POI below",     inline = "r3", group = "Dashboard rows")
+rFilled       = input.bool(true,  "Filled setups", inline = "r4", group = "Dashboard rows")
+rWin          = input.bool(true,  "Win rate",      inline = "r4", group = "Dashboard rows")
+rAvg          = input.bool(true,  "Avg R",         inline = "r5", group = "Dashboard rows")
+rTot          = input.bool(true,  "Total R",       inline = "r5", group = "Dashboard rows")
+rTP1          = input.bool(false, "Reached TP1",   inline = "r6", group = "Dashboard rows")
+rTP2          = input.bool(false, "Reached TP2",   inline = "r6", group = "Dashboard rows")
+rTP3          = input.bool(false, "Reached TP3",   inline = "r6", group = "Dashboard rows")
+rSLb          = input.bool(false, "SL before TP1", inline = "r7", group = "Dashboard rows")
+rBE           = input.bool(false, "Breakeven exits", inline = "r7", group = "Dashboard rows")
+rNever        = input.bool(false, "Never filled",  inline = "r8", group = "Dashboard rows")
+rFilt         = input.bool(false, "Filters on",    inline = "r8", group = "Dashboard rows")
 biasTF        = input.timeframe("240", "Bias timeframe (H4)", group = "Bias")
 useCtx1       = input.bool(true, "Check context 1 (H1)", inline = "c1", group = "Bias")
 ctx1TF        = input.timeframe("60", "", inline = "c1", group = "Bias")
@@ -48,12 +68,10 @@ keepMitigated = input.bool(false, "Keep broken zones on chart", group = "PD arra
 showLiq       = input.bool(true, "Liquidity (BSL / SSL) + sweeps", group = "PD arrays")
 showStruct    = input.bool(true, "Structure breaks (BOS / MSS)", group = "PD arrays")
 showRange     = input.bool(true, "Premium / Discount + OTE", group = "PD arrays")
-showPOI       = input.bool(true, "Nearest POI above / below in dashboard", group = "PD arrays")
 markPOI       = input.bool(true, "Mark nearest POI above / below on chart", group = "PD arrays")
 f30m          = input.bool(false, "30M rule: OBs that caused a BOS and left an FVG", inline = "m30", group = "PD arrays")
 m30TF         = input.timeframe("30", "", inline = "m30", group = "PD arrays")
 
-showStats     = input.bool(true, "Win-rate statistics in dashboard", group = "Display")
 maxTrades     = input.int(10, "Setups kept on chart", minval = 1, maxval = 40, group = "Display")
 cBull         = input.color(color.rgb(8, 153, 129), "Bullish", inline = "col", group = "Display")
 cBear         = input.color(color.rgb(242, 54, 69), "Bearish", inline = "col", group = "Display")
@@ -793,6 +811,8 @@ var string poiBelowTxt  = "—"
 var string poiInsideTxt = "—"
 var box    poiAboveBx   = na
 var box    poiBelowBx   = na
+showPOI   = rPoiA or rInside or rPoiB
+showStats = rFilled or rWin or rAvg or rTot or rTP1 or rTP2 or rTP3 or rSLb or rBE or rNever or rFilt
 if barstate.islast and (showPOI or markPOI)
     box.delete(poiAboveBx)
     box.delete(poiBelowBx)
@@ -848,21 +868,28 @@ if showDash and barstate.islast
     row = 0
     table.cell(dash, 0, row, "ICT Setups", text_color = color.white, text_size = dSize, text_halign = text.align_left)
     table.cell(dash, 1, row, "", text_size = dSize)
-    row += 1
-    f_row(dash, row, "H4 bias", f_biasText(htfBias), f_biasColor(htfBias))
-    row += 1
-    f_row(dash, row, "H1", useCtx1 ? f_biasText(ctx1Bias) : "off", useCtx1 ? f_biasColor(ctx1Bias) : color.gray)
-    row += 1
-    f_row(dash, row, "M15", useCtx2 ? f_biasText(ctx2Bias) : "off", useCtx2 ? f_biasColor(ctx2Bias) : color.gray)
-    row += 1
-    f_row(dash, row, "Now", liveText, liveCol)
-    row += 1
-    f_row(dash, row, "Last signal", lastSignal, color.white)
-    if showPOI
+    if rBias
+        row += 1
+        f_row(dash, row, "H4 bias", f_biasText(htfBias), f_biasColor(htfBias))
+    if rH1
+        row += 1
+        f_row(dash, row, "H1", useCtx1 ? f_biasText(ctx1Bias) : "off", useCtx1 ? f_biasColor(ctx1Bias) : color.gray)
+    if rM15
+        row += 1
+        f_row(dash, row, "M15", useCtx2 ? f_biasText(ctx2Bias) : "off", useCtx2 ? f_biasColor(ctx2Bias) : color.gray)
+    if rNow
+        row += 1
+        f_row(dash, row, "Now", liveText, liveCol)
+    if rLast
+        row += 1
+        f_row(dash, row, "Last signal", lastSignal, color.white)
+    if rPoiA
         row += 1
         f_row(dash, row, "POI above", poiAboveTxt, cBear)
+    if rInside
         row += 1
         f_row(dash, row, "Price inside", poiInsideTxt, cOte)
+    if rPoiB
         row += 1
         f_row(dash, row, "POI below", poiBelowTxt, cBull)
     if showStats
@@ -873,28 +900,39 @@ if showDash and barstate.islast
         row += 1
         table.cell(dash, 0, row, "Results on this chart", text_color = color.white, text_size = dSize, text_halign = text.align_left)
         table.cell(dash, 1, row, plan, text_color = color.silver, text_size = dSize, text_halign = text.align_left)
-        row += 1
-        f_row(dash, row, "Filled setups", str.tostring(n, "#"), color.white)
-        row += 1
-        f_row(dash, row, "Win rate (R > 0)", f_pct(stats, 6), cBull)
-        row += 1
-        f_row(dash, row, "Avg R / trade", n > 0 ? str.tostring(avgR, "+#.##;-#.##") + " R" : "—", avgR >= 0 ? cBull : cBear)
-        row += 1
-        f_row(dash, row, "Total R", n > 0 ? str.tostring(stats.get(7), "+#.#;-#.#") + " R" : "—", stats.get(7) >= 0 ? cBull : cBear)
-        row += 1
-        f_row(dash, row, "Reached TP1", f_pct(stats, 1), cBull)
-        row += 1
-        f_row(dash, row, "Reached TP2", f_pct(stats, 2), cBull)
-        row += 1
-        f_row(dash, row, "Reached TP3", f_pct(stats, 3), cBull)
-        row += 1
-        f_row(dash, row, "SL before TP1", f_pct(stats, 4), cBear)
-        row += 1
-        f_row(dash, row, "Breakeven exits", fBE ? f_pct(stats, 8) : "off", color.gray)
-        row += 1
-        f_row(dash, row, "Never filled / cancelled", str.tostring(stats.get(5), "#"), color.gray)
-        row += 1
-        f_row(dash, row, "Filters on", filt == "" ? "none" : filt, color.white)
+        if rFilled
+            row += 1
+            f_row(dash, row, "Filled setups", str.tostring(n, "#"), color.white)
+        if rWin
+            row += 1
+            f_row(dash, row, "Win rate (R > 0)", f_pct(stats, 6), cBull)
+        if rAvg
+            row += 1
+            f_row(dash, row, "Avg R / trade", n > 0 ? str.tostring(avgR, "+#.##;-#.##") + " R" : "—", avgR >= 0 ? cBull : cBear)
+        if rTot
+            row += 1
+            f_row(dash, row, "Total R", n > 0 ? str.tostring(stats.get(7), "+#.#;-#.#") + " R" : "—", stats.get(7) >= 0 ? cBull : cBear)
+        if rTP1
+            row += 1
+            f_row(dash, row, "Reached TP1", f_pct(stats, 1), cBull)
+        if rTP2
+            row += 1
+            f_row(dash, row, "Reached TP2", f_pct(stats, 2), cBull)
+        if rTP3
+            row += 1
+            f_row(dash, row, "Reached TP3", f_pct(stats, 3), cBull)
+        if rSLb
+            row += 1
+            f_row(dash, row, "SL before TP1", f_pct(stats, 4), cBear)
+        if rBE
+            row += 1
+            f_row(dash, row, "Breakeven exits", fBE ? f_pct(stats, 8) : "off", color.gray)
+        if rNever
+            row += 1
+            f_row(dash, row, "Never filled / cancelled", str.tostring(stats.get(5), "#"), color.gray)
+        if rFilt
+            row += 1
+            f_row(dash, row, "Filters on", filt == "" ? "none" : filt, color.white)
 
 // ───────── Data window (for reading values) ─────────
 plot(live ? lifeEntry : na, "Entry", display = display.data_window)
