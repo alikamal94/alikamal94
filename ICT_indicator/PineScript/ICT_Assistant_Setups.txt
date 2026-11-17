@@ -38,6 +38,7 @@ rNever        = input.bool(false, "Never filled",  inline = "r8", group = "Dashb
 rFilt         = input.bool(false, "Filters on",    inline = "r8", group = "Dashboard rows")
 rLiqA         = input.bool(true,  "Liquidity above", inline = "r9", group = "Dashboard rows")
 rLiqB         = input.bool(true,  "Liquidity below", inline = "r9", group = "Dashboard rows")
+rNext         = input.bool(true,  "Next move",     inline = "r10", group = "Dashboard rows")
 biasTF        = input.timeframe("240", "Bias timeframe (H4)", group = "Bias")
 useCtx1       = input.bool(true, "Check context 1 (H1)", inline = "c1", group = "Bias")
 ctx1TF        = input.timeframe("60", "", inline = "c1", group = "Bias")
@@ -89,6 +90,14 @@ kLon          = input.bool(false, "London session high / low", inline = "ln", gr
 lonSess       = input.session("0200-0500", "", inline = "ln", group = "Liquidity")
 slLiq         = input.bool(false, "Stop loss beyond nearby liquidity", group = "Liquidity")
 slLiqReach    = input.float(1.0, "Look for liquidity this far past the SL (x ATR)", minval = 0.1, step = 0.1, group = "Liquidity")
+
+// Next move: a top-down score (Daily -> H4 -> H1 -> M15 -> chart) and how often
+// price actually moved up first on this chart when the score looked like it does now
+nmOn          = input.bool(true, "Show next-move bias", group = "Next move")
+nmLabelOn     = input.bool(true, "Show it on the chart (label at the last candle)", group = "Next move")
+nmTF          = input.timeframe("D", "Top timeframe", group = "Next move")
+nmK           = input.float(1.0, "Move size to measure (x ATR)", minval = 0.25, step = 0.25, group = "Next move")
+nmBars        = input.int(20, "Move must happen within (bars)", minval = 3, maxval = 200, group = "Next move")
 
 maxTrades     = input.int(10, "Setups kept on chart", minval = 1, maxval = 40, group = "Display")
 cBull         = input.color(color.rgb(8, 153, 129), "Bullish", inline = "col", group = "Display")
@@ -165,6 +174,13 @@ type Liq
     label  lb
     int    count = 1
     bool   swept = false
+
+// One measurement: did price reach +k ATR (up) or -k ATR (down) first?
+type Obs
+    float up
+    float dn
+    int   start
+    int   bucket
 
 f_fmt(float p) =>
     str.tostring(p, format.mintick)
@@ -311,6 +327,20 @@ f_nearest(array<Zone> zs) =>
         else if na(zi)
             zi := z
     [za, zb, zi]
+
+// Direction of the first zone price is currently inside (1 bull, -1 bear, 0 none)
+f_inZoneDir(array<Zone> a, array<Zone> b, array<Zone> c) =>
+    int d = 0
+    for z in a
+        if d == 0 and close <= z.top and close >= z.bot
+            d := z.dir
+    for z in b
+        if d == 0 and close <= z.top and close >= z.bot
+            d := z.dir
+    for z in c
+        if d == 0 and close <= z.top and close >= z.bot
+            d := z.dir
+    d
 
 f_range(Zone z) =>
     str.tostring(z.bot, format.mintick) + " – " + str.tostring(z.top, format.mintick)
@@ -512,6 +542,7 @@ f_structureBias(int l, int r) =>
 htfBias  = request.security(syminfo.tickerid, biasTF, f_structureBias(swL, swR)[1], lookahead = barmerge.lookahead_on)
 ctx1Bias = request.security(syminfo.tickerid, ctx1TF, f_structureBias(swL, swR)[1], lookahead = barmerge.lookahead_on)
 ctx2Bias = request.security(syminfo.tickerid, ctx2TF, f_structureBias(swL, swR)[1], lookahead = barmerge.lookahead_on)
+topBias  = request.security(syminfo.tickerid, nmTF, f_structureBias(swL, swR)[1], lookahead = barmerge.lookahead_on)
 
 // Like the MT5 version: a context timeframe blocks the setup only when it has a
 // direction and that direction opposes the H4 bias (no direction yet = no veto).
@@ -820,6 +851,66 @@ fresh = chainDir != 0 and not na(chainBar) and bar_index - chainBar <= chainLook
 inKZ = not na(time(timeframe.period, kzLondon + ":1234567", "America/New_York")) or
        not na(time(timeframe.period, kzNY + ":1234567", "America/New_York"))
 
+// ───────── Next move: top-down score + measured hit rate ─────────
+// Weights fall from higher to lower timeframes: top 3, H4 3, H1 2, M15 1,
+// then the chart's last structure break, last liquidity sweep and the PD array price sits in (1 each).
+var int lastBrkDir   = 0
+var int lastSweepDir = 0
+if bullBreak
+    lastBrkDir := 1
+if bearBreak
+    lastBrkDir := -1
+if bullSweep
+    lastSweepDir := 1      // sell-side taken: the draw is now up
+if bearSweep
+    lastSweepDir := -1     // buy-side taken: the draw is now down
+var obsArr = array.new<Obs>()
+var nmUp   = array.new<int>(5, 0)
+var nmTot  = array.new<int>(5, 0)
+zDir    = nmOn ? f_inZoneDir(fvgZones, obZones, m30Zones) : 0
+sTop    = nz(topBias)
+sH4     = nz(htfBias)
+sH1     = nz(ctx1Bias)
+sM15    = nz(ctx2Bias)
+nmScore = 3 * sTop + 3 * sH4 + 2 * sH1 + sM15 + lastBrkDir + lastSweepDir + zDir
+nmBucket = nmScore <= -6 ? 0 : nmScore <= -2 ? 1 : nmScore <= 1 ? 2 : nmScore <= 5 ? 3 : 4
+if nmOn
+    if obsArr.size() > 0
+        for i = obsArr.size() - 1 to 0
+            o    = obsArr.get(i)
+            hitU = high >= o.up
+            hitD = low <= o.dn
+            if hitU or hitD or bar_index - o.start >= nmBars
+                // only clean outcomes count: one side reached first, inside the window
+                if hitU != hitD
+                    nmTot.set(o.bucket, nmTot.get(o.bucket) + 1)
+                    if hitU
+                        nmUp.set(o.bucket, nmUp.get(o.bucket) + 1)
+                obsArr.remove(i)
+    if not na(atr)
+        obsArr.push(Obs.new(close + nmK * atr, close - nmK * atr, bar_index, nmBucket))
+nmN      = nmTot.get(nmBucket)
+nmUpPct  = nmN > 0 ? 100.0 * nmUp.get(nmBucket) / nmN : na
+nmDirTxt = nmScore >= 2 ? "▲ Up" : nmScore <= -2 ? "▼ Down" : "◆ Neutral"
+nmPctTxt = na(nmUpPct) ? "no history yet" : (nmScore <= -2 ? str.tostring(100 - nmUpPct, "#") + "% down first" : str.tostring(nmUpPct, "#") + "% up first")
+nmText   = nmDirTxt + "  " + nmPctTxt + "  (n=" + str.tostring(nmN) + ", score " + str.tostring(nmScore, "+#;-#;0") + ")"
+f_sg(int v) =>
+    str.tostring(v, "+#;-#;0")
+nmTip    = "Top-down score (higher timeframes weigh more):\n" +
+           nmTF + " bias " + f_sg(3 * sTop) + "\nH4 bias " + f_sg(3 * sH4) + "\nH1 bias " + f_sg(2 * sH1) + "\nM15 bias " + f_sg(sM15) +
+           "\nLast BOS / MSS " + f_sg(lastBrkDir) + "\nLast liquidity sweep " + f_sg(lastSweepDir) + "\nInside PD array " + f_sg(zDir) +
+           "\n\nOn this chart, when the score was in this range, price moved " + str.tostring(nmK, "#.##") + " ATR up before " +
+           str.tostring(nmK, "#.##") + " ATR down in " + (na(nmUpPct) ? "—" : str.tostring(nmUpPct, "#.#") + "%") + " of " + str.tostring(nmN) +
+           " cases (within " + str.tostring(nmBars) + " bars). Past behaviour, not a promise."
+var label nmLb = na
+if barstate.islast
+    label.delete(nmLb)
+    nmLb := na
+    if nmOn and nmLabelOn
+        nmCol = nmScore >= 2 ? cBull : nmScore <= -2 ? cBear : color.gray
+        nmLb := label.new(bar_index + 2, close, "Next move: " + nmDirTxt + "\n" + nmPctTxt, style = label.style_label_left,
+                   color = color.new(nmCol, 15), textcolor = color.white, size = size.small, tooltip = nmTip)
+
 // ───────── Premium / Discount + OTE of the current dealing range ─────────
 var box  premBx = na
 var box  discBx = na
@@ -1103,18 +1194,23 @@ dSize = switch dashSizeIn
     "Normal" => size.normal
     "Large"  => size.large
     => size.tiny
-var table dash = table.new(dashPosition, 2, 26, bgcolor = color.new(color.black, 25), border_color = color.new(color.gray, 70), border_width = 1)
+var table dash = table.new(dashPosition, 2, 28, bgcolor = color.new(color.black, 25), border_color = color.new(color.gray, 70), border_width = 1)
 f_row(table tb, int row, string a, string b, color cb) =>
     table.cell(tb, 0, row, a, text_color = color.silver, text_size = dSize, text_halign = text.align_left)
     table.cell(tb, 1, row, b, text_color = cb, text_size = dSize, text_halign = text.align_left)
 
 if showDash and barstate.islast
-    table.clear(dash, 0, 0, 1, 25)
+    table.clear(dash, 0, 0, 1, 27)
     liveText = live and not na(cur) ? ((cur.dir == 1 ? "BUY" : "SELL") + " running" + (cur.hit2 ? " · TP2 ✓" : cur.hit1 ? " · TP1 ✓" : "")) : status
     liveCol  = live and not na(cur) ? (cur.dir == 1 ? cBull : cBear) : color.silver
     row = 0
     table.cell(dash, 0, row, "ICT Setups", text_color = color.white, text_size = dSize, text_halign = text.align_left)
     table.cell(dash, 1, row, "", text_size = dSize)
+    if nmOn and rNext
+        row += 1
+        table.cell(dash, 0, row, "Next move", text_color = color.silver, text_size = dSize, text_halign = text.align_left, tooltip = nmTip)
+        table.cell(dash, 1, row, nmText, text_color = nmScore >= 2 ? cBull : nmScore <= -2 ? cBear : color.gray, text_size = dSize,
+                   text_halign = text.align_left, tooltip = nmTip)
     if rBias
         row += 1
         f_row(dash, row, "H4 bias", f_biasText(htfBias), f_biasColor(htfBias))
