@@ -36,6 +36,8 @@ rSLb          = input.bool(false, "SL before TP1", inline = "r7", group = "Dashb
 rBE           = input.bool(false, "Breakeven exits", inline = "r7", group = "Dashboard rows")
 rNever        = input.bool(false, "Never filled",  inline = "r8", group = "Dashboard rows")
 rFilt         = input.bool(false, "Filters on",    inline = "r8", group = "Dashboard rows")
+rLiqA         = input.bool(true,  "Liquidity above", inline = "r9", group = "Dashboard rows")
+rLiqB         = input.bool(true,  "Liquidity below", inline = "r9", group = "Dashboard rows")
 biasTF        = input.timeframe("240", "Bias timeframe (H4)", group = "Bias")
 useCtx1       = input.bool(true, "Check context 1 (H1)", inline = "c1", group = "Bias")
 ctx1TF        = input.timeframe("60", "", inline = "c1", group = "Bias")
@@ -69,6 +71,20 @@ showLiq       = input.bool(true, "Liquidity (BSL / SSL) + sweeps", group = "PD a
 showStruct    = input.bool(true, "Structure breaks (BOS / MSS)", group = "PD arrays")
 showRange     = input.bool(true, "Premium / Discount + OTE", group = "PD arrays")
 markPOI       = input.bool(true, "Mark nearest POI above / below on chart", group = "PD arrays")
+// Liquidity: where stops rest, and keeping your own stop beyond them
+liqPools      = input.bool(true, "Keep untaken liquidity pools (BSL / SSL)", group = "Liquidity")
+liqMax        = input.int(5, "Pools kept per side", minval = 1, maxval = 30, group = "Liquidity")
+liqKeepTaken  = input.bool(true, "Keep swept pools on chart (grey)", group = "Liquidity")
+liqEq         = input.bool(true, "Mark equal highs / lows (EQH / EQL)", group = "Liquidity")
+eqTol         = input.float(0.1, "EQH / EQL tolerance (x ATR)", minval = 0.01, step = 0.01, group = "Liquidity")
+kPD           = input.bool(true, "Previous day high / low (PDH / PDL)", group = "Liquidity")
+kPW           = input.bool(true, "Previous week high / low (PWH / PWL)", group = "Liquidity")
+kAsia         = input.bool(false, "Asia session high / low", inline = "as", group = "Liquidity")
+asiaSess      = input.session("2000-0000", "", inline = "as", group = "Liquidity")
+kLon          = input.bool(false, "London session high / low", inline = "ln", group = "Liquidity")
+lonSess       = input.session("0200-0500", "", inline = "ln", group = "Liquidity")
+slLiq         = input.bool(false, "Stop loss beyond nearby liquidity", group = "Liquidity")
+slLiqReach    = input.float(1.0, "Look for liquidity this far past the SL (x ATR)", minval = 0.1, step = 0.1, group = "Liquidity")
 f30m          = input.bool(false, "30M rule: OBs that caused a BOS and left an FVG", inline = "m30", group = "PD arrays")
 m30TF         = input.timeframe("30", "", inline = "m30", group = "PD arrays")
 
@@ -134,6 +150,17 @@ type Trade
     label lTP1
     label lTP2
     label lTP3
+
+// A liquidity level: swing pool (BSL / SSL / EQH / EQL) or key level (PDH, PWL, Asia H ...)
+// dir: 1 = above price (buy stops), -1 = below price (sell stops)
+type Liq
+    float  price
+    int    dir
+    string kind
+    line   ln
+    label  lb
+    int    count = 1
+    bool   swept = false
 
 f_fmt(float p) =>
     str.tostring(p, format.mintick)
@@ -295,6 +322,135 @@ f_m30Ob(int l, int r, int lb) =>
                     break
     [evDir[1], evTop[1], evBot[1], evT[1]]
 
+// New swing pool; merges into an existing one as EQH / EQL when within tolerance
+f_addPool(array<Liq> ps, float price, int dir, int x1, float tol) =>
+    merged = false
+    if liqEq and ps.size() > 0
+        for p in ps
+            if not merged and p.dir == dir and math.abs(p.price - price) <= tol
+                p.count := p.count + 1
+                p.price := dir == 1 ? math.max(p.price, price) : math.min(p.price, price)
+                p.kind  := dir == 1 ? "EQH" : "EQL"
+                line.set_y1(p.ln, p.price)
+                line.set_y2(p.ln, p.price)
+                line.set_width(p.ln, 2)
+                line.set_style(p.ln, line.style_solid)
+                label.set_y(p.lb, p.price)
+                label.set_text(p.lb, p.kind + " ×" + str.tostring(p.count))
+                label.set_tooltip(p.lb, "Equal " + (dir == 1 ? "highs" : "lows") + ": stops stacked at the same price, a strong liquidity target")
+                merged := true
+    if not merged
+        c    = dir == 1 ? cBear : cBull
+        kind = dir == 1 ? "BSL" : "SSL"
+        ln   = line.new(x1, price, bar_index, price, color = color.new(c, 30), style = line.style_dotted)
+        lb   = label.new(bar_index, price, kind, style = label.style_label_left, color = color(na), textcolor = c, size = size.tiny,
+                 tooltip = dir == 1 ? "Buy-side liquidity: stops resting above this high" : "Sell-side liquidity: stops resting below this low")
+        ps.push(Liq.new(price, dir, kind, ln, lb))
+        n = 0
+        for p in ps
+            n += p.dir == dir ? 1 : 0
+        if n > liqMax
+            for i = 0 to ps.size() - 1
+                if ps.get(i).dir == dir
+                    old = ps.remove(i)
+                    line.delete(old.ln)
+                    label.delete(old.lb)
+                    break
+    true
+
+// Pools are taken once price trades through them
+f_updPools(array<Liq> ps) =>
+    if ps.size() > 0
+        for i = ps.size() - 1 to 0
+            p = ps.get(i)
+            taken = p.dir == 1 ? high > p.price : low < p.price
+            if taken
+                if liqKeepTaken
+                    line.set_x2(p.ln, bar_index)
+                    line.set_color(p.ln, color.new(color.gray, 40))
+                    label.set_x(p.lb, bar_index)
+                    label.set_text(p.lb, "✕ " + p.kind)
+                    label.set_textcolor(p.lb, color.gray)
+                else
+                    line.delete(p.ln)
+                    label.delete(p.lb)
+                ps.remove(i)
+            else
+                line.set_x2(p.ln, bar_index + 3)
+                label.set_x(p.lb, bar_index + 3)
+    true
+
+// Key level (one per kind): replaces the previous level of the same kind
+f_addKey(array<Liq> ks, string kind, float price, int dir, int x1) =>
+    if ks.size() > 0
+        for i = ks.size() - 1 to 0
+            if ks.get(i).kind == kind
+                old = ks.remove(i)
+                line.delete(old.ln)
+                label.delete(old.lb)
+    if not na(price)
+        c  = dir == 1 ? cBear : cBull
+        ln = line.new(x1, price, bar_index, price, color = c, width = 1)
+        lb = label.new(bar_index, price, kind, style = label.style_label_left, color = color(na), textcolor = c, size = size.tiny,
+               tooltip = kind + ": " + (dir == 1 ? "buy stops rest above it" : "sell stops rest below it"))
+        ks.push(Liq.new(price, dir, kind, ln, lb))
+    true
+
+f_updKeys(array<Liq> ks) =>
+    for k in ks
+        if not k.swept
+            if k.dir == 1 ? high > k.price : low < k.price
+                k.swept := true
+                line.set_x2(k.ln, bar_index)
+                line.set_color(k.ln, color.new(color.gray, 40))
+                line.set_style(k.ln, line.style_dotted)
+                label.set_x(k.lb, bar_index)
+                label.set_text(k.lb, "✕ " + k.kind)
+                label.set_textcolor(k.lb, color.gray)
+            else
+                line.set_x2(k.ln, bar_index + 3)
+                label.set_x(k.lb, bar_index + 3)
+    true
+
+// Closest untaken liquidity above / below a price, across pools and key levels
+f_nearLiq(array<Liq> a, array<Liq> b, float px) =>
+    Liq   la = na
+    Liq   lb = na
+    float da = na
+    float db = na
+    for k in a
+        if k.price > px and (na(da) or k.price - px < da)
+            da := k.price - px
+            la := k
+        if k.price < px and (na(db) or px - k.price < db)
+            db := px - k.price
+            lb := k
+    for k in b
+        if not k.swept
+            if k.price > px and (na(da) or k.price - px < da)
+                da := k.price - px
+                la := k
+            if k.price < px and (na(db) or px - k.price < db)
+                db := px - k.price
+                lb := k
+    [la, lb]
+
+// SL helper: if liquidity sits at or just past the stop, move the stop beyond it
+f_slBeyond(array<Liq> a, array<Liq> b, bool bull, float entry, float sl0, float buf, float reach) =>
+    float best = na
+    string nm  = ""
+    cands = a.copy()
+    for k in b
+        if not k.swept
+            cands.push(k)
+    for k in cands
+        cand = bull ? (k.price < entry and k.price >= sl0 - reach and k.price - buf < sl0) : (k.price > entry and k.price <= sl0 + reach and k.price + buf > sl0)
+        if cand and (na(best) or (bull ? k.price < best : k.price > best))
+            best := k.price
+            nm   := k.kind
+    newSl = na(best) ? sl0 : (bull ? math.min(sl0, best - buf) : math.max(sl0, best + buf))
+    [newSl, newSl != sl0 ? nm + " " + str.tostring(best, format.mintick) : ""]
+
 f_biasText(int b) =>
     na(b) or b == 0 ? "— none" : b == 1 ? "▲ Bullish" : "▼ Bearish"
 
@@ -343,7 +499,8 @@ var line  bslLn     = na
 var label bslLb     = na
 var line  sslLn     = na
 var label sslLb     = na
-drawLevels = showLiq or showStruct
+liqSingle  = showLiq and not liqPools   // pools replace the single latest BSL / SSL line
+drawLevels = liqSingle or showStruct
 
 if not na(ph)
     lastSH    := ph
@@ -353,8 +510,8 @@ if not na(ph)
     bslLn := na
     bslLb := na
     if drawLevels
-        bslLn := line.new(lastSHBar, ph, bar_index, ph, color = showLiq ? color.new(cBear, 40) : color(na), style = line.style_dotted)
-        bslLb := label.new(lastSHBar, ph, showLiq ? "BSL" : "", style = label.style_label_down, color = color(na),
+        bslLn := line.new(lastSHBar, ph, bar_index, ph, color = liqSingle ? color.new(cBear, 40) : color(na), style = line.style_dotted)
+        bslLb := label.new(lastSHBar, ph, liqSingle ? "BSL" : "", style = label.style_label_down, color = color(na),
                    textcolor = color.new(cBear, 20), size = size.tiny,
                    tooltip = "Buy-side liquidity: stops resting above this swing high")
 if not na(pl)
@@ -365,8 +522,8 @@ if not na(pl)
     sslLn := na
     sslLb := na
     if drawLevels
-        sslLn := line.new(lastSLBar, pl, bar_index, pl, color = showLiq ? color.new(cBull, 40) : color(na), style = line.style_dotted)
-        sslLb := label.new(lastSLBar, pl, showLiq ? "SSL" : "", style = label.style_label_up, color = color(na),
+        sslLn := line.new(lastSLBar, pl, bar_index, pl, color = liqSingle ? color.new(cBull, 40) : color(na), style = line.style_dotted)
+        sslLb := label.new(lastSLBar, pl, liqSingle ? "SSL" : "", style = label.style_label_up, color = color(na),
                    textcolor = color.new(cBull, 20), size = size.tiny,
                    tooltip = "Sell-side liquidity: stops resting below this swing low")
 
@@ -381,7 +538,7 @@ if bullSweep
     bullSweepBar := bar_index
     bullLegLow   := low
     lastSL       := na
-    if showLiq
+    if liqSingle
         line.set_x2(sslLn, bar_index)
         label.set_x(sslLb, bar_index)
         label.set_text(sslLb, "✕ SSL swept")
@@ -395,7 +552,7 @@ if bearSweep
     bearSweepBar := bar_index
     bearLegHigh  := high
     lastSH       := na
-    if showLiq
+    if liqSingle
         line.set_x2(bslLn, bar_index)
         label.set_x(bslLb, bar_index)
         label.set_text(bslLb, "✕ BSL swept")
@@ -409,6 +566,55 @@ if not na(bullSweepBar) and not bullSweep
     bullLegLow := math.min(bullLegLow, low)
 if not na(bearSweepBar) and not bearSweep
     bearLegHigh := math.max(bearLegHigh, high)
+
+// ───────── Liquidity pools and key levels ─────────
+var liqArr = array.new<Liq>()
+var keyArr = array.new<Liq>()
+f_updPools(liqArr)
+if liqPools and not na(ph)
+    f_addPool(liqArr, ph, 1, bar_index - swR, eqTol * atr)
+if liqPools and not na(pl)
+    f_addPool(liqArr, pl, -1, bar_index - swR, eqTol * atr)
+
+[pdh, pdl] = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+[pwh, pwl] = request.security(syminfo.tickerid, "W", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+if kPD and timeframe.change("D")
+    f_addKey(keyArr, "PDH", pdh, 1, bar_index)
+    f_addKey(keyArr, "PDL", pdl, -1, bar_index)
+if kPW and timeframe.change("W")
+    f_addKey(keyArr, "PWH", pwh, 1, bar_index)
+    f_addKey(keyArr, "PWL", pwl, -1, bar_index)
+
+// Session ranges: tracked while the session runs, drawn when it ends
+inAsia = not na(time(timeframe.period, asiaSess + ":1234567", "America/New_York"))
+inLon  = not na(time(timeframe.period, lonSess + ":1234567", "America/New_York"))
+var float asH = na
+var float asL = na
+var int   asX = na
+var float lnH = na
+var float lnL = na
+var int   lnX = na
+if inAsia and not inAsia[1]
+    asH := high
+    asL := low
+    asX := bar_index
+else if inAsia
+    asH := math.max(asH, high)
+    asL := math.min(asL, low)
+if kAsia and not inAsia and inAsia[1]
+    f_addKey(keyArr, "Asia H", asH, 1, asX)
+    f_addKey(keyArr, "Asia L", asL, -1, asX)
+if inLon and not inLon[1]
+    lnH := high
+    lnL := low
+    lnX := bar_index
+else if inLon
+    lnH := math.max(lnH, high)
+    lnL := math.min(lnL, low)
+if kLon and not inLon and inLon[1]
+    f_addKey(keyArr, "London H", lnH, 1, lnX)
+    f_addKey(keyArr, "London L", lnL, -1, lnX)
+f_updKeys(keyArr)
 
 // Displacement: large-bodied candle relative to ATR
 rng    = high - low
@@ -740,7 +946,10 @@ else if legHigh > legLow
             status := "Waiting: OB / FVG inside OTE"
         else
             buf   = math.max(atr * slAtrBuf, slMinTicks * syminfo.mintick)
-            sl    = bull ? zBot - buf : zTop + buf
+            sl0   = bull ? zBot - buf : zTop + buf
+            [slAdj, slNote] = f_slBeyond(liqArr, keyArr, bull, entry, sl0, buf, slLiqReach * atr)
+            sl    = slLiq ? slAdj : sl0
+            slTxt = slLiq and slNote != "" ? " (beyond " + slNote + ")" : ""
             risk  = math.abs(entry - sl)
             dol   = bull ? legHigh : legLow     // draw on liquidity: the leg extreme
             dolOk = bull ? dol > entry : dol < entry
@@ -777,12 +986,12 @@ else if legHigh > legLow
                               "• H4 bias " + (bull ? "bullish" : "bearish") + ", H1/M15 not against it\n" +
                               "• " + (bull ? "Sell-side" : "Buy-side") + " liquidity swept, displacement, MSS\n" +
                               "• Price back in " + (bull ? "discount" : "premium") + ", " + (not na(obTop) ? "order block" : "FVG") + " inside OTE\n\n" +
-                              "Entry " + f_fmt(entry) + "\nSL " + f_fmt(sl) + "\nTP1 " + f_fmt(tp1) + "  TP2 " + f_fmt(tp2) + "  TP3 " + f_fmt(tp3) +
+                              "Entry " + f_fmt(entry) + "\nSL " + f_fmt(sl) + slTxt + "\nTP1 " + f_fmt(tp1) + "  TP2 " + f_fmt(tp2) + "  TP3 " + f_fmt(tp3) +
                               "\nR:R to TP3 " + str.tostring(math.abs(tp3 - entry) / risk, "#.##")
                         t.sig    := label.new(bar_index, bull ? low : high, bull ? "▲ BUY" : "▼ SELL",
                                        style = bull ? label.style_label_up : label.style_label_down, color = c, textcolor = color.white, size = size.normal, tooltip = tip)
                         t.lEntry := label.new(rx, entry, "Entry " + f_fmt(entry), style = label.style_label_left, color = color.new(color.gray, 10), textcolor = color.white, size = size.small)
-                        t.lSL    := label.new(rx, sl, "SL " + f_fmt(sl), style = label.style_label_left, color = cBear, textcolor = color.white, size = size.small)
+                        t.lSL    := label.new(rx, sl, "SL " + f_fmt(sl) + slTxt, style = label.style_label_left, color = cBear, textcolor = color.white, size = size.small)
                         t.lTP1   := label.new(rx, tp1, "TP1 " + f_fmt(tp1), style = label.style_label_left, color = color.new(cBull, 40), textcolor = color.white, size = size.small)
                         t.lTP2   := label.new(rx, tp2, "TP2 " + f_fmt(tp2), style = label.style_label_left, color = color.new(cBull, 25), textcolor = color.white, size = size.small)
                         t.lTP3   := label.new(rx, tp3, "TP3 " + f_fmt(tp3), style = label.style_label_left, color = cBull, textcolor = color.white, size = size.small)
@@ -812,6 +1021,12 @@ var string poiInsideTxt = "—"
 var box    poiAboveBx   = na
 var box    poiBelowBx   = na
 showPOI   = rPoiA or rInside or rPoiB
+var string liqAboveTxt = "—"
+var string liqBelowTxt = "—"
+if barstate.islast and (rLiqA or rLiqB)
+    [la, lb] = f_nearLiq(liqArr, keyArr, close)
+    liqAboveTxt := na(la) ? "—" : la.kind + "  " + f_fmt(la.price) + "  (+" + str.tostring(la.price - close, format.mintick) + " · " + str.tostring((la.price - close) / atr, "#.#") + " ATR)"
+    liqBelowTxt := na(lb) ? "—" : lb.kind + "  " + f_fmt(lb.price) + "  (−" + str.tostring(close - lb.price, format.mintick) + " · " + str.tostring((close - lb.price) / atr, "#.#") + " ATR)"
 showStats = rFilled or rWin or rAvg or rTot or rTP1 or rTP2 or rTP3 or rSLb or rBE or rNever or rFilt
 if barstate.islast and (showPOI or markPOI)
     box.delete(poiAboveBx)
@@ -856,13 +1071,13 @@ dSize = switch dashSizeIn
     "Normal" => size.normal
     "Large"  => size.large
     => size.tiny
-var table dash = table.new(dashPosition, 2, 24, bgcolor = color.new(color.black, 25), border_color = color.new(color.gray, 70), border_width = 1)
+var table dash = table.new(dashPosition, 2, 26, bgcolor = color.new(color.black, 25), border_color = color.new(color.gray, 70), border_width = 1)
 f_row(table tb, int row, string a, string b, color cb) =>
     table.cell(tb, 0, row, a, text_color = color.silver, text_size = dSize, text_halign = text.align_left)
     table.cell(tb, 1, row, b, text_color = cb, text_size = dSize, text_halign = text.align_left)
 
 if showDash and barstate.islast
-    table.clear(dash, 0, 0, 1, 23)
+    table.clear(dash, 0, 0, 1, 25)
     liveText = live and not na(cur) ? ((cur.dir == 1 ? "BUY" : "SELL") + " running" + (cur.hit2 ? " · TP2 ✓" : cur.hit1 ? " · TP1 ✓" : "")) : status
     liveCol  = live and not na(cur) ? (cur.dir == 1 ? cBull : cBear) : color.silver
     row = 0
@@ -892,6 +1107,12 @@ if showDash and barstate.islast
     if rPoiB
         row += 1
         f_row(dash, row, "POI below", poiBelowTxt, cBull)
+    if rLiqA
+        row += 1
+        f_row(dash, row, "Liquidity above", liqAboveTxt, cBear)
+    if rLiqB
+        row += 1
+        f_row(dash, row, "Liquidity below", liqBelowTxt, cBull)
     if showStats
         n      = stats.get(0)
         avgR   = n > 0 ? stats.get(7) / n : 0.0
