@@ -185,6 +185,10 @@ type Obs
 f_fmt(float p) =>
     str.tostring(p, format.mintick)
 
+// Number with an explicit "+" for positive values ("-" comes from str.tostring)
+f_signed(float v, string fmt) =>
+    (v > 0 ? "+" : "") + str.tostring(v, fmt)
+
 // Keeps at most maxZones zones per side; drops the one farthest from price, not the oldest
 f_evict(array<Zone> zones, int dir) =>
     n = 0
@@ -893,9 +897,9 @@ nmN      = nmTot.get(nmBucket)
 nmUpPct  = nmN > 0 ? 100.0 * nmUp.get(nmBucket) / nmN : na
 nmDirTxt = nmScore >= 2 ? "▲ Up" : nmScore <= -2 ? "▼ Down" : "◆ Neutral"
 nmPctTxt = na(nmUpPct) ? "no history yet" : (nmScore <= -2 ? str.tostring(100 - nmUpPct, "#") + "% down first" : str.tostring(nmUpPct, "#") + "% up first")
-nmText   = nmDirTxt + "  " + nmPctTxt + "  (n=" + str.tostring(nmN) + ", score " + str.tostring(nmScore, "+#;-#;0") + ")"
+nmText   = nmDirTxt + "  " + nmPctTxt + "  (n=" + str.tostring(nmN) + ", score " + f_signed(nmScore, "#") + ")"
 f_sg(int v) =>
-    str.tostring(v, "+#;-#;0")
+    f_signed(v, "#")
 nmTip    = "Top-down score (higher timeframes weigh more):\n" +
            nmTF + " bias " + f_sg(3 * sTop) + "\nH4 bias " + f_sg(3 * sH4) + "\nH1 bias " + f_sg(2 * sH1) + "\nM15 bias " + f_sg(sM15) +
            "\nLast BOS / MSS " + f_sg(lastBrkDir) + "\nLast liquidity sweep " + f_sg(lastSweepDir) + "\nInside PD array " + f_sg(zDir) +
@@ -1257,10 +1261,10 @@ if showDash and barstate.islast
             f_row(dash, row, "Win rate (R > 0)", f_pct(stats, 6), cBull)
         if rAvg
             row += 1
-            f_row(dash, row, "Avg R / trade", n > 0 ? str.tostring(avgR, "+#.##;-#.##") + " R" : "—", avgR >= 0 ? cBull : cBear)
+            f_row(dash, row, "Avg R / trade", n > 0 ? f_signed(avgR, "#.##") + " R" : "—", avgR >= 0 ? cBull : cBear)
         if rTot
             row += 1
-            f_row(dash, row, "Total R", n > 0 ? str.tostring(stats.get(7), "+#.#;-#.#") + " R" : "—", stats.get(7) >= 0 ? cBull : cBear)
+            f_row(dash, row, "Total R", n > 0 ? f_signed(stats.get(7), "#.#") + " R" : "—", stats.get(7) >= 0 ? cBull : cBear)
         if rTP1
             row += 1
             f_row(dash, row, "Reached TP1", f_pct(stats, 1), cBull)
