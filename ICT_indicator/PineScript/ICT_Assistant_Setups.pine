@@ -66,8 +66,8 @@ maxTradeBars  = input.int(100, "Close setup drawing after (bars)", minval = 5, g
 showFVG       = input.bool(true, "Fair value gaps", group = "PD arrays")
 fvgMinAtr     = input.float(0.25, "FVG min size (x ATR)", step = 0.05, group = "PD arrays")
 showOB        = input.bool(true, "Order blocks", group = "PD arrays")
-maxZones      = input.int(15, "Max zones of each type, per side", minval = 1, maxval = 50, group = "PD arrays",
-                 tooltip = "When the limit is reached, the zone farthest from price is removed, so old untested zones near price stay")
+maxZones      = input.int(30, "Max zones of each type, per side", minval = 1, maxval = 100, group = "PD arrays",
+                 tooltip = "When the limit is reached, tested zones are removed first, then the untested zone farthest from price")
 testedMode    = input.string("Fade", "Zones price has already traded into", options = ["Fade", "Keep as is", "Remove"], group = "PD arrays")
 keepMitigated = input.bool(false, "Keep broken zones on chart", group = "PD arrays")
 showLiq       = input.bool(true, "Liquidity (BSL / SSL) + sweeps", group = "PD arrays")
@@ -76,6 +76,15 @@ showRange     = input.bool(true, "Premium / Discount + OTE", group = "PD arrays"
 markPOI       = input.bool(true, "Mark nearest POI above / below on chart", group = "PD arrays")
 f30m          = input.bool(false, "30M rule: OBs that caused a BOS and left an FVG", inline = "m30", group = "PD arrays")
 m30TF         = input.timeframe("30", "", inline = "m30", group = "PD arrays")
+// Higher-timeframe zones reach much further back than the bars loaded on a low-timeframe chart
+htfOn1        = input.bool(true, "Untested zones from", inline = "h1", group = "Higher-timeframe zones (untested)")
+htfTF1        = input.timeframe("240", "", inline = "h1", group = "Higher-timeframe zones (untested)")
+htfOn2        = input.bool(true, "Untested zones from", inline = "h2", group = "Higher-timeframe zones (untested)")
+htfTF2        = input.timeframe("D", "", inline = "h2", group = "Higher-timeframe zones (untested)")
+htfFvg        = input.bool(true, "FVGs", inline = "hk", group = "Higher-timeframe zones (untested)")
+htfObs        = input.bool(true, "Order blocks", inline = "hk", group = "Higher-timeframe zones (untested)")
+htfMax        = input.int(20, "Zones kept per timeframe", minval = 1, maxval = 60, group = "Higher-timeframe zones (untested)")
+htfMinAtr     = input.float(0.25, "FVG min size (x ATR of that timeframe)", step = 0.05, group = "Higher-timeframe zones (untested)")
 // Liquidity: where stops rest, and keeping your own stop beyond them
 liqPools      = input.bool(true, "Keep untaken liquidity pools (BSL / SSL)", group = "Liquidity")
 liqMax        = input.int(5, "Pools kept per side", minval = 1, maxval = 30, group = "Liquidity")
@@ -189,7 +198,8 @@ f_fmt(float p) =>
 f_signed(float v, string fmt) =>
     (v > 0 ? "+" : "") + str.tostring(v, fmt)
 
-// Keeps at most maxZones zones per side; drops the one farthest from price, not the oldest
+// Keeps at most maxZones zones per side: tested zones go first, then the untested
+// zone farthest from price, so old untested zones are the last to be removed
 f_evict(array<Zone> zones, int dir) =>
     n = 0
     for z in zones
@@ -200,7 +210,7 @@ f_evict(array<Zone> zones, int dir) =>
         for i = 0 to zones.size() - 1
             z = zones.get(i)
             if z.dir == dir
-                d = math.max(z.bot - close, close - z.top, 0)
+                d = math.max(z.bot - close, close - z.top, 0) + (z.tested ? 1e12 : 0)
                 if na(farD) or d > farD
                     farD := d
                     far  := i
@@ -517,6 +527,108 @@ f_slBeyond(array<Liq> a, array<Liq> b, bool bull, float entry, float sl0, float 
             nm   := k.kind
     newSl = na(best) ? sl0 : (bull ? math.min(sl0, best - buf) : math.max(sl0, best + buf))
     [newSl, newSl != sl0 ? nm + " " + str.tostring(best, format.mintick) : ""]
+
+// Untested zones on a higher timeframe, kept until price trades into them.
+// Returned as text "top,bottom,dir,kind,time;..." (kind 0 = FVG, 1 = OB) from the previous closed bar.
+f_htfZones(int l, int r, int lb, float minAtr, int maxN, bool doFvg, bool doOb) =>
+    var zt = array.new<float>()
+    var zb = array.new<float>()
+    var zd = array.new<int>()
+    var zk = array.new<int>()
+    var zx = array.new<int>()
+    var float sh = na
+    var float sl = na
+    a  = ta.atr(14)
+    ph = ta.pivothigh(high, l, r)
+    pl = ta.pivotlow(low, l, r)
+    if zt.size() > 0
+        for i = zt.size() - 1 to 0
+            if zd.get(i) == 1 ? low <= zt.get(i) : high >= zb.get(i)
+                zt.remove(i)
+                zb.remove(i)
+                zd.remove(i)
+                zk.remove(i)
+                zx.remove(i)
+    if not na(ph)
+        sh := ph
+    if not na(pl)
+        sl := pl
+    if doFvg and low > high[2] and low - high[2] >= minAtr * a
+        zt.push(low)
+        zb.push(high[2])
+        zd.push(1)
+        zk.push(0)
+        zx.push(time[1])
+    if doFvg and high < low[2] and low[2] - high >= minAtr * a
+        zt.push(low[2])
+        zb.push(high)
+        zd.push(-1)
+        zk.push(0)
+        zx.push(time[1])
+    if not na(sh) and close > sh
+        sh := na
+        if doOb
+            for i = 1 to lb
+                if close[i] < open[i]
+                    zt.push(high[i])
+                    zb.push(low[i])
+                    zd.push(1)
+                    zk.push(1)
+                    zx.push(time[i])
+                    break
+    if not na(sl) and close < sl
+        sl := na
+        if doOb
+            for i = 1 to lb
+                if close[i] > open[i]
+                    zt.push(high[i])
+                    zb.push(low[i])
+                    zd.push(-1)
+                    zk.push(1)
+                    zx.push(time[i])
+                    break
+    while zt.size() > maxN
+        far = 0
+        farD = -1.0
+        for i = 0 to zt.size() - 1
+            dd = math.max(zb.get(i) - close, close - zt.get(i), 0)
+            if dd > farD
+                farD := dd
+                far  := i
+        zt.remove(far)
+        zb.remove(far)
+        zd.remove(far)
+        zk.remove(far)
+        zx.remove(far)
+    enc = ""
+    if zt.size() > 0
+        for i = 0 to zt.size() - 1
+            enc += str.tostring(zt.get(i), "#.##########") + "," + str.tostring(zb.get(i), "#.##########") + "," + str.tostring(zd.get(i)) + "," +
+                   str.tostring(zk.get(i)) + "," + str.tostring(zx.get(i)) + ";"
+    enc[1]
+
+f_tfName(string tf) =>
+    tf == "240" ? "H4" : tf == "60" ? "H1" : tf == "D" ? "D" : tf == "W" ? "W" : tf == "30" ? "M30" : tf
+
+// Draws the decoded higher-timeframe zones and adds them to the POI list
+f_drawHtf(string enc, string tf, array<Zone> out, int t0) =>
+    if str.length(enc) > 0
+        for item in str.split(enc, ";")
+            if str.length(item) > 0
+                f   = str.split(item, ",")
+                top = str.tonumber(f.get(0))
+                bot = str.tonumber(f.get(1))
+                dir = int(str.tonumber(f.get(2)))
+                knd = int(str.tonumber(f.get(3)))
+                tx  = int(str.tonumber(f.get(4)))
+                c   = knd == 1 ? (dir == 1 ? cObBull : cObBear) : (dir == 1 ? cBull : cBear)
+                nm  = f_tfName(tf) + (dir == 1 ? " Bull " : " Bear ") + (knd == 1 ? "OB" : "FVG")
+                txt = nm + "  ·  untested since " + str.format_time(tx, "dd MMM yyyy", syminfo.timezone)
+                b   = box.new(math.max(tx, t0), top, time, bot, xloc = xloc.bar_time, extend = extend.right,
+                         border_color = c, border_width = 2, border_style = line.style_dashed, bgcolor = color.new(c, 88),
+                         text = txt, text_size = size.small, text_color = c, text_halign = text.align_left, text_valign = text.align_center)
+                out.push(Zone.new(bx = b, top = top, bot = bot, dir = dir, kind = nm, useTime = true, col = c))
+    true
 
 f_biasText(int b) =>
     na(b) or b == 0 ? "— none" : b == 1 ? "▲ Bullish" : "▼ Bearish"
@@ -1141,6 +1253,23 @@ else if legHigh > legLow
 else
     status := "Waiting: dealing range"
 
+// ───────── Higher-timeframe untested zones ─────────
+var int firstTime = time
+chartSec = timeframe.in_seconds()
+use1 = htfOn1 and timeframe.in_seconds(htfTF1) > chartSec
+use2 = htfOn2 and timeframe.in_seconds(htfTF2) > chartSec
+htfEnc1 = request.security(syminfo.tickerid, htfTF1, f_htfZones(swL, swR, obLookback, htfMinAtr, htfMax, htfFvg, htfObs), lookahead = barmerge.lookahead_on)
+htfEnc2 = request.security(syminfo.tickerid, htfTF2, f_htfZones(swL, swR, obLookback, htfMinAtr, htfMax, htfFvg, htfObs), lookahead = barmerge.lookahead_on)
+var htfZones = array.new<Zone>()
+if barstate.islast
+    for z in htfZones
+        box.delete(z.bx)
+    htfZones.clear()
+    if use1
+        f_drawHtf(na(htfEnc1) ? "" : htfEnc1, htfTF1, htfZones, firstTime)
+    if use2
+        f_drawHtf(na(htfEnc2) ? "" : htfEnc2, htfTF2, htfZones, firstTime)
+
 // ───────── Nearest POI (dashboard text + chart marks) ─────────
 var string poiAboveTxt  = "—"
 var string poiBelowTxt  = "—"
@@ -1163,6 +1292,7 @@ if barstate.islast and (showPOI or markPOI)
     allZones = fvgZones.copy()
     allZones.concat(obZones)
     allZones.concat(m30Zones)
+    allZones.concat(htfZones)
     [za, zb, zi] = f_nearest(allZones)
     poiAboveTxt  := "—"
     poiBelowTxt  := "—"
