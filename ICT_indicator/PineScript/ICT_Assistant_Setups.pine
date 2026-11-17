@@ -65,7 +65,9 @@ maxTradeBars  = input.int(100, "Close setup drawing after (bars)", minval = 5, g
 showFVG       = input.bool(true, "Fair value gaps", group = "PD arrays")
 fvgMinAtr     = input.float(0.25, "FVG min size (x ATR)", step = 0.05, group = "PD arrays")
 showOB        = input.bool(true, "Order blocks", group = "PD arrays")
-maxZones      = input.int(6, "Max zones of each type", minval = 1, maxval = 50, group = "PD arrays")
+maxZones      = input.int(15, "Max zones of each type, per side", minval = 1, maxval = 50, group = "PD arrays",
+                 tooltip = "When the limit is reached, the zone farthest from price is removed, so old untested zones near price stay")
+testedMode    = input.string("Fade", "Zones price has already traded into", options = ["Fade", "Keep as is", "Remove"], group = "PD arrays")
 keepMitigated = input.bool(false, "Keep broken zones on chart", group = "PD arrays")
 showLiq       = input.bool(true, "Liquidity (BSL / SSL) + sweeps", group = "PD arrays")
 showStruct    = input.bool(true, "Structure breaks (BOS / MSS)", group = "PD arrays")
@@ -125,6 +127,8 @@ type Zone
     int    dir
     string kind
     bool   useTime = false
+    color  col
+    bool   tested  = false
 
 type Trade
     int   dir
@@ -165,13 +169,31 @@ type Liq
 f_fmt(float p) =>
     str.tostring(p, format.mintick)
 
+// Keeps at most maxZones zones per side; drops the one farthest from price, not the oldest
+f_evict(array<Zone> zones, int dir) =>
+    n = 0
+    for z in zones
+        n += z.dir == dir ? 1 : 0
+    while n > maxZones
+        far = -1
+        float farD = na
+        for i = 0 to zones.size() - 1
+            z = zones.get(i)
+            if z.dir == dir
+                d = math.max(z.bot - close, close - z.top, 0)
+                if na(farD) or d > farD
+                    farD := d
+                    far  := i
+        old = zones.remove(far)
+        box.delete(old.bx)
+        n -= 1
+    true
+
 f_addZone(array<Zone> zones, int left, float top, float bot, int dir, color c, string txt) =>
     b = box.new(left, top, bar_index + 3, bot, border_color = color.new(c, 50), bgcolor = color.new(c, 85),
          text = txt, text_size = size.tiny, text_color = c, text_halign = text.align_right, text_valign = text.align_center)
-    zones.push(Zone.new(b, top, bot, dir, txt))
-    if zones.size() > maxZones
-        old = zones.shift()
-        box.delete(old.bx)
+    zones.push(Zone.new(bx = b, top = top, bot = bot, dir = dir, kind = txt, col = c))
+    f_evict(zones, dir)
     true
 
 // A zone is broken once a candle closes through its far edge.
@@ -180,6 +202,7 @@ f_updateZones(array<Zone> zones) =>
         for i = zones.size() - 1 to 0
             z = zones.get(i)
             broken = z.dir == 1 ? close < z.bot : close > z.top
+            touched = z.dir == 1 ? low <= z.top : high >= z.bot
             if broken
                 if keepMitigated
                     box.set_right(z.bx, bar_index)
@@ -188,7 +211,17 @@ f_updateZones(array<Zone> zones) =>
                 else
                     box.delete(z.bx)
                 zones.remove(i)
+            else if touched and not z.tested and testedMode == "Remove"
+                box.delete(z.bx)
+                zones.remove(i)
             else
+                if touched and not z.tested
+                    z.tested := true
+                    if testedMode == "Fade"
+                        box.set_bgcolor(z.bx, color.new(z.col, 94))
+                        box.set_border_color(z.bx, color.new(z.col, 75))
+                        box.set_border_style(z.bx, line.style_dotted)
+                        box.set_text(z.bx, z.kind + " (tested)")
                 box.set_right(z.bx, z.useTime ? time : bar_index + 3)
     true
 
@@ -669,9 +702,8 @@ if f30m and nz(m30Dir) != 0 and not na(m30T) and (na(lastM30T) or m30T != lastM3
     m30Bx   = box.new(m30T, m30Top, time, m30Bot, xloc = xloc.bar_time, border_color = m30Col, border_width = 2,
                  bgcolor = color.new(m30Col, 78), text = m30Txt, text_size = size.small, text_color = m30Col,
                  text_halign = text.align_right, text_valign = text.align_center)
-    m30Zones.push(Zone.new(m30Bx, m30Top, m30Bot, m30Dir, m30Txt, true))
-    if m30Zones.size() > maxZones
-        box.delete(m30Zones.shift().bx)
+    m30Zones.push(Zone.new(bx = m30Bx, top = m30Top, bot = m30Bot, dir = m30Dir, kind = m30Txt, useTime = true, col = m30Col))
+    f_evict(m30Zones, m30Dir)
 
 var int   chainDir    = 0
 var int   chainBar    = na
