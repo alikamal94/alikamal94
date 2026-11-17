@@ -71,6 +71,8 @@ showLiq       = input.bool(true, "Liquidity (BSL / SSL) + sweeps", group = "PD a
 showStruct    = input.bool(true, "Structure breaks (BOS / MSS)", group = "PD arrays")
 showRange     = input.bool(true, "Premium / Discount + OTE", group = "PD arrays")
 markPOI       = input.bool(true, "Mark nearest POI above / below on chart", group = "PD arrays")
+f30m          = input.bool(false, "30M rule: OBs that caused a BOS and left an FVG", inline = "m30", group = "PD arrays")
+m30TF         = input.timeframe("30", "", inline = "m30", group = "PD arrays")
 // Liquidity: where stops rest, and keeping your own stop beyond them
 liqPools      = input.bool(true, "Keep untaken liquidity pools (BSL / SSL)", group = "Liquidity")
 liqMax        = input.int(5, "Pools kept per side", minval = 1, maxval = 30, group = "Liquidity")
@@ -85,8 +87,6 @@ kLon          = input.bool(false, "London session high / low", inline = "ln", gr
 lonSess       = input.session("0200-0500", "", inline = "ln", group = "Liquidity")
 slLiq         = input.bool(false, "Stop loss beyond nearby liquidity", group = "Liquidity")
 slLiqReach    = input.float(1.0, "Look for liquidity this far past the SL (x ATR)", minval = 0.1, step = 0.1, group = "Liquidity")
-f30m          = input.bool(false, "30M rule: OBs that caused a BOS and left an FVG", inline = "m30", group = "PD arrays")
-m30TF         = input.timeframe("30", "", inline = "m30", group = "PD arrays")
 
 maxTrades     = input.int(10, "Setups kept on chart", minval = 1, maxval = 40, group = "Display")
 cBull         = input.color(color.rgb(8, 153, 129), "Bullish", inline = "col", group = "Display")
