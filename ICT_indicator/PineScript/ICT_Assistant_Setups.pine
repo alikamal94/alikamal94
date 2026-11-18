@@ -85,6 +85,9 @@ htfFvg        = input.bool(true, "FVGs", inline = "hk", group = "Higher-timefram
 htfObs        = input.bool(true, "Order blocks", inline = "hk", group = "Higher-timeframe zones (untested)")
 htfMax        = input.int(20, "Zones kept per timeframe", minval = 1, maxval = 60, group = "Higher-timeframe zones (untested)")
 htfMinAtr     = input.float(0.25, "FVG min size (x ATR of that timeframe)", step = 0.05, group = "Higher-timeframe zones (untested)")
+htfExtend     = input.bool(false, "Extend boxes to the right edge of the chart", group = "Higher-timeframe zones (untested)",
+                 tooltip = "Off: boxes end at the last candle so their text never runs under the POI marks or the next-move label")
+htfShort      = input.bool(false, "Short text (no 'untested since' date)", group = "Higher-timeframe zones (untested)")
 // Liquidity: where stops rest, and keeping your own stop beyond them
 liqPools      = input.bool(true, "Keep untaken liquidity pools (BSL / SSL)", group = "Liquidity")
 liqMax        = input.int(5, "Pools kept per side", minval = 1, maxval = 30, group = "Liquidity")
@@ -114,6 +117,15 @@ cBear         = input.color(color.rgb(242, 54, 69), "Bearish", inline = "col", g
 cObBull       = input.color(color.rgb(41, 98, 255), "Bull OB", inline = "ob", group = "Display")
 cObBear       = input.color(color.rgb(255, 152, 0), "Bear OB", inline = "ob", group = "Display")
 cOte          = input.color(color.rgb(255, 193, 7), "OTE", group = "Display")
+
+// Text written inside PD array boxes (FVG, OB, 30M, H4 / D zones, premium / discount / OTE)
+zTxtOn        = input.bool(true, "Show text inside PD array boxes", group = "Zone text")
+zTxtSzIn      = input.string("Small", "Text size", options = ["Tiny", "Small", "Normal", "Large"], group = "Zone text")
+zTxtColIn     = input.string("Auto (contrast)", "Text colour", options = ["Auto (contrast)", "White", "Black", "Zone colour"], group = "Zone text",
+                 tooltip = "Auto: white on a dark chart background, black on a light one")
+zTxtPos       = input.string("Right", "Text position in the box", options = ["Right", "Left", "Center"], group = "Zone text")
+zFill         = input.int(85, "Box fill transparency (0 solid, 100 empty)", minval = 0, maxval = 100, group = "Zone text")
+liqTxtSzIn    = input.string("Small", "Liquidity / BOS / MSS label size", options = ["Tiny", "Small", "Normal", "Large"], group = "Zone text")
 
 // Optional filters: all off by default. Switch one on at a time and compare
 // "Avg R / trade" in the dashboard before and after.
@@ -194,6 +206,22 @@ type Obs
 f_fmt(float p) =>
     str.tostring(p, format.mintick)
 
+f_size(string s) =>
+    s == "Tiny" ? size.tiny : s == "Normal" ? size.normal : s == "Large" ? size.large : size.small
+
+zTxtSize   = f_size(zTxtSzIn)
+liqTxtSize = f_size(liqTxtSzIn)
+zHalign    = zTxtPos == "Left" ? text.align_left : zTxtPos == "Center" ? text.align_center : text.align_right
+bgDark     = 0.299 * color.r(chart.bg_color) + 0.587 * color.g(chart.bg_color) + 0.114 * color.b(chart.bg_color) < 128
+barMs      = timeframe.in_seconds() * 1000
+
+// Text colour for a box of colour c, readable on the chart background
+f_txtCol(color c) =>
+    zTxtColIn == "Zone colour" ? c : zTxtColIn == "White" ? color.white : zTxtColIn == "Black" ? color.black : bgDark ? color.white : color.black
+
+f_zText(string t) =>
+    zTxtOn ? t : ""
+
 // Number with an explicit "+" for positive values ("-" comes from str.tostring)
 f_signed(float v, string fmt) =>
     (v > 0 ? "+" : "") + str.tostring(v, fmt)
@@ -220,8 +248,8 @@ f_evict(array<Zone> zones, int dir) =>
     true
 
 f_addZone(array<Zone> zones, int left, float top, float bot, int dir, color c, string txt) =>
-    b = box.new(left, top, bar_index + 3, bot, border_color = color.new(c, 50), bgcolor = color.new(c, 85),
-         text = txt, text_size = size.tiny, text_color = c, text_halign = text.align_right, text_valign = text.align_center)
+    b = box.new(left, top, bar_index + 3, bot, border_color = color.new(c, 50), bgcolor = color.new(c, zFill),
+         text = f_zText(txt), text_size = zTxtSize, text_color = f_txtCol(c), text_halign = zHalign, text_valign = text.align_center)
     zones.push(Zone.new(bx = b, top = top, bot = bot, dir = dir, kind = txt, col = c))
     f_evict(zones, dir)
     true
@@ -248,11 +276,12 @@ f_updateZones(array<Zone> zones) =>
                 if touched and not z.tested
                     z.tested := true
                     if testedMode == "Fade"
-                        box.set_bgcolor(z.bx, color.new(z.col, 94))
+                        box.set_bgcolor(z.bx, color.new(z.col, math.min(100, zFill + 9)))
                         box.set_border_color(z.bx, color.new(z.col, 75))
                         box.set_border_style(z.bx, line.style_dotted)
-                        box.set_text(z.bx, z.kind + " (tested)")
-                box.set_right(z.bx, z.useTime ? time : bar_index + 3)
+                        box.set_text(z.bx, f_zText(z.kind + " (tested)"))
+                        box.set_text_color(z.bx, color.new(f_txtCol(z.col), 45))
+                box.set_right(z.bx, z.useTime ? time + 3 * barMs : bar_index + 3)
     true
 
 f_extendTrade(Trade t, int right) =>
@@ -420,7 +449,7 @@ f_addPool(array<Liq> ps, float price, int dir, int x1, float tol) =>
         c    = dir == 1 ? cBear : cBull
         kind = dir == 1 ? "BSL" : "SSL"
         ln   = line.new(x1, price, bar_index, price, color = color.new(c, 30), style = line.style_dotted)
-        lb   = label.new(bar_index, price, kind, style = label.style_label_left, color = color(na), textcolor = c, size = size.tiny,
+        lb   = label.new(bar_index, price, kind, style = label.style_label_left, color = color(na), textcolor = c, size = liqTxtSize,
                  tooltip = dir == 1 ? "Buy-side liquidity: stops resting above this high" : "Sell-side liquidity: stops resting below this low")
         ps.push(Liq.new(price, dir, kind, ln, lb))
         n = 0
@@ -468,7 +497,7 @@ f_addKey(array<Liq> ks, string kind, float price, int dir, int x1) =>
     if not na(price)
         c  = dir == 1 ? cBear : cBull
         ln = line.new(x1, price, bar_index, price, color = c, width = 1)
-        lb = label.new(bar_index, price, kind, style = label.style_label_left, color = color(na), textcolor = c, size = size.tiny,
+        lb = label.new(bar_index, price, kind, style = label.style_label_left, color = color(na), textcolor = c, size = liqTxtSize,
                tooltip = kind + ": " + (dir == 1 ? "buy stops rest above it" : "sell stops rest below it"))
         ks.push(Liq.new(price, dir, kind, ln, lb))
     true
@@ -623,10 +652,12 @@ f_drawHtf(string enc, string tf, array<Zone> out, int t0) =>
                 tx  = int(str.tonumber(f.get(4)))
                 c   = knd == 1 ? (dir == 1 ? cObBull : cObBear) : (dir == 1 ? cBull : cBear)
                 nm  = f_tfName(tf) + (dir == 1 ? " Bull " : " Bear ") + (knd == 1 ? "OB" : "FVG")
-                txt = nm + "  ·  untested since " + str.format_time(tx, "dd MMM yyyy", syminfo.timezone)
-                b   = box.new(math.max(tx, t0), top, time, bot, xloc = xloc.bar_time, extend = extend.right,
-                         border_color = c, border_width = 2, border_style = line.style_dashed, bgcolor = color.new(c, 88),
-                         text = txt, text_size = size.small, text_color = c, text_halign = text.align_left, text_valign = text.align_center)
+                txt = htfShort ? nm : nm + "  ·  untested since " + str.format_time(tx, "dd MMM yyyy", syminfo.timezone)
+                // text sits at the top edge so it never lands on the text of a chart zone at the same price
+                b   = box.new(math.max(tx, t0), top, time + 3 * barMs, bot, xloc = xloc.bar_time, extend = htfExtend ? extend.right : extend.none,
+                         border_color = c, border_width = 2, border_style = line.style_dashed, bgcolor = color.new(c, math.min(100, zFill + 3)),
+                         text = f_zText(txt), text_size = zTxtSize, text_color = f_txtCol(c), text_halign = htfExtend ? text.align_left : zHalign,
+                         text_valign = text.align_top)
                 out.push(Zone.new(bx = b, top = top, bot = bot, dir = dir, kind = nm, useTime = true, col = c))
     true
 
@@ -692,7 +723,7 @@ if not na(ph)
     if drawLevels
         bslLn := line.new(lastSHBar, ph, bar_index, ph, color = liqSingle ? color.new(cBear, 40) : color(na), style = line.style_dotted)
         bslLb := label.new(lastSHBar, ph, liqSingle ? "BSL" : "", style = label.style_label_down, color = color(na),
-                   textcolor = color.new(cBear, 20), size = size.tiny,
+                   textcolor = color.new(cBear, 20), size = liqTxtSize,
                    tooltip = "Buy-side liquidity: stops resting above this swing high")
 if not na(pl)
     lastSL    := pl
@@ -704,7 +735,7 @@ if not na(pl)
     if drawLevels
         sslLn := line.new(lastSLBar, pl, bar_index, pl, color = liqSingle ? color.new(cBull, 40) : color(na), style = line.style_dotted)
         sslLb := label.new(lastSLBar, pl, liqSingle ? "SSL" : "", style = label.style_label_up, color = color(na),
-                   textcolor = color.new(cBull, 20), size = size.tiny,
+                   textcolor = color.new(cBull, 20), size = liqTxtSize,
                    tooltip = "Sell-side liquidity: stops resting below this swing low")
 
 // Sweep: wick through the level, close back inside
@@ -846,9 +877,9 @@ if f30m and nz(m30Dir) != 0 and not na(m30T) and (na(lastM30T) or m30T != lastM3
     m30Bull = m30Dir == 1
     m30Col  = m30Bull ? cObBull : cObBear
     m30Txt  = "30M " + (m30Bull ? "Bull" : "Bear") + " OB+FVG"
-    m30Bx   = box.new(m30T, m30Top, time, m30Bot, xloc = xloc.bar_time, border_color = m30Col, border_width = 2,
-                 bgcolor = color.new(m30Col, 78), text = m30Txt, text_size = size.small, text_color = m30Col,
-                 text_halign = text.align_right, text_valign = text.align_center)
+    m30Bx   = box.new(m30T, m30Top, time + 3 * barMs, m30Bot, xloc = xloc.bar_time, border_color = m30Col, border_width = 2,
+                 bgcolor = color.new(m30Col, math.max(0, zFill - 7)), text = f_zText(m30Txt), text_size = zTxtSize, text_color = f_txtCol(m30Col),
+                 text_halign = zHalign, text_valign = text.align_bottom)
     m30Zones.push(Zone.new(bx = m30Bx, top = m30Top, bot = m30Bot, dir = m30Dir, kind = m30Txt, useTime = true, col = m30Col))
     f_evict(m30Zones, m30Dir)
 
@@ -1049,11 +1080,11 @@ if showRange and fresh and legHigh > legLow
     rx    = bar_index + 8
     if na(premBx)
         premBx := box.new(legStartBar, legHigh, rx, eqR, border_color = color(na), bgcolor = color.new(cBear, 93),
-                   text = "Premium", text_size = size.tiny, text_color = color.new(cBear, 30), text_halign = text.align_left, text_valign = text.align_top)
+                   text = f_zText("Premium"), text_size = zTxtSize, text_color = color.new(f_txtCol(cBear), 30), text_halign = text.align_left, text_valign = text.align_top)
         discBx := box.new(legStartBar, eqR, rx, legLow, border_color = color(na), bgcolor = color.new(cBull, 93),
-                   text = "Discount", text_size = size.tiny, text_color = color.new(cBull, 30), text_halign = text.align_left, text_valign = text.align_bottom)
+                   text = f_zText("Discount"), text_size = zTxtSize, text_color = color.new(f_txtCol(cBull), 30), text_halign = text.align_left, text_valign = text.align_bottom)
         oteBx  := box.new(legStartBar, oteHi, rx, oteLo, border_color = color.new(cOte, 40), border_style = line.style_dashed, bgcolor = color.new(cOte, 88),
-                   text = "OTE 62-79%", text_size = size.tiny, text_color = cOte, text_halign = text.align_right, text_valign = text.align_center)
+                   text = f_zText("OTE 62-79%"), text_size = zTxtSize, text_color = f_txtCol(cOte), text_halign = text.align_right, text_valign = text.align_center)
         eqLn   := line.new(legStartBar, eqR, rx, eqR, color = color.new(color.gray, 30), style = line.style_dotted)
     else
         box.set_lefttop(premBx, legStartBar, legHigh)
@@ -1302,7 +1333,7 @@ if barstate.islast and (showPOI or markPOI)
         dTxt = "+" + str.tostring(d, format.mintick) + " · " + str.tostring(d / atr, "#.#") + " ATR"
         poiAboveTxt := za.kind + "  " + f_range(za) + "  (" + dTxt + ")"
         if markPOI
-            poiAboveBx := box.new(bar_index + 2, za.top, bar_index + 30, za.bot, border_color = cBear, border_width = 2,
+            poiAboveBx := box.new(bar_index + 6, za.top, bar_index + 34, za.bot, border_color = cBear, border_width = 2,
                              border_style = line.style_dashed, bgcolor = color.new(cBear, 75),
                              text = "▲ Nearest POI above: " + za.kind + "  (" + dTxt + ")", text_size = size.small,
                              text_color = color.white, text_halign = text.align_center, text_valign = text.align_center)
@@ -1311,7 +1342,7 @@ if barstate.islast and (showPOI or markPOI)
         dTxt = "−" + str.tostring(d, format.mintick) + " · " + str.tostring(d / atr, "#.#") + " ATR"
         poiBelowTxt := zb.kind + "  " + f_range(zb) + "  (" + dTxt + ")"
         if markPOI
-            poiBelowBx := box.new(bar_index + 2, zb.top, bar_index + 30, zb.bot, border_color = cBull, border_width = 2,
+            poiBelowBx := box.new(bar_index + 6, zb.top, bar_index + 34, zb.bot, border_color = cBull, border_width = 2,
                              border_style = line.style_dashed, bgcolor = color.new(cBull, 75),
                              text = "▼ Nearest POI below: " + zb.kind + "  (" + dTxt + ")", text_size = size.small,
                              text_color = color.white, text_halign = text.align_center, text_valign = text.align_center)
