@@ -55,7 +55,14 @@ result cannot be distinguished from no edge; under 100 trades is inconclusive.
 
 ## Pine syntax check
 
-SYNTAX_CHECK_RESULT
+Both scripts were run through the open-source `pynescript` grammar parser (`pine/tools/syntax_check.py`), one
+top-level statement at a time: **321 / 321 statements of the strategy and 332 / 332 of the indicator parse without
+a syntax error.** One function (`f_eval`, a long filter chain) exceeded the parser's time limit as a whole and was
+checked in five pieces, all of which parse.
+
+This checks grammar only. It does **not** check types, built-in function signatures or TradingView's own rules, and
+the parser targets an older Pine grammar. It is weaker than a real compile: the first paste into the Pine Editor is
+still the real test, and a few compiler errors there would not be surprising.
 
 ## Repository layout
 

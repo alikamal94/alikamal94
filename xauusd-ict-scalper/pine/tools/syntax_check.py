@@ -13,7 +13,7 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def chunks(text):
     out, cur, start = [], [], 1
     for no, ln in enumerate(text.split("\n"), 1):
-        top = ln[:1] not in (" ", "\t", "") and not ln.startswith("//")
+        top = ln[:1] not in (" ", "\t", "") and not ln.startswith("//") and not ln.startswith("else")
         if top and cur:
             out.append((start, "\n".join(cur) + "\n")); cur = []
         if not cur:

@@ -4,7 +4,7 @@
 
 | Item | Status |
 |---|---|
-| Pine scripts compile in TradingView | **NOT VERIFIED.** TradingView's compiler could not be reached from the build environment, and no offline Pine v6 compiler exists. The scripts were written against the v6 reference and desk-checked line by line, and an open-source parser was run on them (result in the project README). That is not a compile. Expect to fix a small number of compiler errors when you first paste them; send the error text and line number and they can be corrected quickly. |
+| Pine scripts compile in TradingView | **NOT VERIFIED.** TradingView's compiler could not be reached from the build environment, and no offline Pine v6 compiler exists. The scripts were written against the v6 reference and desk-checked line by line, and an open-source grammar parser was run on them (all statements parse; details in the project README). That is not a compile. Expect to fix a small number of compiler errors when you first paste them; send the error text and line number and they can be corrected quickly. |
 | Pine results match the Python engine | **NOT VERIFIED**, for the same reason. The logic was ported definition by definition with identical defaults, but no TradingView Strategy Tester run exists. |
 | Python backtest results | **Verified** — produced by running `research/run_report.py`; reproducible. |
 | Backend webhook server | **Verified** locally (store, duplicate rejection, auth, statistics). |
