@@ -1,3 +1,9 @@
+//#IF_NEVER
+// ############################################################################################################
+// DO NOT PASTE THIS FILE INTO TRADINGVIEW. It is the shared template and contains BOTH script variants, so it
+// will not compile. Paste pine/XAUUSD_ICT_Adaptive_Strategy.pine or pine/XAUUSD_ICT_Adaptive_Indicator.pine.
+// ############################################################################################################
+//#ENDIF
 // This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // XAUUSD ICT Adaptive Scalping System
 // Sequence: liquidity sweep -> displacement -> market structure shift -> fair value gap -> retrace -> confirmation.
