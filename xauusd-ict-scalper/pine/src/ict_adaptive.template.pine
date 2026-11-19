@@ -1,0 +1,1198 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// XAUUSD ICT Adaptive Scalping System
+// Sequence: liquidity sweep -> displacement -> market structure shift -> fair value gap -> retrace -> confirmation.
+// Everything is evaluated on confirmed bar closes; higher-timeframe data is requested with lookahead_off and only
+// the last CLOSED higher-timeframe bar is used, so signals never repaint.
+// The "adaptive engine" is a deterministic, rule-based filter controller. It is not machine learning and it keeps
+// no memory between chart reloads: its state is recalculated from the bars loaded on the chart.
+//@version=6
+//#IF_STRATEGY
+strategy("XAUUSD ICT Adaptive Scalper [Strategy]", shorttitle="ICT-AS Strat", overlay=true, initial_capital=10000, currency=currency.USD, pyramiding=0, calc_on_every_tick=false, process_orders_on_close=false, use_bar_magnifier=true, margin_long=0, margin_short=0, commission_type=strategy.commission.cash_per_contract, commission_value=0.15, slippage=0, max_labels_count=500, max_lines_count=500, max_boxes_count=200)
+//#ENDIF
+//#IF_INDICATOR
+indicator("XAUUSD ICT Adaptive Scalper [Indicator]", shorttitle="ICT-AS", overlay=true, max_labels_count=500, max_lines_count=500, max_boxes_count=200)
+//#ENDIF
+
+// =====================================================================================================================
+// INPUTS
+// =====================================================================================================================
+string G_LIQ = "1 - Liquidity"
+int swingLen = input.int(5, "Internal swing length", minval=2, maxval=30, group=G_LIQ, tooltip="Pivot length for internal liquidity (short-term swing highs/lows).")
+int extLen = input.int(20, "External swing length", minval=5, maxval=60, group=G_LIQ, tooltip="Pivot length for external liquidity (major swing highs/lows).")
+float eqTolAtr = input.float(0.10, "Equal high/low tolerance (ATR)", minval=0.0, step=0.01, group=G_LIQ)
+int liqMaxAge = input.int(300, "Swing pool max age (bars)", minval=20, group=G_LIQ)
+int htfLiqMaxAge = input.int(1500, "HTF/session/day pool max age (bars)", minval=50, group=G_LIQ)
+float minLiqW = input.float(0.35, "Minimum liquidity grade", minval=0.0, maxval=1.0, step=0.05, group=G_LIQ, tooltip="Grades: internal swing 0.35, prev 1H 0.55, external swing 0.65, equal H/L 0.80, prev 4H 0.80, prev session 0.90, prev day 1.00. Raise to ignore minor pools.")
+int reclaimBars = input.int(2, "Bars allowed to reclaim a pierced level", minval=0, maxval=5, group=G_LIQ, tooltip="0 = the sweep candle itself must close back across the level.")
+bool useInt = input.bool(true, "Internal swings", group=G_LIQ, inline="liq1")
+bool useExt = input.bool(true, "External swings", group=G_LIQ, inline="liq1")
+bool use1h = input.bool(true, "Prev 1H", group=G_LIQ, inline="liq2")
+bool use4h = input.bool(true, "Prev 4H", group=G_LIQ, inline="liq2")
+bool useSessLiq = input.bool(true, "Prev session", group=G_LIQ, inline="liq3")
+bool useDay = input.bool(true, "Prev day", group=G_LIQ, inline="liq3")
+
+string G_DSP = "2 - Displacement and structure"
+float dispMinAtr = input.float(1.0, "Min displacement body (ATR)", minval=0.2, step=0.05, group=G_DSP)
+float dispBodyRatio = input.float(0.60, "Min body / range", minval=0.3, maxval=1.0, step=0.05, group=G_DSP)
+float dispExpMult = input.float(1.20, "Min range vs 10-bar average range", minval=0.5, step=0.05, group=G_DSP)
+float dispClosePos = input.float(0.30, "Max close distance from candle extreme (fraction of range)", minval=0.05, maxval=0.6, step=0.05, group=G_DSP)
+int structLen = input.int(3, "Structure pivot length (MSS)", minval=1, maxval=10, group=G_DSP)
+int setupMaxBars = input.int(30, "Max bars from sweep to MSS", minval=3, group=G_DSP)
+
+string G_FVG = "3 - Fair value gap and order block"
+float fvgMinAtr = input.float(0.15, "Min FVG size (ATR)", minval=0.0, step=0.01, group=G_FVG)
+int fvgMaxAge = input.int(30, "Max FVG age (bars)", minval=2, group=G_FVG)
+int fvgWait = input.int(2, "Bars after MSS in which the FVG may complete", minval=0, maxval=5, group=G_FVG)
+float fvgDepth = input.float(0.0, "Required retrace depth into FVG (0 = edge, 0.5 = midpoint)", minval=0.0, maxval=1.0, step=0.05, group=G_FVG, tooltip="Partial mitigation rule.")
+string mitigMode = input.string("Close through gap", "Full mitigation (invalidation) rule", options=["Close through gap", "Wick through gap"], group=G_FVG)
+bool confirmMid = input.bool(true, "Confirmation candle must close beyond FVG midpoint", group=G_FVG)
+int obLookback = input.int(5, "Order block lookback (bars before displacement)", minval=1, maxval=15, group=G_FVG)
+bool obRequired = input.bool(false, "Require order block confluence", group=G_FVG, tooltip="Off: the order block only adds score points. On: FVGs without an overlapping/adjacent order block are rejected.")
+
+string G_HTF = "4 - Multi-timeframe bias"
+int emaFast = input.int(20, "Bias EMA fast", minval=2, group=G_HTF)
+int emaSlow = input.int(50, "Bias EMA slow", minval=5, group=G_HTF)
+bool use5m = input.bool(true, "5M", group=G_HTF, inline="tf")
+bool use15m = input.bool(true, "15M", group=G_HTF, inline="tf")
+bool use60m = input.bool(true, "1H", group=G_HTF, inline="tf")
+bool use240m = input.bool(true, "4H", group=G_HTF, inline="tf")
+int htfReq = input.int(2, "Min aligned timeframes", minval=0, maxval=4, group=G_HTF)
+string htfVeto = input.string("None", "Opposition veto", options=["None", "1H must not oppose", "1H and 4H must not oppose"], group=G_HTF)
+
+string G_SL = "5 - Stop loss and take profit"
+string slAnchor = input.string("Sweep extreme", "Structural stop anchor", options=["Sweep extreme", "FVG origin candles"], group=G_SL)
+float slBufAtr = input.float(0.10, "Stop buffer (ATR)", minval=0.0, step=0.01, group=G_SL)
+bool volAdjBuf = input.bool(false, "Scale buffer with volatility regime", group=G_SL, tooltip="Multiplies the buffer by max(1, ATR / average ATR). Decided before entry only; a stop is never widened after entry.")
+float minStopAtr = input.float(0.6, "Min stop distance (ATR)", minval=0.0, step=0.1, group=G_SL)
+float maxStopAtr = input.float(3.5, "Max stop distance (ATR)", minval=0.5, step=0.1, group=G_SL)
+float minStopUsd = input.float(0.0, "Min stop distance (USD, 0 = off)", minval=0.0, step=0.1, group=G_SL)
+float maxStopUsd = input.float(0.0, "Max stop distance (USD, 0 = off)", minval=0.0, step=0.1, group=G_SL)
+string rrSel = input.string("1:3", "Risk / reward", options=["1:1", "1:1.5", "1:2", "1:3", "1:4", "Custom"], group=G_SL)
+float rrCustom = input.float(3.0, "Custom risk / reward", minval=0.3, step=0.1, group=G_SL)
+string tpMode = input.string("Fixed R multiple", "Target mode", options=["Fixed R multiple", "Opposing liquidity (dynamic)"], group=G_SL)
+float minTargetR = input.float(1.5, "Dynamic target: min R", minval=0.5, step=0.1, group=G_SL)
+float maxTargetR = input.float(5.0, "Dynamic target: max R", minval=1.0, step=0.1, group=G_SL)
+float minRoomR = input.float(0.0, "Min room to opposing liquidity (R, 0 = off)", minval=0.0, step=0.1, group=G_SL, tooltip="Rejects trades whose nearest opposing liquidity pool is closer than this multiple of the risk.")
+bool partOn = input.bool(false, "Partial close", group=G_SL, inline="pt")
+float partR = input.float(1.0, "at R", minval=0.2, step=0.1, group=G_SL, inline="pt")
+float partPct = input.float(50.0, "percent", minval=5, maxval=95, step=5, group=G_SL, inline="pt")
+bool beOn = input.bool(false, "Breakeven", group=G_SL, inline="be")
+float beR = input.float(1.0, "after R", minval=0.2, step=0.1, group=G_SL, inline="be")
+float beOffR = input.float(0.0, "offset R", minval=0.0, step=0.05, group=G_SL, inline="be")
+bool trailOn = input.bool(false, "ATR trailing stop", group=G_SL, inline="tr")
+float trailStartR = input.float(1.5, "start R", minval=0.2, step=0.1, group=G_SL, inline="tr")
+float trailAtr = input.float(2.0, "ATR mult", minval=0.5, step=0.1, group=G_SL, inline="tr")
+int maxHoldBars = input.int(0, "Max bars in trade (0 = off)", minval=0, group=G_SL)
+
+string G_RISK = "6 - Risk management"
+float riskPct = input.float(0.5, "Risk per trade (% of equity)", minval=0.05, maxval=5.0, step=0.05, group=G_RISK)
+int maxTradesDay = input.int(5, "Max trades per day", minval=1, group=G_RISK)
+float maxDailyLoss = input.float(1.5, "Max daily loss (%)", minval=0.1, step=0.1, group=G_RISK)
+float dailyProfitLock = input.float(0.0, "Daily profit lock (%, 0 = off)", minval=0.0, step=0.1, group=G_RISK, tooltip="Stops new entries for the day once realized profit reaches this level.")
+int maxConsecLoss = input.int(3, "Max consecutive losses per day (0 = off)", minval=0, group=G_RISK)
+int cooldownBars = input.int(5, "Cooldown between entries (bars)", minval=0, group=G_RISK)
+float contractSize = input.float(100.0, "Broker contract size (oz per 1.00 lot)", minval=0.01, group=G_RISK, tooltip="Tauro Markets standard XAUUSD contract is assumed to be 100 oz per lot. VERIFY in your MT4/MT5 symbol specification. OANDA on TradingView trades in units of 1 oz.")
+float lotStep = input.float(0.01, "Lot step", minval=0.001, step=0.01, group=G_RISK)
+float minLot = input.float(0.01, "Min lot", minval=0.001, step=0.01, group=G_RISK)
+float maxLots = input.float(50.0, "Max lots", minval=0.01, group=G_RISK)
+float spreadUsd = input.float(0.30, "Assumed spread (USD per oz)", minval=0.0, step=0.01, group=G_RISK, tooltip="Indicator: charged on every virtual trade (longs buy the ask, shorts exit on the ask). Strategy: the spread COST is modelled through Properties > Commission (cash per contract = half the spread per side); this input is only used for the optional short-stop padding.")
+bool padShortSl = input.bool(false, "Pad short stops by the spread", group=G_RISK, tooltip="Short stops are triggered by the ASK price, which the chart does not show. Padding places the stop one spread higher so that the structural level itself must be traded through.")
+//#IF_INDICATOR
+float acctEquity = input.float(10000.0, "Account equity for lot sizing (USD)", minval=1, group=G_RISK)
+//#ENDIF
+
+string G_SES = "7 - Sessions and filters"
+string sessMode = input.string("Both", "Trade sessions", options=["Both", "London only", "New York only"], group=G_SES)
+string ldnSess = input.session("0700-1100", "London session (Europe/London time)", group=G_SES)
+string nySess = input.session("0800-1200", "New York session (America/New_York time)", group=G_SES)
+string ldnKz = input.session("0700-1000", "London kill zone (Europe/London time)", group=G_SES)
+string nyKz = input.session("0830-1100", "New York kill zone (America/New_York time)", group=G_SES)
+int flatHour = input.int(16, "Flatten / stop trading at (New York time) hour", minval=0, maxval=23, group=G_SES, inline="flat")
+int flatMin = input.int(50, "min", minval=0, maxval=59, group=G_SES, inline="flat")
+bool volFilter = input.bool(true, "Volatility filter", group=G_SES)
+float volMin = input.float(0.6, "Min ATR / 200-bar average ATR", minval=0.0, step=0.05, group=G_SES)
+float volMax = input.float(2.5, "Max ATR / 200-bar average ATR", minval=1.0, step=0.05, group=G_SES)
+bool newsOn = input.bool(false, "Manual news blackout", group=G_SES)
+string news1 = input.session("0825-0840", "Blackout window 1 (New York time)", group=G_SES)
+string news2 = input.session("1355-1415", "Blackout window 2 (New York time)", group=G_SES)
+
+string G_SCR = "8 - Signal score (0-100)"
+float wSweep = input.float(20, "Liquidity sweep weight", minval=0, group=G_SCR)
+float wDisp = input.float(20, "Displacement weight", minval=0, group=G_SCR)
+float wMss = input.float(15, "MSS weight", minval=0, group=G_SCR)
+float wFvg = input.float(15, "FVG weight", minval=0, group=G_SCR)
+float wHtf = input.float(15, "HTF alignment weight", minval=0, group=G_SCR)
+float wOb = input.float(5, "Order block weight", minval=0, group=G_SCR)
+float wSess = input.float(10, "Session weight", minval=0, group=G_SCR)
+float minScoreBase = input.float(75, "Baseline minimum score", minval=0, maxval=100, group=G_SCR, tooltip="The adaptive engine can raise the required score above this baseline but never lowers it below.")
+
+string G_AD = "9 - Adaptive engine (rule-based)"
+bool adOn = input.bool(true, "Enable adaptive filters", group=G_AD)
+int adMinSample = input.int(20, "Min completed trades before adapting", minval=5, group=G_AD)
+int adWindow = input.int(20, "Evaluation window (trades)", minval=5, maxval=50, group=G_AD)
+float adTightenExp = input.float(0.0, "Tighten when window expectancy (R) is below", step=0.05, group=G_AD)
+float adRelaxExp = input.float(0.25, "Relax when window expectancy (R) is above", step=0.05, group=G_AD)
+int adMaxLevel = input.int(4, "Max tightening level", minval=1, maxval=8, group=G_AD)
+int adCooldown = input.int(5, "Min trades between changes", minval=1, group=G_AD)
+float adStepScore = input.float(3.0, "Score step per level", minval=0.5, step=0.5, group=G_AD)
+float adStepDisp = input.float(0.05, "Displacement step per level (ATR)", minval=0.0, step=0.01, group=G_AD)
+float adStepFvg = input.float(0.02, "FVG size step per level (ATR)", minval=0.0, step=0.01, group=G_AD)
+int adIdleDays = input.int(10, "Relax one level after N trading days without a completed trade (0 = off)", minval=0, group=G_AD)
+int adBucketN = input.int(12, "Condition bucket: min trades", minval=5, group=G_AD)
+float adBucketExp = input.float(-0.15, "Condition bucket: penalise when expectancy (R) below", step=0.05, group=G_AD)
+float adBucketPen = input.float(5.0, "Condition bucket: extra score required", minval=0.0, step=0.5, group=G_AD)
+
+string G_VIS = "10 - Visuals and alerts"
+bool showDash = input.bool(true, "Show dashboard", group=G_VIS)
+bool dashCompact = input.bool(false, "Compact dashboard", group=G_VIS)
+string dashPos = input.string("Top right", "Dashboard position", options=["Top right", "Bottom right", "Top left", "Bottom left"], group=G_VIS)
+bool showSignals = input.bool(true, "Show signal labels", group=G_VIS)
+bool showLevels = input.bool(true, "Plot entry / SL / TP lines", group=G_VIS)
+bool showFvg = input.bool(true, "Draw the FVG of each signal", group=G_VIS)
+bool showExits = input.bool(true, "Show exit markers", group=G_VIS)
+bool showDayLv = input.bool(false, "Plot previous day high / low", group=G_VIS)
+bool dynAlerts = input.bool(true, "Send dynamic alert() messages", group=G_VIS, tooltip="Create one alert with condition 'Any alert() function call' to receive every message with full trade details.")
+
+// =====================================================================================================================
+// CONSTANTS AND TYPES
+// =====================================================================================================================
+string TZ_NY = "America/New_York"
+string TZ_LDN = "Europe/London"
+int MAX_POOL = 64
+color C_BUY = color.new(color.green, 0)
+color C_SELL = color.new(color.red, 0)
+color C_NEUT = color.new(color.gray, 0)
+
+type Liq
+    float price
+    int kind
+    int born
+    int pierceBar
+    float pierceExt
+
+type Setup
+    int stage = 0
+    int sweepBar = 0
+    float ext = na
+    float sweepQ = 0.0
+    int sweepKind = 0
+    float mssLvl = na
+    float dispStr = 0.0
+    int mssBar = 0
+    float mssMargin = 0.0
+    float fvgTop = na
+    float fvgBot = na
+    int fvgBar = -1
+    float fvgSz = 0.0
+    float fvgOrg = na
+    bool touched = false
+    float obLo = na
+    float obHi = na
+    float lastSH = na
+    float p1h = na
+    float p4h = na
+    float pDay = na
+
+// Liquidity grade by pool kind: 1 internal swing, 2 external swing, 3 equal highs/lows, 4 prev 1H, 5 prev 4H,
+// 6 prev session, 7 prev day.
+f_kindW(int k) =>
+    switch k
+        1 => 0.35
+        2 => 0.65
+        3 => 0.80
+        4 => 0.55
+        5 => 0.80
+        6 => 0.90
+        7 => 1.00
+        => 0.0
+
+f_kindName(int k) =>
+    switch k
+        1 => "internal swing"
+        2 => "external swing"
+        3 => "equal H/L"
+        4 => "prev 1H"
+        5 => "prev 4H"
+        6 => "prev session"
+        7 => "prev day"
+        => "-"
+
+f_clamp(float x, float lo, float hi) =>
+    math.max(lo, math.min(hi, x))
+
+// =====================================================================================================================
+// HIGHER-TIMEFRAME DATA (non-repainting)
+// =====================================================================================================================
+f_bias() =>
+    float ef = ta.ema(close, emaFast)
+    float es = ta.ema(close, emaSlow)
+    close > es and ef > es ? 1 : close < es and ef < es ? -1 : 0
+
+f_htfExpr() =>
+    int b = f_bias()
+    [b, b[1], high, high[1], low, low[1]]
+
+// Returns the bias / high / low of the last CLOSED bar of timeframe `tf`.
+// With lookahead_off, historical chart bars already receive only closed HTF bars. On the realtime bar the request
+// returns the still-forming HTF bar, so the previous HTF bar is used unless the HTF bar closes together with this
+// chart bar. Historical and realtime behaviour are therefore identical.
+f_htf(simple string tf) =>
+    [b0, b1, h0, h1, l0, l1] = request.security(syminfo.tickerid, tf, f_htfExpr(), barmerge.gaps_off, barmerge.lookahead_off)
+    bool closesNow = time_close == time_close(tf)
+    bool usePrev = barstate.isrealtime and not closesNow
+    int bOut = usePrev ? b1 : b0
+    float hOut = usePrev ? h1 : h0
+    float lOut = usePrev ? l1 : l0
+    [bOut, hOut, lOut]
+
+[bias5, h5x, l5x] = f_htf("5")
+[bias15, h15x, l15x] = f_htf("15")
+[bias60, pHourHi, pHourLo] = f_htf("60")
+[bias240, p4hHi, p4hLo] = f_htf("240")
+[biasDx, pDayHi, pDayLo] = f_htf("D")
+
+// =====================================================================================================================
+// BAR CONTEXT
+// =====================================================================================================================
+float atrV = ta.atr(14)
+float atrAvg = ta.sma(atrV, 200)
+float atrRatio = atrV / atrAvg
+float avgRange = ta.sma(high - low, 10)[1]
+
+f_inSess(string sess, string tz) =>
+    not na(time(timeframe.period, sess, tz))
+
+bool inLdn = f_inSess(ldnSess, TZ_LDN)
+bool inNy = f_inSess(nySess, TZ_NY)
+int sessId = inNy ? 2 : inLdn ? 1 : 0
+bool inKz = (inLdn and f_inSess(ldnKz, TZ_LDN)) or (inNy and f_inSess(nyKz, TZ_NY))
+bool sessOk = sessId > 0 and (sessMode == "Both" or (sessMode == "London only" and sessId == 1) or (sessMode == "New York only" and sessId == 2))
+bool inNews = newsOn and (f_inSess(news1, TZ_NY) or f_inSess(news2, TZ_NY))
+string sessName = sessId == 1 ? "London" : sessId == 2 ? "New York" : "Off-session"
+
+// Flatten window: from the configured New York time until the 18:00 re-open, measured on the bar CLOSE time.
+int nyCloseMin = hour(time_close, TZ_NY) * 60 + minute(time_close, TZ_NY)
+bool eodNow = nyCloseMin >= flatHour * 60 + flatMin and nyCloseMin < 18 * 60
+
+// Liquidity sessions on the New York clock: Asia 18:00-03:00, London 03:00-08:00, New York 08:00-17:00.
+int lsId = f_inSess("1800-0300", TZ_NY) ? 1 : f_inSess("0300-0800", TZ_NY) ? 2 : f_inSess("0800-1700", TZ_NY) ? 3 : 0
+var int curLs = 0
+var float lsHi = na
+var float lsLo = na
+float newSessHi = na
+float newSessLo = na
+if lsId != curLs
+    if curLs != 0 and not na(lsHi)
+        newSessHi := lsHi
+        newSessLo := lsLo
+    curLs := lsId
+    lsHi := high
+    lsLo := low
+else
+    lsHi := math.max(nz(lsHi, high), high)
+    lsLo := math.min(nz(lsLo, low), low)
+
+bool newDay = timeframe.change("D")
+
+// Pivots (confirmed `len` bars after the pivot bar; no future data).
+float phStruct = ta.pivothigh(high, structLen, structLen)
+float plStruct = ta.pivotlow(low, structLen, structLen)
+float phInt = ta.pivothigh(high, swingLen, swingLen)
+float plInt = ta.pivotlow(low, swingLen, swingLen)
+float phExt = ta.pivothigh(high, extLen, extLen)
+float plExt = ta.pivotlow(low, extLen, extLen)
+
+// Last opposing candle before the current bar (order block candidate).
+f_lastOpp(bool bull) =>
+    float lo = na
+    float hi = na
+    bool found = false
+    for k = 1 to obLookback
+        if not found
+            bool opp = bull ? close[k] < open[k] : close[k] > open[k]
+            if opp
+                lo := low[k]
+                hi := high[k]
+                found := true
+    [lo, hi]
+
+[obBullLo, obBullHi] = f_lastOpp(true)
+[obBearLo, obBearHi] = f_lastOpp(false)
+
+// =====================================================================================================================
+// PERSISTENT STATE
+// =====================================================================================================================
+var array<Liq> poolL = array.new<Liq>()
+var array<Liq> poolS = array.new<Liq>()
+var Setup stL = Setup.new()
+var Setup stS = Setup.new()
+
+// trade currently open (or pending)
+var int tDir = 0
+var bool tOpen = false
+var float tEntry = na
+var float tSl = na
+var float tSlInit = na
+var float tTp = na
+var float tRisk = na
+var float tScore = na
+var int tSess = 0
+var int tOb = 0
+var int tHtf = 0
+var int tKind = 0
+var int tBars = 0
+var float tLots = na
+var float tRiskCash = na
+var bool tBe = false
+var bool tTrail = false
+var bool tPart = false
+var float tMfe = 0.0
+var float tMae = 0.0
+var float tReal = 0.0
+var float tRem = 1.0
+var bool vPend = false
+var float accProfit = 0.0
+var int lastEntryBar = -100000
+
+// day / risk state
+var int dayTrades = 0
+var float dayPnl = 0.0
+var int consecLoss = 0
+var bool dayLossAlerted = false
+var bool dayTradesAlerted = false
+
+// adaptive engine state
+var int adLevel = 0
+var int adLastChange = 0
+var int adIdleCnt = 0
+var int closedN = 0
+var int adDir = 0
+var array<float> histR = array.new_float()
+var array<int> histSess = array.new_int()
+var array<int> histOb = array.new_int()
+var array<int> histHtf = array.new_int()
+var array<int> histKind = array.new_int()
+var array<float> pen = array.new_float(8, 0.0)
+
+// lifetime statistics
+var int statWins = 0
+var int statLosses = 0
+var float statGp = 0.0
+var float statGl = 0.0
+var float statSumR = 0.0
+var float statSumMfe = 0.0
+var float statSumMae = 0.0
+var int statMaxConsec = 0
+var int statCurConsec = 0
+
+// last signal (for the dashboard)
+var int lastSigDir = 0
+var float lastSigEntry = na
+var float lastSigSl = na
+var float lastSigTp = na
+var float lastSigScore = na
+var float lastSigRr = na
+
+// drawings
+var line lnEntry = na
+var line lnSl = na
+var line lnTp = na
+
+// =====================================================================================================================
+// CORE FUNCTIONS (direction-agnostic: shorts are processed on mirrored prices, i.e. price * -1)
+// =====================================================================================================================
+// Insert a liquidity level. Levels closer than `tol` are merged: two distinct swings become equal highs/lows.
+f_addLevel(array<Liq> pool, float price, int kind, int born, float tol) =>
+    bool merged = false
+    int n = pool.size()
+    if n > 0
+        for q = 0 to n - 1
+            Liq lv = pool.get(q)
+            if not merged and math.abs(lv.price - price) <= tol
+                if price == lv.price or kind > 3 or lv.kind > 3
+                    if f_kindW(kind) > f_kindW(lv.kind)
+                        lv.kind := kind
+                else
+                    lv.kind := 3
+                if price < lv.price
+                    lv.price := price
+                merged := true
+    if not merged
+        if pool.size() >= MAX_POOL
+            pool.shift()
+        pool.push(Liq.new(price, kind, born, -1, price))
+    merged
+
+// Runs the liquidity -> sweep -> displacement -> MSS -> FVG -> retrace state machine for one direction.
+// All prices are in mirrored space, so the logic below always reads as the BULLISH case.
+// Returns true on the bar where the confirmation candle closes.
+f_process(Setup st, array<Liq> pool, float hi, float lo, float op, float cl, float h2, float l1, float l2, float pivS, float pivI, float pivE, float s1h, float s4h, float sDay, float sSess, float obLoC, float obHiC, float dispMin, float fvgMin) =>
+    bool signal = false
+    float tol = eqTolAtr * atrV
+    int newShBar = -1
+    if not na(pivS)
+        st.lastSH := pivS
+        newShBar := bar_index - structLen
+
+    // ---- age out old pools ----
+    int q = pool.size() - 1
+    while q >= 0
+        Liq lvA = pool.get(q)
+        int lim = lvA.kind >= 4 ? htfLiqMaxAge : liqMaxAge
+        if bar_index - lvA.born > lim
+            pool.remove(q)
+        q -= 1
+
+    // ---- register new pools ----
+    if useInt and not na(pivI)
+        f_addLevel(pool, pivI, 1, bar_index - swingLen, tol)
+    if useExt and not na(pivE)
+        f_addLevel(pool, pivE, 2, bar_index - extLen, tol)
+    if use1h and not na(s1h) and (na(st.p1h) or s1h != st.p1h)
+        if s1h < lo
+            f_addLevel(pool, s1h, 4, bar_index, tol)
+    st.p1h := s1h
+    if use4h and not na(s4h) and (na(st.p4h) or s4h != st.p4h)
+        if s4h < lo
+            f_addLevel(pool, s4h, 5, bar_index, tol)
+    st.p4h := s4h
+    if useDay and not na(sDay) and (na(st.pDay) or sDay != st.pDay)
+        if sDay < lo
+            f_addLevel(pool, sDay, 7, bar_index, tol)
+    st.pDay := sDay
+    if useSessLiq and not na(sSess)
+        if sSess < lo
+            f_addLevel(pool, sSess, 6, bar_index, tol)
+
+    // ---- sweeps: wick through a pool, candle close back above it ----
+    float bestW = 0.0
+    int bestKind = 0
+    int cnt = 0
+    float swExt = lo
+    q := pool.size() - 1
+    while q >= 0
+        Liq lv = pool.get(q)
+        if lv.born < bar_index
+            bool swept = false
+            bool broken = false
+            if lv.pierceBar < 0
+                if lo < lv.price
+                    if cl > lv.price
+                        swept := true
+                        lv.pierceExt := lo
+                    else
+                        lv.pierceBar := bar_index
+                        lv.pierceExt := lo
+            else
+                if lo < lv.pierceExt
+                    lv.pierceExt := lo
+                if cl > lv.price and bar_index - lv.pierceBar <= reclaimBars
+                    swept := true
+                else if bar_index - lv.pierceBar >= reclaimBars
+                    broken := true
+            if swept
+                float wq = f_kindW(lv.kind)
+                cnt += 1
+                if wq > bestW
+                    bestW := wq
+                    bestKind := lv.kind
+                if lv.pierceExt < swExt
+                    swExt := lv.pierceExt
+            if swept or broken
+                pool.remove(q)
+        q -= 1
+
+    if cnt > 0 and bestW >= minLiqW and st.stage <= 1
+        if not na(st.lastSH) and st.lastSH > cl
+            float gw = math.min(1.0, bestW + 0.1 * (cnt - 1))
+            float rejn = f_clamp((cl - swExt) / atrV, 0.0, 1.0)
+            if st.stage == 1 and st.ext < swExt
+                swExt := st.ext
+            st.stage := 1
+            st.sweepBar := bar_index
+            st.ext := swExt
+            st.sweepQ := 0.6 * gw + 0.4 * rejn
+            st.sweepKind := bestKind
+            st.mssLvl := st.lastSH
+            st.dispStr := 0.0
+            st.fvgBar := -1
+            st.touched := false
+            st.obLo := na
+            st.obHi := na
+
+    // ---- setup state machine ----
+    bool gapNow = lo > h2 and lo - h2 >= fvgMin * atrV
+    if st.stage == 1
+        if lo < st.ext
+            st.ext := lo
+        // a structure high that formed before the sweep but confirmed after it is the better MSS reference
+        if newShBar >= 0 and newShBar < st.sweepBar and pivS < st.mssLvl and pivS > cl
+            st.mssLvl := pivS
+        float body = cl - op
+        float rng = hi - lo
+        if body > 0 and rng > 0 and not na(avgRange)
+            if body >= dispMin * atrV and body / rng >= dispBodyRatio and rng >= dispExpMult * avgRange and (hi - cl) / rng <= dispClosePos
+                float strength = body / atrV
+                if strength > st.dispStr
+                    if st.dispStr == 0.0
+                        st.obLo := obLoC
+                        st.obHi := obHiC
+                    st.dispStr := strength
+        if bar_index - 1 >= st.sweepBar and gapNow
+            st.fvgTop := lo
+            st.fvgBot := h2
+            st.fvgBar := bar_index
+            st.fvgSz := (lo - h2) / atrV
+            st.fvgOrg := math.min(l1, l2)
+        if cl > st.mssLvl and st.dispStr > 0.0
+            st.stage := 2
+            st.mssBar := bar_index
+            st.mssMargin := (cl - st.mssLvl) / atrV
+        else if bar_index - st.sweepBar > setupMaxBars
+            st.stage := 0
+    else if st.stage == 2
+        if not st.touched and bar_index <= st.mssBar + fvgWait and gapNow
+            st.fvgTop := lo
+            st.fvgBot := h2
+            st.fvgBar := bar_index
+            st.fvgSz := (lo - h2) / atrV
+            st.fvgOrg := math.min(l1, l2)
+        if st.fvgBar < 0
+            if bar_index >= st.mssBar + fvgWait
+                st.stage := 0
+        else if bar_index > st.fvgBar
+            bool dead = false
+            if lo < st.ext
+                dead := true
+            else if mitigMode == "Close through gap" and cl < st.fvgBot
+                dead := true
+            else if mitigMode == "Wick through gap" and lo < st.fvgBot
+                dead := true
+            else if bar_index - st.fvgBar > fvgMaxAge
+                dead := true
+            if dead
+                st.stage := 0
+            else
+                if lo <= st.fvgTop - fvgDepth * (st.fvgTop - st.fvgBot)
+                    st.touched := true
+                float mid = 0.5 * (st.fvgTop + st.fvgBot)
+                if st.touched and cl > op and (not confirmMid or cl > mid)
+                    signal := true
+                    st.stage := 0
+    signal
+
+// Scores a confirmed setup and applies every entry filter. Mirrored space.
+// Returns [rejectCode (-1 = accepted), score, stopM, risk, targetM, alignedTFs, hasOB, requiredScore].
+f_eval(Setup st, int dir, float cl, array<Liq> oppPool, float minScoreEff, int htfReqEff, int nHtf, float rrV, bool posBusy) =>
+    float bufMult = volAdjBuf ? math.max(1.0, nz(atrRatio, 1.0)) : 1.0
+    float anchor = slAnchor == "Sweep extreme" ? st.ext : st.fvgOrg
+    float slM = anchor - slBufAtr * atrV * bufMult - (dir < 0 and padShortSl ? spreadUsd : 0.0)
+    float risk = cl - slM
+    float stopAtr = risk / atrV
+    int hasOb = 0
+    if not na(st.obHi)
+        if st.obHi >= st.fvgBot - 0.25 * atrV and st.obLo <= st.fvgTop
+            hasOb := 1
+    int hc = 0
+    bool opp1 = false
+    bool opp4 = false
+    if use5m and bias5 == dir
+        hc += 1
+    if use15m and bias15 == dir
+        hc += 1
+    if use60m
+        if bias60 == dir
+            hc += 1
+        else if bias60 == -dir
+            opp1 := true
+    if use240m
+        if bias240 == dir
+            hc += 1
+        else if bias240 == -dir
+            opp4 := true
+    float scDisp = 0.5 + 0.5 * f_clamp(st.dispStr - dispMinAtr, 0.0, 1.0)
+    float scMss = 0.6 + 0.4 * f_clamp(st.mssMargin / 0.5, 0.0, 1.0)
+    float scFvg = 0.5 + 0.5 * f_clamp((st.fvgSz - fvgMinAtr) / 0.5, 0.0, 1.0)
+    float scHtf = nHtf > 0 ? hc / (nHtf * 1.0) : 0.0
+    float scSess = sessId > 0 and inKz ? 1.0 : sessId > 0 ? 0.6 : 0.0
+    float score = wSweep * st.sweepQ + wDisp * scDisp + wMss * scMss + wFvg * scFvg + wHtf * scHtf + wOb * hasOb + wSess * scSess
+
+    // nearest opposing liquidity pool (grade >= 0.5) beyond the entry
+    float near = na
+    int n = oppPool.size()
+    if n > 0
+        for q = 0 to n - 1
+            Liq lv = oppPool.get(q)
+            if f_kindW(lv.kind) >= 0.5
+                float lvlM = -lv.price
+                if lvlM > cl and (na(near) or lvlM < near)
+                    near := lvlM
+    float tpM = cl + rrV * risk
+    if tpMode == "Opposing liquidity (dynamic)" and not na(near)
+        float tgtR = (near - cl) / risk
+        if tgtR >= minTargetR
+            tpM := cl + math.min(tgtR, maxTargetR) * risk
+
+    // adaptive condition penalties
+    float need = minScoreEff
+    if adOn and sessId > 0
+        need += pen.get(sessId - 1) + pen.get(2 + hasOb) + pen.get(4 + (hc >= 3 ? 1 : 0)) + pen.get(6 + (st.sweepKind >= 4 ? 1 : 0))
+
+    bool vetoHit = (htfVeto != "None" and opp1) or (htfVeto == "1H and 4H must not oppose" and opp4)
+    int rej = -1
+    if not sessOk
+        rej := 0
+    else if eodNow
+        rej := 14
+    else if inNews
+        rej := 16
+    else if volFilter and (na(atrRatio) or atrRatio < volMin or atrRatio > volMax)
+        rej := 11
+    else if stopAtr < minStopAtr or (minStopUsd > 0 and risk < minStopUsd)
+        rej := 3
+    else if stopAtr > maxStopAtr or (maxStopUsd > 0 and risk > maxStopUsd)
+        rej := 4
+    else if hc < htfReqEff or vetoHit
+        rej := 1
+    else if obRequired and hasOb == 0
+        rej := 13
+    else if minRoomR > 0 and not na(near) and near - cl < minRoomR * risk
+        rej := 5
+    else if score < need
+        rej := 2
+    else if dayTrades >= maxTradesDay
+        rej := 6
+    else if dayPnl <= -maxDailyLoss
+        rej := 7
+    else if dailyProfitLock > 0 and dayPnl >= dailyProfitLock
+        rej := 15
+    else if maxConsecLoss > 0 and consecLoss >= maxConsecLoss
+        rej := 8
+    else if bar_index - lastEntryBar < cooldownBars
+        rej := 9
+    else if posBusy
+        rej := 10
+    [rej, score, slM, risk, tpM, hc, hasOb, need]
+
+// Rolling statistics over the last `n` completed trades: [count, win rate %, profit factor, expectancy R].
+f_roll(int n) =>
+    int sz = histR.size()
+    int m = math.min(n, sz)
+    float gp = 0.0
+    float gl = 0.0
+    float sum = 0.0
+    int w = 0
+    if m > 0
+        for k = 0 to m - 1
+            float r = histR.get(sz - 1 - k)
+            sum += r
+            if r > 0
+                w += 1
+                gp += r
+            else
+                gl -= r
+    float wr = m > 0 ? 100.0 * w / m : na
+    float pf = gl > 0 ? gp / gl : na
+    float ex = m > 0 ? sum / m : na
+    [m, wr, pf, ex]
+
+// Expectancy of one condition bucket over the stored history: returns the score penalty to apply.
+f_bucketPen(array<int> feat, int v) =>
+    int c = 0
+    float s = 0.0
+    int sz = histR.size()
+    if sz > 0
+        for k = 0 to sz - 1
+            if feat.get(k) == v
+                c += 1
+                s += histR.get(k)
+    c >= adBucketN and s / math.max(c, 1) < adBucketExp ? adBucketPen : 0.0
+
+f_lots(float riskDist, float equity) =>
+    float riskCash = equity * riskPct / 100.0
+    float rawOz = riskCash / (riskDist * syminfo.pointvalue)
+    float lots = math.floor(rawOz / contractSize / lotStep + 1e-9) * lotStep
+    lots := math.min(lots, maxLots)
+    lots
+
+// =====================================================================================================================
+// DAILY RESET
+// =====================================================================================================================
+bool evAdaptChanged = false
+if newDay
+    dayTrades := 0
+    dayPnl := 0.0
+    consecLoss := 0
+    dayLossAlerted := false
+    dayTradesAlerted := false
+    // Idle decay: without it, tightened filters could block the very trades needed to relax them again.
+    adIdleCnt += 1
+    if adOn and adLevel > 0 and adIdleDays > 0 and adIdleCnt >= adIdleDays
+        adLevel -= 1
+        adIdleCnt := 0
+        adLastChange := closedN
+        adDir := -1
+        evAdaptChanged := true
+
+// =====================================================================================================================
+// TRADE TRACKING: detect fills and exits of the open trade
+// =====================================================================================================================
+bool evClosed = false
+float evR = na
+float evMfe = na
+float evMae = na
+string evReason = ""
+float evExitPx = na
+bool evEntry = false
+
+//#IF_STRATEGY
+// The strategy reads actual results from the broker emulator (strategy.closedtrades).
+if strategy.closedtrades > strategy.closedtrades[1]
+    for idx = strategy.closedtrades[1] to strategy.closedtrades - 1
+        accProfit += strategy.closedtrades.profit(idx)
+        float szAbs = math.abs(strategy.closedtrades.size(idx))
+        float denom = szAbs * nz(tRisk, 1.0) * syminfo.pointvalue
+        if denom > 0
+            tMfe := math.max(tMfe, strategy.closedtrades.max_runup(idx) / denom)
+            tMae := math.max(tMae, strategy.closedtrades.max_drawdown(idx) / denom)
+        evReason := strategy.closedtrades.exit_comment(idx)
+        evExitPx := strategy.closedtrades.exit_price(idx)
+bool posNow = strategy.position_size != 0
+if tOpen and not posNow[1] and posNow
+    evEntry := true
+    tEntry := strategy.position_avg_price
+if tOpen and strategy.closedtrades > strategy.closedtrades[1] and (strategy.position_size == 0 or math.sign(strategy.position_size) != tDir)
+    evClosed := true
+    evR := nz(tRiskCash) > 0 ? accProfit / tRiskCash : 0.0
+    evMfe := tMfe
+    evMae := tMae
+    if evReason == "SL" and tTrail
+        evReason := "TRAIL"
+    else if evReason == "SL" and tBe
+        evReason := "BE"
+//#ENDIF
+//#IF_INDICATOR
+// The indicator simulates each signal as a virtual trade: entry at the next bar's open, spread charged on the ask
+// side, and if stop and target are both inside one bar the STOP is assumed to be hit first (conservative).
+float xo = tDir > 0 ? open : -(open + spreadUsd)
+float xh = tDir > 0 ? high : -(low + spreadUsd)
+float xl = tDir > 0 ? low : -(high + spreadUsd)
+if vPend
+    vPend := false
+    float eM = tDir > 0 ? open + spreadUsd : -open
+    float slM0 = tDir * tSl
+    float tpM0 = tDir * tTp
+    if eM > slM0 and eM < tpM0
+        tOpen := true
+        tEntry := tDir * eM
+        evEntry := true
+    else
+        tDir := 0
+if tOpen
+    float eM = tDir * tEntry
+    float slM = tDir * tSl
+    float tpM = tDir * tTp
+    bool done = false
+    float xp = na
+    if not evEntry and (eodNow[1] or (maxHoldBars > 0 and tBars >= maxHoldBars))
+        done := true
+        xp := xo
+        evReason := "EOD"
+    else if xo <= slM
+        done := true
+        xp := xo
+        evReason := "SL"
+    else if xl <= slM
+        done := true
+        xp := slM
+        evReason := "SL"
+    else if xh >= tpM
+        done := true
+        xp := tpM
+        evReason := "TP"
+    if done
+        if evReason == "SL" and tTrail
+            evReason := "TRAIL"
+        else if evReason == "SL" and tBe
+            evReason := "BE"
+        if evReason == "TP"
+            tMfe := math.max(tMfe, (tpM - eM) / tRisk)
+        else
+            tMae := math.max(tMae, (eM - xp) / tRisk)
+        evClosed := true
+        evR := (tReal + tRem * (xp - eM)) / tRisk
+        evMfe := tMfe
+        evMae := tMae
+        evExitPx := tDir * xp
+    else
+        if partOn and not tPart and xh >= eM + partR * tRisk
+            tPart := true
+            tReal += partPct / 100.0 * partR * tRisk
+            tRem := 1.0 - partPct / 100.0
+        tMfe := math.max(tMfe, (xh - eM) / tRisk)
+        tMae := math.max(tMae, (eM - xl) / tRisk)
+//#ENDIF
+
+// ---- stop management at bar close (takes effect from the next bar; stops only ever move in the trade's favour) ----
+if tOpen and not evClosed and not na(tEntry)
+    tBars += 1
+    float eMm = tDir * tEntry
+    float hiM = tDir > 0 ? high : -low
+//#IF_STRATEGY
+    tMfe := math.max(tMfe, (hiM - eMm) / tRisk)
+//#ENDIF
+    float slMm = tDir * tSl
+    if beOn and not tBe and hiM >= eMm + beR * tRisk
+        tBe := true
+        slMm := math.max(slMm, eMm + beOffR * tRisk)
+    if trailOn and tMfe >= trailStartR
+        float ns = hiM - trailAtr * atrV
+        if ns > slMm
+            slMm := ns
+            tTrail := true
+    tSl := tDir * slMm
+
+// =====================================================================================================================
+// COMPLETED TRADE: statistics and adaptive engine
+// =====================================================================================================================
+bool evSlHit = false
+bool evTpHit = false
+if evClosed
+    closedN += 1
+    adIdleCnt := 0
+    dayPnl += riskPct * evR
+    statSumR += evR
+    statSumMfe += nz(evMfe)
+    statSumMae += nz(evMae)
+    if evR > 0
+        statWins += 1
+        statGp += evR
+    else
+        statLosses += 1
+        statGl -= evR
+    if evR < -0.05
+        consecLoss += 1
+        statCurConsec += 1
+        statMaxConsec := math.max(statMaxConsec, statCurConsec)
+    else if evR > 0.05
+        consecLoss := 0
+        statCurConsec := 0
+    evSlHit := evReason == "SL"
+    evTpHit := evReason == "TP"
+
+    histR.push(evR)
+    histSess.push(tSess - 1)
+    histOb.push(tOb)
+    histHtf.push(tHtf >= 3 ? 1 : 0)
+    histKind.push(tKind >= 4 ? 1 : 0)
+    if histR.size() > 50
+        histR.shift()
+        histSess.shift()
+        histOb.shift()
+        histHtf.shift()
+        histKind.shift()
+
+    if adOn and closedN >= adMinSample
+        [mW, wrW, pfW, exW] = f_roll(adWindow)
+        if closedN - adLastChange >= adCooldown
+            int newLevel = adLevel
+            if exW < adTightenExp and adLevel < adMaxLevel
+                newLevel := adLevel + 1
+            else if exW > adRelaxExp and adLevel > 0
+                newLevel := adLevel - 1
+            if newLevel != adLevel
+                adDir := newLevel > adLevel ? 1 : -1
+                adLevel := newLevel
+                adLastChange := closedN
+                evAdaptChanged := true
+        pen.set(0, f_bucketPen(histSess, 0))
+        pen.set(1, f_bucketPen(histSess, 1))
+        pen.set(2, f_bucketPen(histOb, 0))
+        pen.set(3, f_bucketPen(histOb, 1))
+        pen.set(4, f_bucketPen(histHtf, 0))
+        pen.set(5, f_bucketPen(histHtf, 1))
+        pen.set(6, f_bucketPen(histKind, 0))
+        pen.set(7, f_bucketPen(histKind, 1))
+
+    if showExits
+        bool win = evR > 0
+        label.new(bar_index, tDir > 0 ? high : low, evReason + " " + str.tostring(evR, "#.##") + "R", style=tDir > 0 ? label.style_label_down : label.style_label_up, color=color.new(win ? color.green : color.red, 70), textcolor=win ? color.green : color.red, size=size.tiny)
+    tOpen := false
+    tDir := 0
+    accProfit := 0.0
+
+// =====================================================================================================================
+// EFFECTIVE (ADAPTIVE) THRESHOLDS - never below the configured baseline
+// =====================================================================================================================
+int nHtf = (use5m ? 1 : 0) + (use15m ? 1 : 0) + (use60m ? 1 : 0) + (use240m ? 1 : 0)
+float dispMinEff = dispMinAtr + adLevel * adStepDisp
+float fvgMinEff = fvgMinAtr + adLevel * adStepFvg
+float minScoreEff = minScoreBase + adLevel * adStepScore
+int htfReqEff = math.min(nHtf, htfReq + (adLevel >= 2 ? 1 : 0))
+float rrV = rrSel == "1:1" ? 1.0 : rrSel == "1:1.5" ? 1.5 : rrSel == "1:2" ? 2.0 : rrSel == "1:3" ? 3.0 : rrSel == "1:4" ? 4.0 : rrCustom
+
+// =====================================================================================================================
+// SETUP ENGINE (both directions)
+// =====================================================================================================================
+bool ready = not na(atrV) and atrV > 0 and bar_index > 260
+bool sigL = false
+bool sigS = false
+if ready
+    sigL := f_process(stL, poolL, high, low, open, close, high[2], low[1], low[2], phStruct, plInt, plExt, pHourLo, p4hLo, pDayLo, newSessLo, obBullLo, obBullHi, dispMinEff, fvgMinEff)
+    sigS := f_process(stS, poolS, -low, -high, -open, -close, -low[2], -high[1], -high[2], -plStruct, -phInt, -phExt, -pHourHi, -p4hHi, -pDayHi, -newSessHi, -obBearHi, -obBearLo, dispMinEff, fvgMinEff)
+
+// =====================================================================================================================
+// SIGNAL EVALUATION AND ENTRY
+// =====================================================================================================================
+bool posBusy = tOpen or vPend
+bool buySignal = false
+bool sellSignal = false
+int rejL = -2
+int rejS = -2
+float scL = na
+float scS = na
+float slL = na
+float slS = na
+float rkL = na
+float rkS = na
+float tpL = na
+float tpS = na
+int hcL = 0
+int hcS = 0
+int obL = 0
+int obS = 0
+float needL = na
+float needS = na
+if sigL
+    [r0, s0, a0, b0, c0, d0, e0, f0] = f_eval(stL, 1, close, poolS, minScoreEff, htfReqEff, nHtf, rrV, posBusy)
+    rejL := r0
+    scL := s0
+    slL := a0
+    rkL := b0
+    tpL := c0
+    hcL := d0
+    obL := e0
+    needL := f0
+if sigS
+    [r1, s1, a1, b1, c1, d1, e1, f1] = f_eval(stS, -1, -close, poolL, minScoreEff, htfReqEff, nHtf, rrV, posBusy)
+    rejS := r1
+    scS := s1
+    slS := -a1
+    rkS := b1
+    tpS := -c1
+    hcS := d1
+    obS := e1
+    needS := f1
+
+//#IF_STRATEGY
+float eqNow = strategy.equity
+//#ENDIF
+//#IF_INDICATOR
+float eqNow = acctEquity
+//#ENDIF
+int goDir = rejL == -1 ? 1 : rejS == -1 ? -1 : 0
+float goSl = goDir == 1 ? slL : slS
+float goTp = goDir == 1 ? tpL : tpS
+float goRisk = goDir == 1 ? rkL : rkS
+float goScore = goDir == 1 ? scL : scS
+float goLots = goDir != 0 ? f_lots(goRisk, eqNow) : na
+bool sizeOk = goDir != 0 and goLots >= minLot
+bool evSizeReject = goDir != 0 and not sizeOk
+string alertMsg = ""
+
+if goDir != 0 and sizeOk and barstate.isconfirmed
+    buySignal := goDir == 1
+    sellSignal := goDir == -1
+    float qtyUnits = goLots * contractSize
+//#IF_STRATEGY
+    strategy.entry(goDir == 1 ? "L" : "S", goDir == 1 ? strategy.long : strategy.short, qty=qtyUnits, comment=(goDir == 1 ? "BUY " : "SELL ") + str.tostring(goScore, "#"))
+//#ENDIF
+//#IF_INDICATOR
+    vPend := true
+//#ENDIF
+    tDir := goDir
+    tOpen := false
+//#IF_STRATEGY
+    tOpen := true
+//#ENDIF
+    tEntry := na
+    tSl := goSl
+    tSlInit := goSl
+    tTp := goTp
+    tRisk := goRisk
+    tScore := goScore
+    tSess := sessId
+    tOb := goDir == 1 ? obL : obS
+    tHtf := goDir == 1 ? hcL : hcS
+    tKind := goDir == 1 ? stL.sweepKind : stS.sweepKind
+    tBars := 0
+    tLots := goLots
+    tRiskCash := qtyUnits * goRisk * syminfo.pointvalue
+    tBe := false
+    tTrail := false
+    tPart := false
+    tMfe := 0.0
+    tMae := 0.0
+    tReal := 0.0
+    tRem := 1.0
+    accProfit := 0.0
+    dayTrades += 1
+    lastEntryBar := bar_index
+    lastSigDir := goDir
+    lastSigEntry := close
+    lastSigSl := goSl
+    lastSigTp := goTp
+    lastSigScore := goScore
+    lastSigRr := math.abs(goTp - close) / goRisk
+
+    alertMsg := '{"event":"' + (goDir == 1 ? "BUY" : "SELL") + '","symbol":"' + syminfo.ticker + '","timeframe":"' + timeframe.period + '","direction":"' + (goDir == 1 ? "long" : "short") + '","entry":' + str.tostring(close, format.mintick) + ',"stop_loss":' + str.tostring(goSl, format.mintick) + ',"take_profit":' + str.tostring(goTp, format.mintick) + ',"risk_reward":' + str.tostring(lastSigRr, "#.##") + ',"score":' + str.tostring(goScore, "#.#") + ',"session":"' + sessName + '","lots":' + str.tostring(goLots, "#.##") + ',"liquidity":"' + f_kindName(tKind) + '","adaptive_level":' + str.tostring(adLevel) + ',"time":' + str.tostring(time_close) + '}'
+
+    if showSignals
+        label.new(bar_index, goDir == 1 ? low : high, (goDir == 1 ? "BUY " : "SELL ") + str.tostring(goScore, "#"), style=goDir == 1 ? label.style_label_up : label.style_label_down, color=goDir == 1 ? C_BUY : C_SELL, textcolor=color.white, size=size.small, tooltip="Entry ~" + str.tostring(close, format.mintick) + "\nSL " + str.tostring(goSl, format.mintick) + "\nTP " + str.tostring(goTp, format.mintick) + "\nRR 1:" + str.tostring(lastSigRr, "#.##") + "\nScore " + str.tostring(goScore, "#.#") + " / required " + str.tostring(goDir == 1 ? needL : needS, "#.#") + "\nLiquidity: " + f_kindName(tKind) + "\nLots " + str.tostring(goLots, "#.##"))
+    if showFvg
+        Setup sx = goDir == 1 ? stL : stS
+        box.new(sx.fvgBar - 2, math.max(goDir * sx.fvgTop, goDir * sx.fvgBot), bar_index, math.min(goDir * sx.fvgTop, goDir * sx.fvgBot), border_color=color.new(goDir == 1 ? color.green : color.red, 60), bgcolor=color.new(goDir == 1 ? color.green : color.red, 85))
+    if showLevels
+        lnEntry := line.new(bar_index, close, bar_index + 1, close, color=C_NEUT, style=line.style_dotted)
+        lnSl := line.new(bar_index, goSl, bar_index + 1, goSl, color=C_SELL)
+        lnTp := line.new(bar_index, goTp, bar_index + 1, goTp, color=C_BUY)
+
+//#IF_STRATEGY
+// ---- exit orders (re-issued every bar so stop changes from breakeven / trailing are applied) ----
+if tOpen and not evClosed and tDir != 0
+    string eid = tDir == 1 ? "L" : "S"
+    if partOn
+        float pPx = na(tEntry) ? close + tDir * partR * tRisk : tEntry + tDir * partR * tRisk
+        strategy.exit(eid + "-PT", from_entry=eid, qty_percent=partPct, limit=pPx, stop=tSl, comment_profit="PT", comment_loss="SL")
+    strategy.exit(eid + "-X", from_entry=eid, limit=tTp, stop=tSl, comment_profit="TP", comment_loss="SL")
+    if not na(tEntry) and (eodNow or (maxHoldBars > 0 and tBars >= maxHoldBars))
+        strategy.close_all(comment="EOD")
+//#ENDIF
+
+// extend the level lines while the trade is alive
+if showLevels and (tOpen or vPend) and not na(lnEntry)
+    line.set_x2(lnEntry, bar_index + 1)
+    line.set_x2(lnSl, bar_index + 1)
+    line.set_x2(lnTp, bar_index + 1)
+    line.set_y1(lnSl, tSl)
+    line.set_y2(lnSl, tSl)
+
+// =====================================================================================================================
+// LIMIT EVENTS
+// =====================================================================================================================
+bool evDayLoss = false
+bool evDayTrades = false
+if dayPnl <= -maxDailyLoss and not dayLossAlerted
+    dayLossAlerted := true
+    evDayLoss := true
+if dayTrades >= maxTradesDay and not dayTradesAlerted
+    dayTradesAlerted := true
+    evDayTrades := true
+
+// =====================================================================================================================
+// PLOTS
+// =====================================================================================================================
+plot(showDayLv ? pDayHi : na, "Previous day high", color=color.new(color.gray, 40), style=plot.style_stepline)
+plot(showDayLv ? pDayLo : na, "Previous day low", color=color.new(color.gray, 40), style=plot.style_stepline)
+bgcolor(sessId == 1 ? color.new(color.blue, 95) : sessId == 2 ? color.new(color.orange, 95) : na, title="Session background")
+
+// =====================================================================================================================
+// DASHBOARD
+// =====================================================================================================================
+f_biasTxt(int b) =>
+    b > 0 ? "▲" : b < 0 ? "▼" : "•"
+
+f_row(table t, int r, string k, string v, color c) =>
+    table.cell(t, 0, r, k, text_color=color.silver, text_halign=text.align_left, text_size=size.small, bgcolor=color.new(color.black, 20))
+    table.cell(t, 1, r, v, text_color=c, text_halign=text.align_right, text_size=size.small, bgcolor=color.new(color.black, 20))
+
+int biasSum = (use5m ? bias5 : 0) + (use15m ? bias15 : 0) + (use60m ? bias60 : 0) + (use240m ? bias240 : 0)
+string biasName = biasSum >= 2 ? "BULLISH" : biasSum <= -2 ? "BEARISH" : "NEUTRAL"
+color biasCol = biasSum >= 2 ? C_BUY : biasSum <= -2 ? C_SELL : C_NEUT
+
+var table dash = na
+if showDash and barstate.islast
+    if na(dash)
+        string pos = dashPos == "Top right" ? position.top_right : dashPos == "Bottom right" ? position.bottom_right : dashPos == "Top left" ? position.top_left : position.bottom_left
+        dash := table.new(pos, 2, 20, border_width=1, border_color=color.new(color.gray, 70), frame_width=1, frame_color=color.new(color.gray, 50))
+    [m20, wr20, pf20, ex20] = f_roll(adWindow)
+    [m50, wr50, pf50, ex50] = f_roll(50)
+    string adMode = not adOn ? "OFF" : closedN < adMinSample ? "LEARNING (" + str.tostring(closedN) + "/" + str.tostring(adMinSample) + ")" : adLevel == 0 ? "BASELINE" : "TIGHTENED L" + str.tostring(adLevel)
+    string adMove = adDir > 0 ? "tightened" : adDir < 0 ? "relaxed" : "unchanged"
+    string posTxt = vPend ? "PENDING " + (tDir == 1 ? "LONG" : "SHORT") : tOpen ? (tDir == 1 ? "LONG" : "SHORT") + (tBe ? " (BE)" : "") : "FLAT"
+    color posCol = tDir == 1 ? C_BUY : tDir == -1 ? C_SELL : C_NEUT
+    string sigTxt = lastSigDir == 1 ? "BUY" : lastSigDir == -1 ? "SELL" : "-"
+    color sigCol = lastSigDir == 1 ? C_BUY : lastSigDir == -1 ? C_SELL : C_NEUT
+    int r = 0
+    table.cell(dash, 0, r, "ICT Adaptive Scalper", text_color=color.white, text_size=size.small, bgcolor=color.new(color.black, 0), text_halign=text.align_left)
+    table.cell(dash, 1, r, syminfo.ticker + " " + timeframe.period, text_color=color.white, text_size=size.small, bgcolor=color.new(color.black, 0), text_halign=text.align_right)
+    r += 1
+    f_row(dash, r, "Bias 4H 1H 15M 5M", f_biasTxt(bias240) + " " + f_biasTxt(bias60) + " " + f_biasTxt(bias15) + " " + f_biasTxt(bias5) + "  " + biasName, biasCol)
+    r += 1
+    f_row(dash, r, "Session", sessName + (inKz ? " (kill zone)" : ""), sessId > 0 ? color.white : C_NEUT)
+    r += 1
+    f_row(dash, r, "Last signal", sigTxt + (na(lastSigScore) ? "" : "  score " + str.tostring(lastSigScore, "#")), sigCol)
+    r += 1
+    if not dashCompact
+        f_row(dash, r, "Entry", str.tostring(lastSigEntry, format.mintick), color.white)
+        r += 1
+        f_row(dash, r, "Stop loss", str.tostring(lastSigSl, format.mintick), C_SELL)
+        r += 1
+        f_row(dash, r, "Take profit", str.tostring(lastSigTp, format.mintick), C_BUY)
+        r += 1
+        f_row(dash, r, "Risk / reward", na(lastSigRr) ? "-" : "1:" + str.tostring(lastSigRr, "#.##"), color.white)
+        r += 1
+        f_row(dash, r, "Stop distance", na(lastSigSl) ? "-" : "$" + str.tostring(math.abs(lastSigEntry - lastSigSl), "#.##") + " / " + str.tostring(math.abs(lastSigEntry - lastSigSl) / atrV, "#.#") + " ATR", color.white)
+        r += 1
+    f_row(dash, r, "Position", posTxt, posCol)
+    r += 1
+    f_row(dash, r, "Trades today", str.tostring(dayTrades) + " / " + str.tostring(maxTradesDay), dayTrades >= maxTradesDay ? C_SELL : color.white)
+    r += 1
+    f_row(dash, r, "Day realized P/L", str.tostring(dayPnl, "#.##") + "%", dayPnl > 0 ? C_BUY : dayPnl < 0 ? C_SELL : C_NEUT)
+    r += 1
+    f_row(dash, r, "Win rate (last " + str.tostring(m20) + ")", na(wr20) ? "-" : str.tostring(wr20, "#.#") + "%", color.white)
+    r += 1
+    f_row(dash, r, "Profit factor (last " + str.tostring(m20) + ")", na(pf20) ? "-" : str.tostring(pf20, "#.##"), color.white)
+    r += 1
+    f_row(dash, r, "Expectancy (last " + str.tostring(m20) + ")", na(ex20) ? "-" : str.tostring(ex20, "#.##") + " R", nz(ex20) > 0 ? C_BUY : nz(ex20) < 0 ? C_SELL : C_NEUT)
+    r += 1
+    if not dashCompact
+        f_row(dash, r, "WR / PF (last " + str.tostring(m50) + ")", na(wr50) ? "-" : str.tostring(wr50, "#.#") + "% / " + (na(pf50) ? "-" : str.tostring(pf50, "#.##")), color.white)
+        r += 1
+        f_row(dash, r, "Avg MFE / MAE", closedN > 0 ? str.tostring(statSumMfe / closedN, "#.##") + " R / " + str.tostring(statSumMae / closedN, "#.##") + " R" : "-", color.white)
+        r += 1
+    f_row(dash, r, "Adaptive mode", adMode, adLevel > 0 ? color.orange : color.white)
+    r += 1
+    f_row(dash, r, "Min score now", str.tostring(minScoreEff, "#.#") + " (base " + str.tostring(minScoreBase, "#") + ", " + adMove + ")", color.white)
+    r += 1
+    f_row(dash, r, "Trades analysed", str.tostring(closedN) + "  max losing run " + str.tostring(statMaxConsec), color.white)
+
+// =====================================================================================================================
+// ALERTS (confirmed bars only; each event can fire at most once per bar)
+// =====================================================================================================================
+if dynAlerts and barstate.isconfirmed
+    if buySignal or sellSignal
+        alert(alertMsg, alert.freq_once_per_bar_close)
+    if evEntry
+        alert('{"event":"ENTRY_FILLED","symbol":"' + syminfo.ticker + '","direction":"' + (tDir == 1 ? "long" : "short") + '","entry":' + str.tostring(tEntry, format.mintick) + '}', alert.freq_once_per_bar_close)
+    if evClosed
+        alert('{"event":"EXIT","symbol":"' + syminfo.ticker + '","reason":"' + evReason + '","result_r":' + str.tostring(evR, "#.##") + ',"exit":' + str.tostring(evExitPx, format.mintick) + ',"time":' + str.tostring(time_close) + '}', alert.freq_once_per_bar_close)
+    if evDayLoss
+        alert('{"event":"DAILY_LOSS_LIMIT","symbol":"' + syminfo.ticker + '","day_pnl_pct":' + str.tostring(dayPnl, "#.##") + '}', alert.freq_once_per_bar_close)
+    if evDayTrades
+        alert('{"event":"MAX_DAILY_TRADES","symbol":"' + syminfo.ticker + '","trades":' + str.tostring(dayTrades) + '}', alert.freq_once_per_bar_close)
+    if evAdaptChanged
+        alert('{"event":"ADAPTIVE_CHANGED","symbol":"' + syminfo.ticker + '","level":' + str.tostring(adLevel) + ',"min_score":' + str.tostring(minScoreEff, "#.#") + ',"direction":"' + (adDir > 0 ? "tightened" : "relaxed") + '"}', alert.freq_once_per_bar_close)
+
+//#IF_INDICATOR
+alertcondition(buySignal, "BUY signal", "ICT-AS BUY {{ticker}} {{interval}} @ {{close}}")
+alertcondition(sellSignal, "SELL signal", "ICT-AS SELL {{ticker}} {{interval}} @ {{close}}")
+alertcondition(evEntry, "Trade entry", "ICT-AS trade entered {{ticker}} {{interval}}")
+alertcondition(evSlHit, "Stop loss hit", "ICT-AS stop loss hit {{ticker}}")
+alertcondition(evTpHit, "Take profit hit", "ICT-AS take profit hit {{ticker}}")
+alertcondition(evDayLoss, "Daily loss limit reached", "ICT-AS daily loss limit reached {{ticker}}")
+alertcondition(evDayTrades, "Maximum daily trades reached", "ICT-AS maximum daily trades reached {{ticker}}")
+alertcondition(evAdaptChanged, "Adaptive filter changed", "ICT-AS adaptive filter changed {{ticker}}")
+plotshape(buySignal, "BUY marker", shape.triangleup, location.belowbar, C_BUY, size=size.tiny, display=display.data_window)
+plotshape(sellSignal, "SELL marker", shape.triangledown, location.abovebar, C_SELL, size=size.tiny, display=display.data_window)
+//#ENDIF
