@@ -51,7 +51,7 @@ bool use5m = input.bool(true, "5M", group=G_HTF, inline="tf")
 bool use15m = input.bool(true, "15M", group=G_HTF, inline="tf")
 bool use60m = input.bool(true, "1H", group=G_HTF, inline="tf")
 bool use240m = input.bool(true, "4H", group=G_HTF, inline="tf")
-int htfReq = input.int(2, "Min aligned timeframes", minval=0, maxval=4, group=G_HTF)
+int htfReq = input.int(0, "Min aligned timeframes", minval=0, maxval=4, group=G_HTF)
 string htfVeto = input.string("None", "Opposition veto", options=["None", "1H must not oppose", "1H and 4H must not oppose"], group=G_HTF)
 
 string G_SL = "5 - Stop loss and take profit"
@@ -117,10 +117,10 @@ float wFvg = input.float(15, "FVG weight", minval=0, group=G_SCR)
 float wHtf = input.float(15, "HTF alignment weight", minval=0, group=G_SCR)
 float wOb = input.float(5, "Order block weight", minval=0, group=G_SCR)
 float wSess = input.float(10, "Session weight", minval=0, group=G_SCR)
-float minScoreBase = input.float(75, "Baseline minimum score", minval=0, maxval=100, group=G_SCR, tooltip="The adaptive engine can raise the required score above this baseline but never lowers it below.")
+float minScoreBase = input.float(0, "Baseline minimum score", minval=0, maxval=100, group=G_SCR, tooltip="The adaptive engine can raise the required score above this baseline but never lowers it below.")
 
 string G_AD = "9 - Adaptive engine (rule-based)"
-bool adOn = input.bool(true, "Enable adaptive filters", group=G_AD)
+bool adOn = input.bool(false, "Enable adaptive filters", group=G_AD)
 int adMinSample = input.int(20, "Min completed trades before adapting", minval=5, group=G_AD)
 int adWindow = input.int(20, "Evaluation window (trades)", minval=5, maxval=50, group=G_AD)
 float adTightenExp = input.float(0.0, "Tighten when window expectancy (R) is below", step=0.05, group=G_AD)

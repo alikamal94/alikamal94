@@ -1,5 +1,9 @@
 # Settings
 
+> **Shipped defaults changed on request (more frequent signals):** baseline minimum score 0 (was 75), min aligned
+> timeframes 0 (was 2), adaptive engine off (was on). In the Python test on 3M this is about 2.7 trades a week
+> instead of 0.6. The tables below still list the original values; set them back in the inputs to restore them.
+
 All inputs exist in both scripts unless marked. Defaults are the values the brief asked for; where the brief was
 silent they are conventional ICT values, not optimised ones.
 
