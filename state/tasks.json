@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:11:13+03:00",
+  "updated": "2026-11-20T21:11:29+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -150,20 +150,23 @@
       "lastReply": "The six batch 1 pieces are drafted as copy and layout specs in outputs/mf/batch-1/. They are drafts only: Bader reviews first, and nothing is in approvals or published. Each file lists the dialect lines I want a native Kuwaiti reader to check and the open points for Bader and you."
     },
     "dorek-director": {
-      "status": "working",
-      "task": "Writing the 30-day plan and batch 1 brief",
+      "status": "done",
+      "task": "30-day plan and batch 1 brief",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 22 pages; brand brief written",
         "Open questions for Ali listed in the brief",
-        "Ali said go; plan started"
+        "Ali said go; plan started",
+        "Plan and brief written on 17 labelled assumptions"
       ],
-      "lastReply": "The brand brief is written. Dorek is queuing, menus and pre-ordering for Kuwait's restaurants; the voice is a calm host who always gives a real time. Every restaurant name, price and figure in the book is a sample, so I need the real pilot restaurants, launch status and pricing before writing anything public."
+      "lastReply": "The plan and the brief for six pieces are written. It is a production calendar, not a publishing schedule, because I do not know whether the app is live. No sample restaurant, price or wait time appears. I need the launch status, the pilot restaurants and the Instagram handle."
     },
     "dorek-worker": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Drafting batch 1 (six pieces)",
+      "notes": [
+        "Brief received from Khaled"
+      ],
       "lastReply": ""
     },
     "loud-designer": {
@@ -539,6 +542,16 @@
       "house": "loud",
       "title": "Brief for batch 1",
       "path": "outputs/loud/2026-11-20-brief-batch-1.md"
+    },
+    {
+      "house": "dorek",
+      "title": "30-day plan",
+      "path": "outputs/dorek/2026-11-20-30-day-plan.md"
+    },
+    {
+      "house": "dorek",
+      "title": "Brief for batch 1",
+      "path": "outputs/dorek/2026-11-20-brief-batch-1.md"
     }
   ],
   "board": [
@@ -590,7 +603,7 @@
     {
       "item": "Dorek 30-day plan: Khaled is writing it",
       "owner": "dorek-director",
-      "status": "working"
+      "status": "done"
     },
     {
       "item": "Lama'at Fakhri 30-day plan: written; Fatma is drafting batch 1",
