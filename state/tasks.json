@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:24:12+03:00",
+  "updated": "2026-11-20T21:24:24+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -286,12 +286,13 @@
       "lastReply": ""
     },
     "dorek-performance": {
-      "status": "working",
-      "task": "Setting up the measurement plan and tracker",
+      "status": "done",
+      "task": "Measurement plan and tracker",
       "notes": [
-        "No data from Ali yet"
+        "No data from Ali yet",
+        "Measurement plan, tracker, tests and questions written; no baseline yet"
       ],
-      "lastReply": ""
+      "lastReply": "Tracking is set up with no numbers or targets, because nothing is published and I do not know if the account exists. I need a same-day screenshot of the profile and insights as a baseline, and the one goal for the next 30 days."
     }
   },
   "approvals": [
@@ -814,6 +815,21 @@
       "house": "loud",
       "title": "Batch 1 review",
       "path": "outputs/loud/batch-1/REVIEW.md"
+    },
+    {
+      "house": "dorek",
+      "title": "Measurement plan",
+      "path": "outputs/dorek/performance/measurement-plan.md"
+    },
+    {
+      "house": "dorek",
+      "title": "Performance tracker",
+      "path": "outputs/dorek/performance/tracker.md"
+    },
+    {
+      "house": "dorek",
+      "title": "Questions for Ali (performance)",
+      "path": "outputs/dorek/performance/questions-for-ali.md"
     }
   ],
   "board": [
