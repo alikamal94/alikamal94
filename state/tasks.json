@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T23:39:32+03:00",
+  "updated": "2026-11-20T23:56:56+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "approval",
@@ -87,8 +87,8 @@
       "lastReply": "The six batch 1 carousels are drafted as copy and layout specs in outputs/bo3li/batch-1/. They are drafts only: Yousef reviews first, and nothing is in approvals yet. Each file lists the dialect lines I want a native Kuwaiti reader to check."
     },
     "sage-director": {
-      "status": "done",
-      "task": "Batch 1 approved by Ali; client pack ready",
+      "status": "approval",
+      "task": "Sage batch 1 redesign waiting for Ali",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 39 pages; brand brief written",
@@ -97,7 +97,8 @@
         "Plan and brief written on 14 labelled assumptions",
         "Reviewing Dana's six drafts",
         "Review done: three layout fixes, all six ready for Ali",
-        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive",
+        "First designs not approved by Ali; redesign delivered"
       ],
       "lastReply": "All six pieces are ready for you. I fixed three layout points so purple leads everywhere; the copy is unchanged apart from two lines. Final artwork is blocked until the official logo and pattern files arrive."
     },
@@ -244,14 +245,15 @@
       "lastReply": "Tracking is set up around the funnel: free content, community, mentorship. There are no numbers or targets because nothing is published. I need the platforms, follower counts, and your definition of a mentorship enquiry."
     },
     "sage-designer": {
-      "status": "done",
-      "task": "Batch 1 designs",
+      "status": "approval",
+      "task": "Batch 1 redesigned in the style of the Sage product stories",
       "notes": [
         "Designing the six pieces with placeholders for logo and pattern",
         "15 slides designed; rendered and checked by the main session",
-        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive",
+        "Ali rejected the first designs; rebuilt all six pieces from his own Sage stories"
       ],
-      "lastReply": "The six pieces are designed as drafts in the three brand colours. The logo, leaf mark and pattern are labelled placeholders, so the leaf carousel cannot be judged until the official files arrive."
+      "lastReply": "I rebuilt the six pieces in the style of your Sage product stories: purple ground, big yellow headline, real food photos, leaf sprigs and the Talabat, Keeta and Trolley badges. They are waiting for your review."
     },
     "sage-performance": {
       "status": "done",
@@ -320,7 +322,16 @@
       "lastReply": "Tracking is set up with no numbers or targets, because nothing is published and I do not know if the account exists. I need a same-day screenshot of the profile and insights as a baseline, and the one goal for the next 30 days."
     }
   },
-  "approvals": [],
+  "approvals": [
+    {
+      "id": "SAG-V2",
+      "title": "Sage batch 1, redesigned",
+      "house": "sage",
+      "agent": "sage-designer",
+      "summary": "All six pieces rebuilt in the style of the Sage product stories. Copy unchanged. Approve the new look or send back.",
+      "path": "outputs/sage/client/Sage-posts-and-captions.pdf"
+    }
+  ],
   "outputs": [
     {
       "house": "loud",
@@ -793,6 +804,11 @@
       "item": "Lama'at Fakhri designer notes file: not written (session hit a usage limit)",
       "owner": "lamaat-designer",
       "status": "idle"
+    },
+    {
+      "item": "Sage batch 1: first designs rejected by Ali; redesign waiting for his review",
+      "owner": "sage-designer",
+      "status": "approval"
     }
   ]
 }
