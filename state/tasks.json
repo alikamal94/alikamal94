@@ -1,13 +1,19 @@
 {
-  "updated": "2026-11-20T15:39:08+03:00",
+  "updated": "2026-11-20T16:21:13+03:00",
   "agents": {
     "chief-of-staff": {
-      "status": "done",
-      "task": "Brand book reviews complete",
+      "status": "approval",
+      "task": "Waiting for Ali: go or no-go on the four-step plan, then his answers per house",
       "notes": [
-        "Six directors are studying their brand books"
+        "Six directors are studying their brand books",
+        "All six brand briefs are written; each lists open questions for Ali",
+        "Tauro Markets has no brand book, so its team has nothing to work from",
+        "Ali decided the outputs folder stays out of GitHub (the repo is public)",
+        "Plan proposed to Ali: his answers, then 30-day plans, then a first batch of about six pieces per house, then review and a weekly performance read. Not yet approved",
+        "Suggested order: bo3li.trading, MF Trading, Dorek; then Lama'at Fakhri; then Loud Production House and Sage",
+        "Two spending decisions open: Druk font licence (Loud) and Arabic font licence (bo3li.trading). Nothing is bought without Ali's yes"
       ],
-      "lastReply": "All six brand briefs are written. Each lists open questions for you. Tauro Markets has no brand book yet."
+      "lastReply": "All six brand briefs are done; nothing else is moving. I need your go on the four-step plan first, then a few answers per house, starting with bo3li.trading, MF Trading and Dorek. Tauro Markets still has no brand book, and two font licences wait for your yes or no."
     },
     "loud-director": {
       "status": "done",
@@ -181,6 +187,56 @@
       "item": "Sage brand brief from the brand book",
       "owner": "sage-director",
       "status": "done"
+    },
+    {
+      "item": "Ali's decision on the four-step plan (answers, 30-day plans, first batch, review)",
+      "owner": "chief-of-staff",
+      "status": "approval"
+    },
+    {
+      "item": "bo3li.trading 30-day plan: not started, waiting on Ali's go and answers (platforms and handles, mentorship details, logo and Canva files, markets covered)",
+      "owner": "bo3li-director",
+      "status": "idle"
+    },
+    {
+      "item": "MF Trading 30-day plan: not started, waiting on Ali's go and answers (what it sells, licence and regulator, real contact details, rulings on the book's contradictions)",
+      "owner": "mf-director",
+      "status": "idle"
+    },
+    {
+      "item": "Dorek 30-day plan: not started, waiting on Ali's go and answers (launch status, pilot restaurants, pricing, guests or restaurants first)",
+      "owner": "dorek-director",
+      "status": "idle"
+    },
+    {
+      "item": "Lama'at Fakhri 30-day plan: not started, waiting on Ali's go, partner programme facts and Tauro Markets approvals (credentials, naming, risk line)",
+      "owner": "lamaat-director",
+      "status": "idle"
+    },
+    {
+      "item": "Loud Production House 30-day plan: not started, waiting on Ali's go and answers (tagline, Arabic typeface, services, platforms, confirmation of Proposed items)",
+      "owner": "loud-director",
+      "status": "idle"
+    },
+    {
+      "item": "Sage 30-day plan: not started, waiting on Ali's go and answers (real menu and prices, market and sales channels, languages, platforms and launch date)",
+      "owner": "sage-director",
+      "status": "idle"
+    },
+    {
+      "item": "Tauro Markets: no brand book, team has nothing to work from; waiting on Ali",
+      "owner": "tauro-director",
+      "status": "idle"
+    },
+    {
+      "item": "Spending decision: Druk font licence for Loud Production House (nothing bought without Ali's yes)",
+      "owner": "chief-of-staff",
+      "status": "approval"
+    },
+    {
+      "item": "Spending decision: Neue Helvetica Arabic licence for bo3li.trading, book estimates $400-900, or keep IBM Plex Sans Arabic (nothing bought without Ali's yes)",
+      "owner": "chief-of-staff",
+      "status": "approval"
     }
   ]
 }
