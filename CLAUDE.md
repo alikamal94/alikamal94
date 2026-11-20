@@ -66,3 +66,7 @@ Work files go in `outputs/<house>/`; meeting notes in `outputs/meetings/`.
 ## Privacy
 
 The GitHub repository is public. Everything in `outputs/` (brand briefs, plans, drafts, meeting notes) stays out of git (see `.gitignore`) until Ali says otherwise. Never commit the brand book PDFs. Only the earlier village screenshots in `outputs/screenshots/` are tracked.
+
+## Brand summary PDFs
+
+Ali wants everything done for each brand summarised in a PDF. Each house keeps `outputs/<house>/summary.md` (brand in brief, what we did, current work, decisions waiting on Ali, next steps) and a rendered `outputs/<house>/<Brand>-summary.pdf`. After every milestone for a house (plan written, batch drafted, review done, approvals decided), update its `summary.md` and re-render the PDF: convert the markdown to HTML with IBM Plex Sans / IBM Plex Sans Arabic and print to A4 with Chromium (Playwright `page.pdf`). Then send Ali the new PDF.
