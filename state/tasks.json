@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:26:15+03:00",
+  "updated": "2026-11-20T22:06:30+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -182,20 +182,22 @@
       "lastReply": "All six pieces are drafted, mostly on the book's own lines, with new Arabic for the carousel and the weekend tip. I flagged two book lines: without waiting, and soon."
     },
     "loud-designer": {
-      "status": "working",
-      "task": "Designing batch 1",
+      "status": "done",
+      "task": "Batch 1 designs",
       "notes": [
-        "Designing with a stand-in headline typeface; Druk is not licensed"
+        "Designing with a stand-in headline typeface; Druk is not licensed",
+        "22 slides designed with a stand-in headline typeface; rendered and checked by the main session; notes file not written"
       ],
-      "lastReply": ""
+      "lastReply": "The six pieces are designed as drafts in black, white and red. The headline typeface is a stand-in for Druk, which is not licensed."
     },
     "loud-performance": {
-      "status": "working",
-      "task": "Setting up the measurement plan and tracker",
+      "status": "done",
+      "task": "Measurement plan and tracker",
       "notes": [
-        "No data from Ali yet"
+        "No data from Ali yet",
+        "Four files written; interrupted by the usage limit before reporting"
       ],
-      "lastReply": ""
+      "lastReply": "The measurement plan, tracker, tests and questions are written. I was interrupted before I could report, so they have not been reviewed."
     },
     "tauro-designer": {
       "status": "idle",
@@ -246,12 +248,13 @@
       "lastReply": "Tracking is set up with every cell empty, because nothing is published. I need the platforms, a follower-count screenshot the day before the first post, and what matters most in the first 90 days."
     },
     "lamaat-designer": {
-      "status": "working",
-      "task": "Designing batch 1",
+      "status": "done",
+      "task": "Batch 1 designs",
       "notes": [
-        "Designing the six pieces, type and graphics only"
+        "Designing the six pieces, type and graphics only",
+        "Seven slides designed; rendered and checked by the main session; notes file not written"
       ],
-      "lastReply": ""
+      "lastReply": "The six pieces are designed as drafts on light grounds with rose as an accent. Each keeps an empty slot for the risk line. The logo is a placeholder."
     },
     "lamaat-performance": {
       "status": "done",
@@ -281,12 +284,13 @@
       "lastReply": "Tracking is set up for four goals, with no numbers or targets because nothing is published and there is no baseline. I need the platforms, follower counts and a weekly per-piece export from you."
     },
     "dorek-designer": {
-      "status": "working",
-      "task": "Designing batch 1",
+      "status": "done",
+      "task": "Batch 1 designs",
       "notes": [
-        "Designing the six pieces and the Arabic versions"
+        "Designing the six pieces and the Arabic versions",
+        "15 slides designed; rendered and checked by the main session"
       ],
-      "lastReply": ""
+      "lastReply": "The six pieces are designed as drafts, with the carousel and the tip in English and Arabic versions. The logo is a placeholder."
     },
     "dorek-performance": {
       "status": "done",
@@ -873,6 +877,31 @@
       "house": "lamaat",
       "title": "Questions for Ali (performance)",
       "path": "outputs/lamaat/performance/questions-for-ali.md"
+    },
+    {
+      "house": "dorek",
+      "title": "Dorek summary (PDF with designs)",
+      "path": "outputs/dorek/Dorek-summary.pdf"
+    },
+    {
+      "house": "lamaat",
+      "title": "Lama'at Fakhri summary (PDF with designs)",
+      "path": "outputs/lamaat/Lamaat-Fakhri-summary.pdf"
+    },
+    {
+      "house": "loud",
+      "title": "Loud summary (PDF with designs)",
+      "path": "outputs/loud/Loud-Production-House-summary.pdf"
+    },
+    {
+      "house": "loud",
+      "title": "Measurement plan",
+      "path": "outputs/loud/performance/measurement-plan.md"
+    },
+    {
+      "house": "loud",
+      "title": "Questions for Ali (performance)",
+      "path": "outputs/loud/performance/questions-for-ali.md"
     }
   ],
   "board": [
@@ -969,7 +998,7 @@
     {
       "item": "Dorek batch 1: six pieces waiting for Ali; designs in progress",
       "owner": "dorek-designer",
-      "status": "working"
+      "status": "approval"
     },
     {
       "item": "Sage batch 1: six pieces waiting for Ali; designs in progress",
@@ -979,12 +1008,12 @@
     {
       "item": "Lama'at Fakhri batch 1: six pieces waiting for Ali; designs in progress",
       "owner": "lamaat-designer",
-      "status": "working"
+      "status": "approval"
     },
     {
       "item": "Loud batch 1: five pieces waiting for Ali, one on hold; designs in progress",
       "owner": "loud-designer",
-      "status": "working"
+      "status": "approval"
     }
   ]
 }
