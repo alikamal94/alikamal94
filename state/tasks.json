@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:16:44+03:00",
+  "updated": "2026-11-20T21:22:00+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -156,20 +156,21 @@
       "lastReply": "The six batch 1 pieces are drafted as copy and layout specs in outputs/mf/batch-1/. They are drafts only: Bader reviews first, and nothing is in approvals or published. Each file lists the dialect lines I want a native Kuwaiti reader to check and the open points for Bader and you."
     },
     "dorek-director": {
-      "status": "working",
-      "task": "Reviewing batch 1",
+      "status": "approval",
+      "task": "Batch 1 reviewed; six pieces waiting for Ali",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 22 pages; brand brief written",
         "Open questions for Ali listed in the brief",
         "Ali said go; plan started",
         "Plan and brief written on 17 labelled assumptions",
-        "Reviewing Abdullah's six drafts"
+        "Reviewing Abdullah's six drafts",
+        "Review done: two must-fixes, all six ready for Ali"
       ],
-      "lastReply": "The plan and the brief for six pieces are written. It is a production calendar, not a publishing schedule, because I do not know whether the app is live. No sample restaurant, price or wait time appears. I need the launch status, the pilot restaurants and the Instagram handle."
+      "lastReply": "All six pieces are ready for you after design. I made two fixes: the English carousel cover is now English only, and the order-ahead line no longer says soon. Four pieces should wait until guests can actually use Dorek."
     },
     "dorek-worker": {
-      "status": "done",
+      "status": "approval",
       "task": "Batch 1 drafts",
       "notes": [
         "Brief received from Khaled",
@@ -262,15 +263,19 @@
       "lastReply": "Tracking is set up for four goals, with no numbers or targets because nothing is published and there is no baseline. I need the platforms, follower counts and a weekly per-piece export from you."
     },
     "dorek-designer": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Designing batch 1",
+      "notes": [
+        "Designing the six pieces and the Arabic versions"
+      ],
       "lastReply": ""
     },
     "dorek-performance": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Setting up the measurement plan and tracker",
+      "notes": [
+        "No data from Ali yet"
+      ],
       "lastReply": ""
     }
   },
@@ -370,6 +375,54 @@
       "agent": "mf-worker",
       "summary": "Draft copy and layout spec, reviewed by Bader, label contrast fixed. Ali decides: headline, the main version (we do not promise you profit) or Alternative B (the method before the result); question in the caption; dialect read. Copy approval only; publishing still needs the regulator check.",
       "path": "outputs/mf/batch-1/M1-06-what-you-learn-here.md"
+    },
+    {
+      "id": "DOR-1",
+      "title": "Statement post: لا تنطر عند الباب",
+      "house": "dorek",
+      "agent": "dorek-worker",
+      "summary": "Arabic statement post on Ivory, book wording plus a new caption. Decide whether guests can join a queue yet; needs a native read. Approval covers the copy only.",
+      "path": "outputs/dorek/batch-1/D1-01-statement-ar.md"
+    },
+    {
+      "id": "DOR-2",
+      "title": "Brand line: The best tables are worth the wait",
+      "house": "dorek",
+      "agent": "dorek-worker",
+      "summary": "English brand line on Deep Emerald. Decide on Champagne used as the template shows. Can go before the app is live.",
+      "path": "outputs/dorek/batch-1/D1-02-brand-line-en.md"
+    },
+    {
+      "id": "DOR-3",
+      "title": "Carousel: How Dorek works",
+      "house": "dorek",
+      "agent": "dorek-worker",
+      "summary": "Four slides, as an English set and a separate Arabic-led set. Decide the Arabic cover wording, payment and KNET, and which set runs.",
+      "path": "outputs/dorek/batch-1/D1-03-carousel-how-it-works.md"
+    },
+    {
+      "id": "DOR-4",
+      "title": "Weekend tip",
+      "house": "dorek",
+      "agent": "dorek-worker",
+      "summary": "English post (book wording) and a new Arabic post. Decide the Arabic series label and which version runs.",
+      "path": "outputs/dorek/batch-1/D1-04-weekend-tip.md"
+    },
+    {
+      "id": "DOR-5",
+      "title": "Feature post: Your food, ready when you sit",
+      "house": "dorek",
+      "agent": "dorek-worker",
+      "summary": "Order-ahead post on Champagne. Decide whether the headline is a promise Dorek makes publicly, and the support line.",
+      "path": "outputs/dorek/batch-1/D1-05-feature-order-ahead.md"
+    },
+    {
+      "id": "DOR-6",
+      "title": "Story poll: أطول وقت انتظرت فيه طاولة؟",
+      "house": "dorek",
+      "agent": "dorek-worker",
+      "summary": "Arabic poll story, book wording, no percentages. Accept Instagram's typeface on the sticker.",
+      "path": "outputs/dorek/batch-1/D1-06-story-poll-ar.md"
     }
   ],
   "outputs": [
@@ -582,6 +635,11 @@
       "house": "bo3li",
       "title": "bo3li.trading summary (PDF with designs)",
       "path": "outputs/bo3li/bo3li-trading-summary.pdf"
+    },
+    {
+      "house": "dorek",
+      "title": "Batch 1 review",
+      "path": "outputs/dorek/batch-1/REVIEW.md"
     }
   ],
   "board": [
@@ -674,6 +732,11 @@
       "item": "MF Trading batch 1: six pieces waiting for Ali; designs in progress",
       "owner": "mf-designer",
       "status": "approval"
+    },
+    {
+      "item": "Dorek batch 1: six pieces waiting for Ali; designs in progress",
+      "owner": "dorek-designer",
+      "status": "working"
     }
   ]
 }
