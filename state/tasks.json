@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:16:03+03:00",
+  "updated": "2026-11-20T21:16:44+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -17,24 +17,26 @@
       "lastReply": "All six houses are moving. bo3li.trading and MF Trading have six pieces each waiting for your approval and are now being designed."
     },
     "loud-director": {
-      "status": "done",
-      "task": "30-day plan and batch 1 brief",
+      "status": "working",
+      "task": "Reviewing batch 1",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 34 pages; brand brief written",
         "Open questions for Ali listed in the brief",
         "Ali said go; plan started",
-        "Plan and brief written on 14 labelled assumptions"
+        "Plan and brief written on 14 labelled assumptions",
+        "Reviewing Nawaf's six drafts"
       ],
       "lastReply": "The plan and the brief for six pieces are written. Designs are English only until an Arabic typeface is approved, and the Proof pillar is locked until you name clients and real figures. I need the accounts, approved proof, and decisions on the typeface, Druk and the logo files."
     },
     "loud-worker": {
-      "status": "working",
-      "task": "Drafting batch 1 (six pieces)",
+      "status": "done",
+      "task": "Batch 1 drafts",
       "notes": [
-        "Brief received from Faris"
+        "Brief received from Faris",
+        "Six drafts written; with Faris for review"
       ],
-      "lastReply": ""
+      "lastReply": "All six pieces are drafted with English on the design and captions in English and Arabic. The Arabic has not been proofed by a native reader, so that check is open on every piece."
     },
     "tauro-director": {
       "status": "idle",
