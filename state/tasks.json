@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:24:45+03:00",
+  "updated": "2026-11-20T21:26:15+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -228,12 +228,13 @@
       "lastReply": "Tracking is set up around the funnel: free content, community, mentorship. There are no numbers or targets because nothing is published. I need the platforms, follower counts, and your definition of a mentorship enquiry."
     },
     "sage-designer": {
-      "status": "working",
-      "task": "Designing batch 1",
+      "status": "done",
+      "task": "Batch 1 designs",
       "notes": [
-        "Designing the six pieces with placeholders for logo and pattern"
+        "Designing the six pieces with placeholders for logo and pattern",
+        "15 slides designed; rendered and checked by the main session"
       ],
-      "lastReply": ""
+      "lastReply": "The six pieces are designed as drafts in the three brand colours. The logo, leaf mark and pattern are labelled placeholders, so the leaf carousel cannot be judged until the official files arrive."
     },
     "sage-performance": {
       "status": "done",
@@ -253,12 +254,13 @@
       "lastReply": ""
     },
     "lamaat-performance": {
-      "status": "working",
-      "task": "Setting up the measurement plan and tracker",
+      "status": "done",
+      "task": "Measurement plan and tracker",
       "notes": [
-        "No data from Ali yet"
+        "No data from Ali yet",
+        "Measurement plan, tracker, tests and questions written; no baseline yet"
       ],
-      "lastReply": ""
+      "lastReply": "Tracking is set up around partner enquiries, not follower growth. I count no partner numbers, income or results. I need the 90-day baseline export and your definition of a partner enquiry."
     },
     "mf-designer": {
       "status": "done",
@@ -846,6 +848,31 @@
       "house": "sage",
       "title": "Questions for Ali (performance)",
       "path": "outputs/sage/performance/questions-for-ali.md"
+    },
+    {
+      "house": "sage",
+      "title": "Batch 1 designs: notes",
+      "path": "outputs/sage/batch-1/designs/NOTES.md"
+    },
+    {
+      "house": "sage",
+      "title": "Sage summary (PDF with designs)",
+      "path": "outputs/sage/Sage-summary.pdf"
+    },
+    {
+      "house": "lamaat",
+      "title": "Measurement plan",
+      "path": "outputs/lamaat/performance/measurement-plan.md"
+    },
+    {
+      "house": "lamaat",
+      "title": "Performance tracker",
+      "path": "outputs/lamaat/performance/tracker.md"
+    },
+    {
+      "house": "lamaat",
+      "title": "Questions for Ali (performance)",
+      "path": "outputs/lamaat/performance/questions-for-ali.md"
     }
   ],
   "board": [
@@ -947,7 +974,7 @@
     {
       "item": "Sage batch 1: six pieces waiting for Ali; designs in progress",
       "owner": "sage-designer",
-      "status": "working"
+      "status": "approval"
     },
     {
       "item": "Lama'at Fakhri batch 1: six pieces waiting for Ali; designs in progress",
