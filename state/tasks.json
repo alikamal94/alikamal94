@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:22:00+03:00",
+  "updated": "2026-11-20T21:22:30+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -81,20 +81,21 @@
       "lastReply": "The six batch 1 carousels are drafted as copy and layout specs in outputs/bo3li/batch-1/. They are drafts only: Yousef reviews first, and nothing is in approvals yet. Each file lists the dialect lines I want a native Kuwaiti reader to check."
     },
     "sage-director": {
-      "status": "working",
-      "task": "Reviewing batch 1",
+      "status": "approval",
+      "task": "Batch 1 reviewed; six pieces waiting for Ali",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 39 pages; brand brief written",
         "Open questions for Ali listed in the brief",
         "Ali said go; plan started",
         "Plan and brief written on 14 labelled assumptions",
-        "Reviewing Dana's six drafts"
+        "Reviewing Dana's six drafts",
+        "Review done: three layout fixes, all six ready for Ali"
       ],
-      "lastReply": "The plan and the brief for six brand-level pieces are written. They are English, type-and-graphic only, with no product facts, because the book covers visuals only. I need the real menu, the market, the languages and the launch date."
+      "lastReply": "All six pieces are ready for you. I fixed three layout points so purple leads everywhere; the copy is unchanged apart from two lines. Final artwork is blocked until the official logo and pattern files arrive."
     },
     "sage-worker": {
-      "status": "done",
+      "status": "approval",
       "task": "Batch 1 drafts",
       "notes": [
         "Brief received from Noura",
@@ -221,15 +222,19 @@
       "lastReply": "Tracking is set up around the funnel: free content, community, mentorship. There are no numbers or targets because nothing is published. I need the platforms, follower counts, and your definition of a mentorship enquiry."
     },
     "sage-designer": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Designing batch 1",
+      "notes": [
+        "Designing the six pieces with placeholders for logo and pattern"
+      ],
       "lastReply": ""
     },
     "sage-performance": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Setting up the measurement plan and tracker",
+      "notes": [
+        "No data from Ali yet"
+      ],
       "lastReply": ""
     },
     "lamaat-designer": {
@@ -423,6 +428,54 @@
       "agent": "dorek-worker",
       "summary": "Arabic poll story, book wording, no percentages. Accept Instagram's typeface on the sticker.",
       "path": "outputs/dorek/batch-1/D1-06-story-poll-ar.md"
+    },
+    {
+      "id": "SAG-1",
+      "title": "Purpose post: Quick Meals, Redefined.",
+      "house": "sage",
+      "agent": "sage-worker",
+      "summary": "Single purple post stating why Sage exists. Approve the copy and direction. Approval covers the copy only.",
+      "path": "outputs/sage/batch-1/2026-11-20-S1-01-purpose.md"
+    },
+    {
+      "id": "SAG-2",
+      "title": "Carousel: What We Stand For",
+      "house": "sage",
+      "agent": "sage-worker",
+      "summary": "Seven slides on the five values in the book's names. Confirm the words healthy and fresh are acceptable.",
+      "path": "outputs/sage/batch-1/2026-11-20-S1-02-values-carousel.md"
+    },
+    {
+      "id": "SAG-3",
+      "title": "Simplicity post: Healthy Food, Made Simple.",
+      "house": "sage",
+      "agent": "sage-worker",
+      "summary": "Headline-only post on Snow Drift. Decide whether this line is the official tagline; an alternative is held.",
+      "path": "outputs/sage/batch-1/2026-11-20-S1-03-simplicity.md"
+    },
+    {
+      "id": "SAG-4",
+      "title": "Quality post: Where Speed Meets Quality.",
+      "house": "sage",
+      "agent": "sage-worker",
+      "summary": "Single purple post. Approve the copy and how firm the supporting line should be.",
+      "path": "outputs/sage/batch-1/2026-11-20-S1-04-quality-first.md"
+    },
+    {
+      "id": "SAG-5",
+      "title": "Lifestyle post: Designed for Your Pace.",
+      "house": "sage",
+      "agent": "sage-worker",
+      "summary": "Single post, purple with a green block. A green-led version is yours to allow as an exception.",
+      "path": "outputs/sage/batch-1/2026-11-20-S1-05-modern-lifestyle.md"
+    },
+    {
+      "id": "SAG-6",
+      "title": "Carousel: Meet the Sage Leaf",
+      "house": "sage",
+      "agent": "sage-worker",
+      "summary": "Four slides on what the leaf and frame mean. Cannot be judged until the logo and pattern files arrive.",
+      "path": "outputs/sage/batch-1/2026-11-20-S1-06-sage-leaf-carousel.md"
     }
   ],
   "outputs": [
@@ -640,6 +693,11 @@
       "house": "dorek",
       "title": "Batch 1 review",
       "path": "outputs/dorek/batch-1/REVIEW.md"
+    },
+    {
+      "house": "sage",
+      "title": "Batch 1 review",
+      "path": "outputs/sage/batch-1/REVIEW.md"
     }
   ],
   "board": [
@@ -736,6 +794,11 @@
     {
       "item": "Dorek batch 1: six pieces waiting for Ali; designs in progress",
       "owner": "dorek-designer",
+      "status": "working"
+    },
+    {
+      "item": "Sage batch 1: six pieces waiting for Ali; designs in progress",
+      "owner": "sage-designer",
       "status": "working"
     }
   ]
