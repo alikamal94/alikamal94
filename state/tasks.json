@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T18:40:00+03:00",
+  "updated": "2026-11-20T18:55:00+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "approval",
@@ -106,23 +106,24 @@
       "lastReply": ""
     },
     "mf-director": {
-      "status": "done",
-      "task": "30-day plan and batch 1 brief for Salem written; waiting on Ali's answers and rulings",
+      "status": "approval",
+      "task": "Batch 1 review done: six drafts waiting for Ali (MF-1 to MF-6)",
       "notes": [
-        "Ali shared the brand book; reading all of it",
-        "Read all 28 pages; brand brief written",
-        "Open questions for Ali listed in the brief",
         "Ali said go; writing the 30-day plan and the batch 1 brief on labelled working assumptions",
         "30-day plan written (20 Nov to 19 Dec): three pillars from the book's labels, 18 pieces over weeks 2 to 4, no numeric targets until Ali gives a baseline",
         "Formats limited to the book's three: 4:5 post, five-slide carousel, story; video and anything else needs a spec from Ali",
         "16 working assumptions labelled; proposed rulings on all ten contradictions in the book (the earlier count of seven was wrong)",
         "Batch 1 brief written for Salem: six pieces (M1-01 to M1-06) that need none of the open answers; drafts due 23 and 25 Nov",
-        "No piece can be published until Ali names the regulator and who does the check the book requires (p. 26)"
+        "No piece can be published until Ali names the regulator and who does the check the book requires (p. 26)",
+        "Reviewed all six batch 1 drafts line by line against the book's compliance rules and the plan's checklist; disclaimer exact in all 11 places",
+        "Two must-fixes made: small Signal Blue label broke the book's contrast rule in five pieces (now Steel or navy text with a Signal Blue rule); M1-03 slide 03 line could read as advice on how much to risk",
+        "Ruled on Salem's 14 points; left to Ali: M1-06 headline, where the one question may sit, use of the book's sample lines, tagline overlap in M1-04, visual system confirmations",
+        "REVIEW.md written; six items added to approvals. Approval accepts the copy only; nothing is posted"
       ],
-      "lastReply": "The 30-day plan and the first brief for Salem are written: three pillars taken from the book's own labels, and six first pieces that need none of your open answers. Nothing is posted; I have no performance data yet and set no numeric targets. I need five answers most: what MF Trading sells, licence and regulator, platforms and handles with a baseline, markets and data sources, and the logo files with your rulings on the book's ten contradictions."
+      "lastReply": "I reviewed Salem's six batch 1 drafts and all six are ready for your read as copy and layout specs; your approval accepts the copy only, it is not permission to post. I fixed two things: the small blue category label broke the book's own contrast rule in five pieces, and one line in M1-03 could be read as advice on how much to risk. I need your choice of headline for M1-06, your reading of the one-question rule, a native Kuwaiti reader, and the regulator and logo files before anything can go out; the full list is in outputs/mf/batch-1/REVIEW.md."
     },
     "mf-worker": {
-      "status": "done",
+      "status": "approval",
       "task": "Batch 1: six drafts (M1-01 to M1-06) written, ready for Bader's review",
       "notes": [
         "Read the brand brief, the batch 1 brief and the 30-day plan in full",
@@ -200,6 +201,54 @@
       "agent": "bo3li-worker",
       "summary": "Draft copy and layout spec, reviewed by Yousef with two edits (slide 03 headline, slide 04 diagram), no claims breach. Ali decides: series name, swipe cue, dialect read. Copy approval only, not permission to post.",
       "path": "outputs/bo3li/batch-1/B1-06-journal-after-exit.md"
+    },
+    {
+      "id": "MF-1",
+      "title": "M1-01 post copy: The stop is your limit",
+      "house": "mf",
+      "agent": "mf-worker",
+      "summary": "Draft copy and layout spec, reviewed by Bader, label contrast fixed. Ali decides: headline departs from the book's sample wording on purpose, label treatment, dialect read. Copy approval only; publishing still needs the regulator check.",
+      "path": "outputs/mf/batch-1/M1-01-stop-is-your-limit.md"
+    },
+    {
+      "id": "MF-2",
+      "title": "M1-02 carousel copy: 3 questions before any trade",
+      "house": "mf",
+      "agent": "mf-worker",
+      "summary": "Draft copy and layout spec, reviewed by Bader, label contrast fixed. Ali decides: whether three content questions plus one reader question in the caption meet the one-question rule, White or Mist slides, book's hook and CTA used word for word, dialect read. Copy approval only; publishing still needs the regulator check.",
+      "path": "outputs/mf/batch-1/M1-02-three-questions.md"
+    },
+    {
+      "id": "MF-3",
+      "title": "M1-03 carousel copy: 3 mistakes that cost the trader",
+      "house": "mf",
+      "agent": "mf-worker",
+      "summary": "Draft copy and layout spec, reviewed by Bader with two fixes (slide 03 line no longer reads as advice on how much to risk; label contrast). Ali decides: carousel is the book's sample almost as printed, hook wording, dialect read. Copy approval only; publishing still needs the regulator check.",
+      "path": "outputs/mf/batch-1/M1-03-three-mistakes.md"
+    },
+    {
+      "id": "MF-4",
+      "title": "M1-04 post copy: Read the market calmly",
+      "house": "mf",
+      "agent": "mf-worker",
+      "summary": "Draft copy and layout spec, reviewed by Bader, label contrast on Mist fixed. Ali decides: headline is the book's sample and close to the proposed tagline, logo variant on Mist, dialect read. Copy approval only; publishing still needs the regulator check.",
+      "path": "outputs/mf/batch-1/M1-04-read-the-market-calmly.md"
+    },
+    {
+      "id": "MF-5",
+      "title": "M1-05 story copy: Question of the day",
+      "house": "mf",
+      "agent": "mf-worker",
+      "summary": "Draft copy and layout spec, reviewed by Bader, no changes needed. Ali decides: story size and reply sticker (depend on the platform), dialect read of the question. Copy approval only; publishing still needs the regulator check.",
+      "path": "outputs/mf/batch-1/M1-05-question-of-the-day-plan.md"
+    },
+    {
+      "id": "MF-6",
+      "title": "M1-06 post copy: What you learn here",
+      "house": "mf",
+      "agent": "mf-worker",
+      "summary": "Draft copy and layout spec, reviewed by Bader, label contrast fixed. Ali decides: headline, the main version (we do not promise you profit) or Alternative B (the method before the result); question in the caption; dialect read. Copy approval only; publishing still needs the regulator check.",
+      "path": "outputs/mf/batch-1/M1-06-what-you-learn-here.md"
     }
   ],
   "outputs": [
@@ -317,6 +366,11 @@
       "house": "mf",
       "title": "M1-06 draft: What you learn here, the method before the result (post)",
       "path": "outputs/mf/batch-1/M1-06-what-you-learn-here.md"
+    },
+    {
+      "house": "mf",
+      "title": "Batch 1 director review: verdicts, rulings, decisions for Ali, dialect lines",
+      "path": "outputs/mf/batch-1/REVIEW.md"
     }
   ],
   "board": [
