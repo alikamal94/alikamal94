@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T17:10:00+03:00",
+  "updated": "2026-11-20T17:40:00+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "approval",
@@ -44,22 +44,24 @@
       "lastReply": ""
     },
     "bo3li-director": {
-      "status": "done",
-      "task": "30-day plan and first brief for Mariam (batch 1, six pieces)",
+      "status": "approval",
+      "task": "Batch 1 review done: six carousel drafts waiting for Ali (BO3-1 to BO3-6)",
       "notes": [
-        "Ali shared the brand book; reading all of it",
-        "Read all 35 pages; brand brief written",
         "Open questions for Ali listed in the brief",
         "Ali said go and chose bo3li.trading first; writing the 30-day plan on labelled working assumptions",
         "30-day plan written (20 Nov to 19 Dec): five pillars, four-week calendar of 16 carousel slots, no numeric targets until Ali gives a baseline",
         "Set 2 topics proposed for Ali to approve; nothing is written for Set 2 until he decides",
         "Batch 1 brief written for Mariam: six carousels that need none of the open answers; drafts due 24 and 27 Nov",
-        "14 working assumptions labelled in the plan; top five questions for Ali listed"
+        "14 working assumptions labelled in the plan; top five questions for Ali listed",
+        "Reviewed all six batch 1 drafts line by line against the claims policy and the ten-point check: no breach found",
+        "Two director edits, both in B1-06: slide 03 headline names one idea; slide 04 diagram can no longer be read as a ratio",
+        "Ruled on Mariam's 12 points; left to Ali: series name, swipe cue, B1-04 hook punctuation, sourcing rule for arithmetic examples, tagline as hook",
+        "REVIEW.md written; six items added to approvals. Approval accepts the copy only; nothing is posted"
       ],
-      "lastReply": "The 30-day plan and the first brief for Mariam are written. Batch 1 is six carousels that need none of your open answers; they will be delivered as copy and layout specs because we have no logo or Canva files yet. I need five answers most: platforms and cadence, the state of Set 1 and the files, your decision on the Set 2 topics, what we may say about the mentorship and community, and which markets we cover."
+      "lastReply": "I reviewed Mariam's six batch 1 drafts and found no breach of the claims policy or the ten-point check; I made two small edits to B1-06. All six are ready for your read as copy and layout specs, and your approval accepts the copy only, it is not permission to post. I need a native Kuwaiti reader for the dialect lines, your choice of series name and swipe cue, and the logo and Canva files before anything can be built; the full list is in outputs/bo3li/batch-1/REVIEW.md."
     },
     "bo3li-worker": {
-      "status": "done",
+      "status": "approval",
       "task": "Batch 1: six carousel drafts (B1-01 to B1-06) written, waiting for Yousef's review",
       "notes": [
         "Read the brand brief, the batch 1 brief and the 30-day plan in full",
@@ -136,7 +138,56 @@
       "lastReply": ""
     }
   },
-  "approvals": [],
+  "approvals": [
+    {
+      "id": "BO3-1",
+      "title": "B1-01 carousel copy: What this account is",
+      "house": "bo3li",
+      "agent": "bo3li-worker",
+      "summary": "Draft copy and layout spec, reviewed by Yousef, no claims breach. Ali decides: tagline as a carousel hook, series name, swipe cue, whether we may say the lessons are free, dialect read. Copy approval only, not permission to post.",
+      "path": "outputs/bo3li/batch-1/B1-01-school-not-tip-line.md"
+    },
+    {
+      "id": "BO3-2",
+      "title": "B1-02 carousel copy: Plan before entry",
+      "house": "bo3li",
+      "agent": "bo3li-worker",
+      "summary": "Draft copy and layout spec, reviewed by Yousef, no claims breach. Ali decides: series name, swipe cue, whether the 1% arithmetic example needs a source under the house rule, dialect read. Copy approval only, not permission to post.",
+      "path": "outputs/bo3li/batch-1/B1-02-plan-before-entry.md"
+    },
+    {
+      "id": "BO3-3",
+      "title": "B1-03 carousel copy: The trader, not the market",
+      "house": "bo3li",
+      "agent": "bo3li-worker",
+      "summary": "Draft copy and layout spec, reviewed by Yousef, no claims breach. Ali decides: hook wording (from us, or from the trader as in the book), series name, swipe cue, dialect read. Copy approval only, not permission to post.",
+      "path": "outputs/bo3li/batch-1/B1-03-trader-not-market.md"
+    },
+    {
+      "id": "BO3-4",
+      "title": "B1-04 carousel copy: Loss is part of the game",
+      "house": "bo3li",
+      "agent": "bo3li-worker",
+      "summary": "Draft copy and layout spec, reviewed by Yousef, no claims breach. Ali decides: full stops in the hook (check book p. 17), series name, swipe cue, whether to add a line that a stop can fill worse than planned, dialect read. Copy approval only, not permission to post.",
+      "path": "outputs/bo3li/batch-1/B1-04-loss-is-part-of-the-game.md"
+    },
+    {
+      "id": "BO3-5",
+      "title": "B1-05 carousel copy: Stop before target",
+      "house": "bo3li",
+      "agent": "bo3li-worker",
+      "summary": "Draft copy and layout spec, reviewed by Yousef, no claims breach. Ali decides: series name, swipe cue, whether the R:R 1:3 arithmetic example needs a source under the house rule, dialect read; optional hook alternative in the file. Copy approval only, not permission to post.",
+      "path": "outputs/bo3li/batch-1/B1-05-stop-before-target.md"
+    },
+    {
+      "id": "BO3-6",
+      "title": "B1-06 carousel copy: Journal after exit",
+      "house": "bo3li",
+      "agent": "bo3li-worker",
+      "summary": "Draft copy and layout spec, reviewed by Yousef with two edits (slide 03 headline, slide 04 diagram), no claims breach. Ali decides: series name, swipe cue, dialect read. Copy approval only, not permission to post.",
+      "path": "outputs/bo3li/batch-1/B1-06-journal-after-exit.md"
+    }
+  ],
   "outputs": [
     {
       "house": "loud",
@@ -207,6 +258,11 @@
       "house": "bo3li",
       "title": "B1-06 draft: Journal after exit",
       "path": "outputs/bo3li/batch-1/B1-06-journal-after-exit.md"
+    },
+    {
+      "house": "bo3li",
+      "title": "Batch 1 director review: verdicts, rulings, decisions for Ali, dialect lines",
+      "path": "outputs/bo3li/batch-1/REVIEW.md"
     }
   ],
   "board": [
