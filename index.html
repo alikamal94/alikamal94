@@ -25,6 +25,23 @@
   .plate b { display: block; font-weight: 700; font-size: calc(var(--s) * 3.4px + 3px); letter-spacing: .1px; }
   .plate span { display: block; direction: rtl; font-weight: 600; font-size: calc(var(--s) * 3.2px + 3px); opacity: .85; }
   .plate.hot { background: #fff8c9; transform: translateX(-50%) translateY(-2px) scale(1.06); box-shadow: 4px 4px 0 rgba(0,0,0,.6); z-index: 5; }
+  #tags { position: absolute; inset: 0; pointer-events: none; line-height: 1; overflow: hidden; }
+  .tag { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; will-change: transform; }
+  .tag .nm {
+    background: rgba(24,18,30,.88); color: #fff; border: 1px solid #000; border-radius: 2px; white-space: nowrap;
+    font: 600 calc(var(--s) * 2.3px + 4.5px)/1.25 "IBM Plex Sans Arabic", system-ui, sans-serif; padding: 0 3px; pointer-events: auto; cursor: pointer;
+  }
+  .tag.ali .nm { background: #e9b82c; color: #1b1410; border-color: #1b1410; font-weight: 700; box-shadow: 1px 1px 0 #1b1410; }
+  .tag.chief .nm { background: #5a3a1e; color: #ffe9b0; }
+  .tag .st { height: calc(var(--s) * 5px + 4px); margin-bottom: 1px; display: flex; align-items: flex-end; justify-content: center; font: 700 calc(var(--s) * 3px + 5px)/1 system-ui, sans-serif; }
+  .tag .st i { display: none; font-style: normal; }
+  .tag[data-st="working"] .st .w { display: flex; gap: 1.5px; background: #fff; border: 1px solid #1b1410; border-radius: 6px; padding: 2px 3px; box-shadow: 1px 1px 0 rgba(0,0,0,.5); }
+  .tag .st .w em { width: calc(var(--s) * 1px + 1px); height: calc(var(--s) * 1px + 1px); background: #1b1410; border-radius: 50%; animation: dot 1s infinite; }
+  .tag .st .w em:nth-child(2) { animation-delay: .18s; } .tag .st .w em:nth-child(3) { animation-delay: .36s; }
+  .tag[data-st="approval"] .st .a { display: block; background: #e0342b; color: #fff; border: 1px solid #1b1410; border-radius: 3px; padding: 1px 4px; box-shadow: 1px 1px 0 rgba(0,0,0,.5); animation: bounce .55s infinite alternate ease-in; }
+  .tag[data-st="done"] .st .d { display: block; background: #2f9e44; color: #fff; border: 1px solid #1b1410; border-radius: 50%; padding: 1px 3px; box-shadow: 1px 1px 0 rgba(0,0,0,.5); }
+  @keyframes dot { 0%, 60%, 100% { opacity: .25; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-2px); } }
+  @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-5px); } }
   #hint { position: fixed; right: 10px; bottom: 6px; z-index: 9; background: rgba(20,16,28,.8); padding: 2px 6px; color: #a99cc0; font: 11px/1.2 system-ui, sans-serif; opacity: .8; }
   #hint kbd { background: #2a2338; border: 1px solid #554a6b; border-radius: 3px; padding: 0 4px; color: #e8dcff; }
 </style>
@@ -33,8 +50,9 @@
 <div id="stage">
   <canvas id="view" width="640" height="384"></canvas>
   <div id="labels"></div>
+  <div id="tags"></div>
 </div>
-<div id="hint"><kbd>N</kbd> toggle night</div>
+<div id="hint">click the ground or use <kbd>←↑↓→</kbd> to walk · <kbd>N</kbd> toggle night</div>
 
 <script>
 "use strict";
@@ -155,9 +173,10 @@ function streetEdge(x, y, w, h) { // darker kerb around a street piece
 }
 
 /* ---------- scenery pieces ---------- */
-function palm(x, y, hgt) {
+const PALMS = [];
+function palm(x, y, hgt, replay) {
   hgt = hgt || 16;
-  R(x - 5, y, 12, 2, 'rgba(30,18,8,.22)'); R(x - 3, y + 2, 8, 1, 'rgba(30,18,8,.16)');
+  if (!replay) { R(x - 5, y, 12, 2, 'rgba(30,18,8,.22)'); R(x - 3, y + 2, 8, 1, 'rgba(30,18,8,.16)'); PALMS.push({ x, y, hgt }); solid(x - 1, y - 2, 4, 3); }
   let tx = x;
   for (let i = 0; i <= hgt; i++) {
     tx = x + Math.round(Math.sin(i / hgt * 1.4) * 3);
@@ -175,7 +194,6 @@ function palm(x, y, hgt) {
   }
   R(cx - 1, cy - 1, 3, 2, '#2c6a2a');
   P(cx - 2, cy + 1, '#e58a1f'); P(cx + 1, cy + 1, '#e58a1f'); P(cx - 1, cy + 2, '#f2a53a'); P(cx, cy + 2, '#c96d12'); P(cx + 2, cy + 2, '#f2a53a');
-  solid(x - 1, y - 2, 4, 3);
 }
 function bush(x, y, flower) {
   R(x, y + 3, 7, 1, 'rgba(30,18,8,.2)');
@@ -306,12 +324,6 @@ function barjeel(x, y, w, h, col) { // wind tower
   R(x, y + 5 + sh, w, 1, shade(col, -0.2)); R(x, y + h - 2, w, 1, shade(col, -0.12));
   for (let i = 0; i < w; i += 2) P(x + i, y - 1, shade(col, 0.1));
 }
-function tinyPerson(x, y, body, head, hat) {
-  R(x, y + 9, 5, 1, 'rgba(30,18,8,.3)');
-  R(x + 1, y, 3, 1, hat); R(x + 1, y + 1, 3, 2, head); R(x, y + 1, 1, 2, hat); R(x + 4, y + 1, 1, 2, hat);
-  R(x, y + 3, 5, 5, body); R(x + 1, y + 8, 1, 1, '#3a2c1c'); R(x + 3, y + 8, 1, 1, '#3a2c1c');
-  P(x + 4, y + 4, shade(body, -0.15)); P(x + 4, y + 5, shade(body, -0.15)); P(x + 4, y + 6, shade(body, -0.15));
-}
 function win(x, y, w, h, frame) { // arched window with wooden lattice
   arch(x - 1, y - 1, w + 2, h + 2, frame || '#7a4a22');
   arch(x, y, w, h, '#2a3b4a');
@@ -437,7 +449,7 @@ function drawHouse(h) {
   // door step
   R(cx - 6, wallBottom, 12, 1, '#efe6d2');
 
-  solid(hx, ry + 2, hw, roofH + wallH - 2);
+  solid(hx - 1, py + 5, hw + 2, wallBottom - py - 5);
   const lx = px + 5, rx = hx + hw + 4, yardY = py + 55; // prop zones
 
   /* ---- per-house character ---- */
@@ -611,10 +623,7 @@ function drawHouse(h) {
     awning(c2 - 1, cy - 6, 22, color); R(c2, cy - 2, 1, 6, '#6b4320'); R(c2 + 19, cy - 2, 1, 6, '#6b4320');
     solid(c2, cy + 4, 20, 8);
     // small queue of customers (out past the gate too)
-    tinyPerson(cx + 8, py + 55, '#f4f4f0', '#d9a878', '#f4f4f0');
-    tinyPerson(cx + 15, py + 56, '#1e1b22', '#d9a878', '#7b4fb0');
-    tinyPerson(cx + 22, py + 55, '#f4f4f0', '#c9946a', '#d84a40');
-    tinyPerson(cx + 29, py + 57, '#1e1b22', '#e0b58a', '#c0567d');
+    h.queue = [[cx + 14, py + 63], [cx + 24, py + 64], [cx + 34, py + 63]];
   }
   if (id === 'loud' || id === 'tauro' || id === 'bo3li' || id === 'lamaat' || id === 'dorek') {
     // a small palm in a back corner for density
@@ -687,7 +696,7 @@ function drawMajlis() {
   // steps
   R(x + 2, wb, w - 4, 1, '#f3e7c8'); R(x, wb + 1, w, 1, '#d9c79c');
   R(cx - 14, wb, 28, 2, '#f8efd6');
-  solid(x, ry + 2, w, m.roofH + m.wallH - 2);
+  solid(x, 113, w, wb - 113);
   HOTSPOTS.push({ id: 'majlis', x, y: ry - 16, w, h: wb - ry + 16 });
   m.door = { x: cx, y: wb + 4 };
 }
@@ -812,7 +821,7 @@ const bgx = bg.getContext('2d');
 
 function buildBackground() {
   g = bgx; seed = 20261120;
-  SOLIDS.length = 0; WINDOWS.length = 0; LANTERNS.length = 0; HOTSPOTS.length = 0;
+  SOLIDS.length = 0; PALMS.length = 0; WINDOWS.length = 0; LANTERNS.length = 0; HOTSPOTS.length = 0;
 
   // sand with dithered noise
   R(0, 0, W, H, '#e2c28a');
@@ -1135,25 +1144,363 @@ function drawHover(t) {
   for (let j = 0; j < h.h; j++) if ((j + off) % 4 < 2) { P(h.x + h.w, h.y + j, '#fff8c9'); P(h.x - 1, h.y + h.h - 1 - j, '#fff8c9'); }
 }
 
+
+/* =====================================================================
+   PHASE 2 — people
+   ===================================================================== */
+const AGENTS = [
+  { id:'ali', name:'Ali', house:'ali', role:'Chief Human Officer', ghutra:'red', kind:'ali' },
+  { id:'chief-of-staff', name:'Rashed', house:'ali', role:'Chief of Staff', ghutra:'white', bisht:'#5a3a1e', beard:1, kind:'chief', status:'working' },
+  { id:'loud-director',   name:'Faris',    house:'loud',   role:'Production Director',        dir:1, ghutra:'white', beard:1, status:'working' },
+  { id:'loud-worker',     name:'Nawaf',    house:'loud',   role:'Script writer & editor',            ghutra:'red',            status:'done' },
+  { id:'tauro-director',  name:'Hamad',    house:'tauro',  role:'Markets Content Director',   dir:1, ghutra:'red',   beard:1, status:'approval' },
+  { id:'tauro-worker',    name:'Sara',     house:'tauro',  role:'Analyst & post writer',      f:1,                           status:'working' },
+  { id:'bo3li-director',  name:'Yousef',   house:'bo3li',  role:'Education Director',         dir:1, ghutra:'white',          status:'idle' },
+  { id:'bo3li-worker',    name:'Mariam',   house:'bo3li',  role:'Lesson & carousel designer', f:1,                           status:'working' },
+  { id:'sage-director',   name:'Noura',    house:'sage',   role:'Brand Launch Director',      dir:1, f:1,                    status:'done' },
+  { id:'sage-worker',     name:'Dana',     house:'sage',   role:'Social content creator',     f:1,                           status:'approval' },
+  { id:'lamaat-director', name:'Reem',     house:'lamaat', role:'Partnerships Director',      dir:1, f:1,                    status:'working' },
+  { id:'lamaat-worker',   name:'Fatma',    house:'lamaat', role:'Personal-brand content',     f:1,                           status:'idle' },
+  { id:'mf-director',     name:'Bader',    house:'mf',     role:'Brand Director',             dir:1, ghutra:'white', beard:1, status:'working' },
+  { id:'mf-worker',       name:'Salem',    house:'mf',     role:'Brand designer',                    ghutra:'red',            status:'done' },
+  { id:'dorek-director',  name:'Khaled',   house:'dorek',  role:'Product Director',           dir:1, ghutra:'red',            status:'working' },
+  { id:'dorek-worker',    name:'Abdullah', house:'dorek',  role:'App copy & pilot ops',              ghutra:'white', beard:1, status:'approval' },
+];
+// two-person agency split: every house covers all six functions between its two people
+const COVERS = { dir: ['Strategy', 'Performance'], worker: ['Content', 'Copywriting', 'Design', 'Social media'] };
+const SKINS = ['#e0b088', '#d39c72', '#c98f64', '#e8bd96'];
+
+/* ---- sprites: 10x17 incl. 1px outline, built once per (look, dir, step) ---- */
+const spriteCache = new Map();
+function getSprite(sp, dir, step) {
+  const key = sp.key + '|' + dir + '|' + step;
+  let c = spriteCache.get(key);
+  if (!c) { c = buildSprite(sp, dir, step); spriteCache.set(key, c); }
+  return c;
+}
+function buildSprite(sp, dir, step) {
+  const G = []; for (let j = 0; j < 17; j++) G.push(new Array(10).fill(null));
+  const set = (i, j, col) => { if (i >= 1 && i <= 8 && j >= 1 && j <= 15) G[j][i] = col; };
+  const row = (j, a, b, col) => { for (let i = a; i <= b; i++) set(i, j, col); };
+  const cloth = (i, j) => {
+    if (sp.f) return (i === 1 || i === 8) ? shade(sp.shayla, -0.22) : (j === 1 ? shade(sp.shayla, 0.2) : sp.shayla);
+    if (sp.ghutra === 'red') return ((i + j) % 2 === 0) ? '#c8372d' : '#f8f5ee';
+    return (i === 1 || i === 8) ? '#d8d3c6' : '#f8f5ee';
+  };
+  const crow = (j, a, b) => { for (let i = a; i <= b; i++) set(i, j, cloth(i, j)); };
+  const body = sp.f ? '#211d27' : '#f6f4ee', bodySh = sp.f ? '#15121a' : '#d6d1c4', bodyHi = sp.f ? '#3a3444' : '#ffffff';
+  const gold = '#e9bd3a', skin = sp.skin, eye = '#1b1410', agal = '#17130f', shoe = sp.f ? '#5a5068' : '#6b4320', hair = '#3a2a1c';
+  const bisht = sp.bisht, bishtSh = bisht ? shade(bisht, -0.25) : null;
+  const side = dir === 'left' || dir === 'right';
+
+  if (!side) {
+    for (let j = 7; j <= 14; j++) { row(j, 2, 7, body); set(7, j, bodySh); set(3, j, bodyHi); }
+    for (let j = 7; j <= 10; j++) { set(1, j, body); set(8, j, bodySh); }
+    set(1, 11, skin); set(8, 11, skin);
+    if (bisht) {
+      if (dir === 'down') {
+        for (let j = 7; j <= 14; j++) { set(2, j, bisht); set(7, j, bishtSh); set(3, j, gold); set(6, j, gold); set(4, j, '#f6f4ee'); set(5, j, '#e4dfd2'); }
+        for (let j = 7; j <= 10; j++) { set(1, j, bisht); set(8, j, bishtSh); }
+      } else {
+        for (let j = 7; j <= 14; j++) { row(j, 2, 7, bisht); set(7, j, bishtSh); }
+        for (let j = 7; j <= 10; j++) { set(1, j, bisht); set(8, j, bishtSh); }
+        row(14, 2, 7, gold); set(1, 10, gold); set(8, 10, gold);
+      }
+    }
+    if (sp.f && sp.dir) { row(14, 2, 7, gold); set(1, 10, gold); set(8, 10, gold); if (dir === 'down') { set(4, 8, gold); set(5, 8, gold); } }
+    // feet (2-frame walk)
+    if (step !== 2) set(3, 15, shoe); if (step !== 1) set(6, 15, shoe);
+    if (step === 1) row(14, 5, 7, sp.f || (bisht && dir === 'up') ? G[13][6] : G[13][6]);
+    // head
+    crow(1, 2, 7);
+    if (dir === 'down') {
+      crow(2, 1, 8);
+      for (let j = 3; j <= 5; j++) { set(1, j, cloth(1, j)); set(8, j, cloth(8, j)); row(j, 2, 7, skin); }
+      if (sp.f) { crow(3, 1, 8); crow(6, 1, 8); set(2, 4, cloth(2, 4)); set(7, 4, cloth(7, 4)); set(2, 5, cloth(2, 5)); set(7, 5, cloth(7, 5)); crow(7, 3, 6); }
+      else { row(2, 1, 8, agal); crow(6, 1, 2); crow(6, 7, 8); row(6, 3, 6, skin); set(1, 7, cloth(1, 7)); set(8, 7, cloth(8, 7)); if (sp.beard) { row(5, 3, 6, hair); set(2, 5, hair); set(7, 5, hair); row(6, 3, 6, hair); set(4, 5, skin); set(5, 5, skin); } }
+      set(3, 4, eye); set(6, 4, eye);
+    } else {
+      for (let j = 2; j <= 6; j++) crow(j, 1, 8);
+      crow(7, 2, 7); crow(8, 3, 6);
+      if (sp.f) { crow(7, 1, 8); crow(8, 2, 7); crow(9, 3, 6); } else row(2, 1, 8, agal);
+    }
+  } else {
+    // built facing right, mirrored for left
+    for (let j = 7; j <= 14; j++) { row(j, 3, 7, body); set(3, j, bodySh); set(7, j, bodyHi); }
+    if (bisht) for (let j = 7; j <= 14; j++) { row(j, 3, 5, bisht); set(3, j, bishtSh); set(6, j, gold); set(7, j, '#f6f4ee'); }
+    if (sp.f && sp.dir) row(14, 3, 7, gold);
+    for (let j = 7; j <= 10; j++) set(5, j, bisht ? bishtSh : bodySh);
+    set(5, 11, skin);
+    if (step === 0) { set(4, 15, shoe); set(6, 15, shoe); }
+    else if (step === 1) { set(3, 15, shoe); set(7, 15, shoe); }
+    else { set(5, 15, shoe); set(4, 15, shoe); }
+    crow(1, 2, 7); crow(2, 1, 8);
+    for (let j = 3; j <= 5; j++) { crow(j, 1, 4); row(j, 5, 8, skin); }
+    if (sp.f) { crow(3, 1, 8); set(5, 4, cloth(5, 4)); set(5, 5, cloth(5, 5)); crow(6, 1, 8); crow(7, 2, 4); crow(8, 2, 3); }
+    else { row(2, 1, 8, agal); crow(6, 1, 5); row(6, 6, 7, skin); crow(7, 2, 3); set(2, 8, cloth(2, 8)); if (sp.beard) { row(5, 6, 8, hair); set(6, 6, hair); set(7, 6, hair); set(5, 5, hair); } }
+    set(7, 4, eye);
+    if (dir === 'left') for (const r of G) r.reverse();
+  }
+  // 1px dark outline
+  const O = '#1b1410', out = G.map(r => r.slice());
+  for (let j = 0; j < 17; j++) for (let i = 0; i < 10; i++) {
+    if (G[j][i]) continue;
+    if ((j > 0 && G[j - 1][i]) || (j < 16 && G[j + 1][i]) || (i > 0 && G[j][i - 1]) || (i < 9 && G[j][i + 1])) out[j][i] = O;
+  }
+  const c = document.createElement('canvas'); c.width = 10; c.height = 17;
+  const x = c.getContext('2d');
+  for (let j = 0; j < 17; j++) for (let i = 0; i < 10; i++) if (out[j][i]) { x.fillStyle = out[j][i]; x.fillRect(i, j, 1, 1); }
+  return c;
+}
+
+/* ---- collision bitmap + A* grid ---- */
+const blocked = new Uint8Array(W * H);
+const CS = 4, GC = W / CS, GR = H / CS;
+const cellOk = new Uint8Array(GC * GR);
+function buildCollision() {
+  blocked.fill(0);
+  const mark = (x0, y0, x1, y1) => {
+    x0 = Math.max(0, x0 | 0); y0 = Math.max(0, y0 | 0); x1 = Math.min(W, x1 | 0); y1 = Math.min(H, y1 | 0);
+    for (let j = y0; j < y1; j++) blocked.fill(1, j * W + x0, j * W + x1);
+  };
+  for (const s of SOLIDS) mark(s.x - 3, s.y - 1, s.x + s.w + 3, s.y + s.h + 2);
+  mark(0, 0, W, 3); mark(0, H - 2, W, H);
+  mark(SEA_X - 3, 0, W, 217); mark(SEA_X - 3, 227, W, H); mark(625, 0, W, H);   // sea, except the pier
+  for (let cy = 0; cy < GR; cy++) for (let cx = 0; cx < GC; cx++) cellOk[cy * GC + cx] = blocked[(cy * CS + 2) * W + cx * CS + 2] ? 0 : 1;
+}
+function isBlocked(x, y) { x |= 0; y |= 0; return x < 0 || y < 0 || x >= W || y >= H || blocked[y * W + x] === 1; }
+function nearestCell(x, y) {
+  const cx = Math.max(0, Math.min(GC - 1, (x / CS) | 0)), cy = Math.max(0, Math.min(GR - 1, (y / CS) | 0));
+  if (cellOk[cy * GC + cx]) return cy * GC + cx;
+  for (let r = 1; r < 30; r++) {
+    let best = -1, bd = 1e9;
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      const nx = cx + dx, ny = cy + dy;
+      if (nx < 0 || ny < 0 || nx >= GC || ny >= GR || !cellOk[ny * GC + nx]) continue;
+      const d = dx * dx + dy * dy; if (d < bd) { bd = d; best = ny * GC + nx; }
+    }
+    if (best >= 0) return best;
+  }
+  return -1;
+}
+const _g = new Float32Array(GC * GR), _from = new Int32Array(GC * GR), _closed = new Uint8Array(GC * GR);
+function findPath(sx, sy, tx, ty) {
+  const s = nearestCell(sx, sy), t = nearestCell(tx, ty);
+  if (s < 0 || t < 0) return null;
+  _g.fill(Infinity); _closed.fill(0); _from.fill(-1);
+  const tcx = t % GC, tcy = (t / GC) | 0;
+  const hf = c => { const dx = Math.abs(c % GC - tcx), dy = Math.abs(((c / GC) | 0) - tcy); return Math.max(dx, dy) + 0.414 * Math.min(dx, dy); };
+  const heap = [], push = (c, f) => { heap.push([f, c]); let i = heap.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (heap[p][0] <= heap[i][0]) break; [heap[p], heap[i]] = [heap[i], heap[p]]; i = p; } };
+  const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let i = 0; for (;;) { let l = i * 2 + 1, r = l + 1, m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break; [heap[m], heap[i]] = [heap[i], heap[m]]; i = m; } } return top[1]; };
+  _g[s] = 0; push(s, hf(s));
+  let found = false;
+  while (heap.length) {
+    const c = pop(); if (_closed[c]) continue; _closed[c] = 1;
+    if (c === t) { found = true; break; }
+    const cx = c % GC, cy = (c / GC) | 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      if (!dx && !dy) continue;
+      const nx = cx + dx, ny = cy + dy;
+      if (nx < 0 || ny < 0 || nx >= GC || ny >= GR) continue;
+      const n = ny * GC + nx;
+      if (!cellOk[n] || _closed[n]) continue;
+      if (dx && dy && (!cellOk[cy * GC + nx] || !cellOk[ny * GC + cx])) continue;
+      const ng = _g[c] + (dx && dy ? 1.414 : 1);
+      if (ng < _g[n]) { _g[n] = ng; _from[n] = c; push(n, ng + hf(n)); }
+    }
+  }
+  if (!found) return null;
+  const pts = [];
+  for (let c = t; c !== s && c >= 0; c = _from[c]) pts.push([(c % GC) * CS + 2, ((c / GC) | 0) * CS + 2]);
+  pts.reverse();
+  if (!isBlocked(tx, ty) && nearestCell(tx, ty) === t) pts.push([tx, ty]);
+  // drop collinear points
+  const out = [];
+  for (let i = 0; i < pts.length; i++) {
+    if (i > 0 && i < pts.length - 1) {
+      const a = out[out.length - 1] || [sx, sy], b = pts[i], c = pts[i + 1];
+      if ((b[0] - a[0]) * (c[1] - b[1]) === (b[1] - a[1]) * (c[0] - b[0]) && Math.sign(b[0] - a[0]) === Math.sign(c[0] - b[0]) && Math.sign(b[1] - a[1]) === Math.sign(c[1] - b[1])) continue;
+    }
+    out.push(pts[i]);
+  }
+  return out;
+}
+
+/* ---- characters ---- */
+const chars = [], byId = {};
+let ALI = null, RASHED = null;
+const trail = [];
+let marker = null;
+const keys = {};
+const tagsEl = document.getElementById('tags');
+
+function houseOf(id) { return HOUSES.find(h => h.id === id); }
+function makeLook(a, i) {
+  const h = houseOf(a.house);
+  const look = { f: !!a.f, dir: !!a.dir, ghutra: a.ghutra || 'white', beard: !!a.beard, skin: SKINS[i % SKINS.length] };
+  if (a.f) look.shayla = h.id === 'mf' ? '#6a5a78' : h.color;
+  if (a.bisht) look.bisht = a.bisht;
+  else if (a.dir && !a.f) look.bisht = h.id === 'mf' ? '#2a2230' : shade(h.color, -0.45);
+  look.key = a.id;
+  return look;
+}
+function spawn(a, x, y, i) {
+  const c = { a, id: a.id, x, y, dir: 'down', walk: 0, moving: false, path: null, speed: 20, look: makeLook(a, i), wait: 1 + rnd() * 4, status: a.status || 'idle', mode: 'home' };
+  chars.push(c); byId[a.id] = c;
+  if (a.name) {
+    const el = document.createElement('div');
+    el.className = 'tag' + (a.kind ? ' ' + a.kind : ''); el.dataset.id = a.id;
+    el.innerHTML = '<div class="st"><i class="w"><em></em><em></em><em></em></i><i class="a">!</i><i class="d">✓</i></div><div class="nm"></div>';
+    el.querySelector('.nm').textContent = (a.kind === 'ali' ? '★ ' : '') + a.name;
+    tagsEl.append(el); c.tag = el; setStatus(c, c.status);
+  }
+  return c;
+}
+function setStatus(c, st) { c.status = st; if (c.tag) c.tag.dataset.st = st; }
+
+function buildPeople() {
+  buildCollision();
+  AGENTS.forEach((a, i) => {
+    const h = houseOf(a.house), cx = h.px + (PW >> 1);
+    if (a.kind === 'ali') { ALI = spawn(a, 284, 200, i); ALI.speed = 58; return; }
+    if (a.kind === 'chief') { RASHED = spawn(a, 304, 198, i); RASHED.speed = 58; return; }
+    const c = spawn(a, cx + (a.dir ? -16 : 16), h.py + 60, i);
+    // director keeps to the left of the door, worker to the right, so their tags don't stack
+    let x0 = a.dir ? cx - 40 : cx + 8, x1 = a.dir ? cx - 8 : cx + 40;
+    if (h.id === 'dorek') { x0 = a.dir ? cx - 40 : cx - 14; x1 = a.dir ? cx - 20 : cx + 6; c.x = a.dir ? cx - 28 : cx - 4; }
+    c.home = { x0, x1, y0: h.py + 56, y1: h.py + 66, hx: c.x, hy: c.y };
+  });
+  // Dorek's queue of customers (no name tags)
+  const dq = houseOf('dorek').queue || [];
+  const looks = [{ ghutra: 'white' }, { f: 1 }, { ghutra: 'red', beard: 1 }];
+  dq.forEach(([x, y], i) => {
+    const c = spawn({ id: 'customer-' + i, house: 'dorek', f: looks[i].f, ghutra: looks[i].ghutra, beard: looks[i].beard }, x, y, i + 1);
+    if (looks[i].f) c.look.shayla = ['#c0567d', '#2bb5a8'][i % 2];
+    c.dir = 'left'; c.mode = 'static';
+  });
+}
+function goTo(c, x, y) { const p = findPath(c.x, c.y, x, y); c.path = p && p.length ? p : null; return !!c.path; }
+function faceBy(c, dx, dy) { if (Math.abs(dx) > Math.abs(dy)) c.dir = dx < 0 ? 'left' : 'right'; else if (dy) c.dir = dy < 0 ? 'up' : 'down'; }
+function followPath(c, dt) {
+  if (!c.path || !c.path.length) { c.path = null; return false; }
+  let left = c.speed * dt;
+  while (left > 0 && c.path.length) {
+    const [tx, ty] = c.path[0], dx = tx - c.x, dy = ty - c.y, d = Math.hypot(dx, dy);
+    if (d <= left) { c.x = tx; c.y = ty; c.path.shift(); left -= d; if (d > 0.01) faceBy(c, dx, dy); }
+    else { c.x += dx / d * left; c.y += dy / d * left; faceBy(c, dx, dy); left = 0; }
+  }
+  if (!c.path.length) c.path = null;
+  return true;
+}
+function updatePeople(dt) {
+  // --- Ali: arrow keys or click-to-walk
+  let kx = (keys.ArrowRight ? 1 : 0) - (keys.ArrowLeft ? 1 : 0), ky = (keys.ArrowDown ? 1 : 0) - (keys.ArrowUp ? 1 : 0);
+  if (kx || ky) {
+    ALI.path = null; marker = null;
+    const n = Math.hypot(kx, ky), sx = kx / n * ALI.speed * dt, sy = ky / n * ALI.speed * dt;
+    let moved = false;
+    if (sx && !isBlocked(ALI.x + sx, ALI.y)) { ALI.x += sx; moved = true; }
+    if (sy && !isBlocked(ALI.x, ALI.y + sy)) { ALI.y += sy; moved = true; }
+    faceBy(ALI, kx, ky * 0.99);
+    ALI.moving = moved;
+  } else {
+    ALI.moving = followPath(ALI, dt);
+    if (!ALI.moving) marker = null;
+  }
+  // breadcrumb trail for Rashed
+  const last = trail[trail.length - 1];
+  if (!last || Math.hypot(ALI.x - last[0], ALI.y - last[1]) >= 2) trail.push([ALI.x, ALI.y]);
+  // --- Rashed: a few steps behind
+  if (RASHED.mode === 'home') {
+    RASHED.moving = false;
+    let left = RASHED.speed * 1.05 * dt;
+    while (trail.length > 9 && left > 0) {
+      const [tx, ty] = trail[0], dx = tx - RASHED.x, dy = ty - RASHED.y, d = Math.hypot(dx, dy);
+      if (d <= left) { RASHED.x = tx; RASHED.y = ty; trail.shift(); left -= d; }
+      else { RASHED.x += dx / d * left; RASHED.y += dy / d * left; left = 0; }
+      if (d > 0.01) faceBy(RASHED, dx, dy);
+      RASHED.moving = true;
+    }
+    if (!RASHED.moving && !ALI.moving) faceBy(RASHED, ALI.x - RASHED.x, ALI.y - RASHED.y);
+  }
+  // --- house staff: wander near the door
+  for (const c of chars) {
+    if (c === ALI || (c === RASHED && c.mode === 'home') || c.mode === 'static') { }
+    else if (c.mode === 'home' && c.home) {
+      c.moving = followPath(c, dt);
+      if (!c.moving) {
+        c.wait -= dt;
+        if (c.wait <= 0) {
+          for (let k = 0; k < 8; k++) {
+            const x = c.home.x0 + rnd() * (c.home.x1 - c.home.x0), y = c.home.y0 + rnd() * (c.home.y1 - c.home.y0);
+            if (!isBlocked(x, y) && goTo(c, x | 0, y | 0)) break;
+          }
+          c.wait = 1.5 + rnd() * 5;
+          if (!c.path && rnd() < 0.5) c.dir = 'down';
+        }
+      }
+    }
+    c.walk = c.moving ? c.walk + dt : 0;
+  }
+}
+function drawPeople(t) {
+  g = fx;
+  const items = chars.map(c => ({ y: c.y, c }));
+  for (const p of PALMS) {
+    for (const c of chars) if (c.y < p.y - 1 && c.y > p.y - p.hgt - 8 && Math.abs(c.x - p.x - 2) < 15) { items.push({ y: p.y, p }); break; }
+  }
+  items.sort((a, b) => a.y - b.y);
+  if (marker) {
+    const k = ((t * 6) | 0) % 2, mx = marker[0] | 0, my = marker[1] | 0;
+    R(mx - 3 - k, my, 2, 1, '#fff8c9'); R(mx + 2 + k, my, 2, 1, '#fff8c9'); R(mx, my - 2 - k, 1, 1, '#fff8c9'); R(mx, my + 2 + k, 1, 1, '#fff8c9'); P(mx, my, '#e2b93a');
+  }
+  for (const it of items) {
+    if (it.p) { g = fx; palm(it.p.x, it.p.y, it.p.hgt, true); continue; }
+    const c = it.c, x = Math.round(c.x), y = Math.round(c.y);
+    R(x - 4, y - 1, 8, 2, 'rgba(30,18,8,.3)'); R(x - 3, y + 1, 6, 1, 'rgba(30,18,8,.3)');
+    const step = c.moving ? (((c.walk * 7) | 0) % 2 ? 2 : 1) : 0;
+    fx.drawImage(getSprite(c.look, c.dir, step), x - 5, y - 16);
+  }
+}
+function layoutTags() {
+  for (const c of chars) if (c.tag) c.tag.style.transform = `translate(${Math.round(c.x * SCALE)}px,${Math.round((c.y - 17) * SCALE)}px) translate(-50%,-100%)`;
+}
+view.addEventListener('click', e => {
+  const p = toWorld(e);
+  const c = nearestCell(p.x, p.y); if (c < 0) return;
+  let tx = p.x | 0, ty = p.y | 0;
+  if (isBlocked(tx, ty)) { tx = (c % GC) * CS + 2; ty = ((c / GC) | 0) * CS + 2; }
+  if (goTo(ALI, tx, ty)) marker = [tx, ty];
+});
+window.addEventListener('keydown', e => { if (e.key.startsWith('Arrow') && !/INPUT|TEXTAREA/.test(e.target.tagName)) { keys[e.key] = true; e.preventDefault(); } });
+window.addEventListener('keyup', e => { keys[e.key] = false; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+
+let lastMs = 0;
 function render(ms) {
-  const t = ms / 1000;
+  const t = ms / 1000, dt = Math.min(0.05, Math.max(0, (ms - lastMs) / 1000)); lastMs = ms;
+  updatePeople(dt);
   fx.drawImage(bg, 0, 0);
   drawSea(t); drawPier(fx); drawDhow(t);
   drawFountainWater(t);
+  drawPeople(t);
   drawHover(t);
   const target = nightTarget();
   nightShown = nightShown == null ? target : nightShown + Math.max(-0.04, Math.min(0.04, target - nightShown));
   drawNight(nightShown, t);
   vx.imageSmoothingEnabled = false;
   vx.drawImage(frame, 0, 0, W, H, 0, 0, view.width, view.height);
+  layoutTags();
   requestAnimationFrame(render);
 }
 
 buildBackground();
+buildPeople();
 buildLabels();
 fit();
 requestAnimationFrame(render);
-window.ALIHQ = { setNight: v => { nightOverride = v; nightShown = v == null ? null : v ? 1 : 0; } };
+window.ALIHQ = { chars, byId, goTo, getSprite, setStatus, setNight: v => { nightOverride = v; nightShown = v == null ? null : v ? 1 : 0; } };
 </script>
 </body>
 </html>

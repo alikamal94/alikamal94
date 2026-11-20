@@ -28,3 +28,11 @@ python3 -m http.server 3000
 ```
 
 Then open http://localhost:3000.
+
+## Team structure
+
+Each house has two people who split the six agency functions:
+- **Director**: strategy and performance.
+- **Worker**: content, copywriting, design and social media.
+
+Agent ids follow `<house>-director` / `<house>-worker`; Rashed is `chief-of-staff`.
