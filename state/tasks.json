@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T16:21:13+03:00",
+  "updated": "2026-11-20T16:24:00+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "approval",
@@ -44,12 +44,13 @@
       "lastReply": ""
     },
     "bo3li-director": {
-      "status": "done",
-      "task": "Brand brief from the brand book",
+      "status": "working",
+      "task": "30-day plan and first brief for Mariam (batch 1, six pieces)",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 35 pages; brand brief written",
-        "Open questions for Ali listed in the brief"
+        "Open questions for Ali listed in the brief",
+        "Ali said go and chose bo3li.trading first; writing the 30-day plan on labelled working assumptions"
       ],
       "lastReply": "The brand brief is written. The claims policy is locked: no win rates, profit figures or buy calls, and the disclaimer goes on every CTA, caption and end card. I need platforms and handles, the mentorship details, access to the logo and Canva files, and your decision on the Arabic font licence."
     },
