@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:10:59+03:00",
+  "updated": "2026-11-20T21:11:13+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -17,20 +17,23 @@
       "lastReply": "All six houses are moving. bo3li.trading and MF Trading have six pieces each waiting for your approval and are now being designed."
     },
     "loud-director": {
-      "status": "working",
-      "task": "Writing the 30-day plan and batch 1 brief",
+      "status": "done",
+      "task": "30-day plan and batch 1 brief",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 34 pages; brand brief written",
         "Open questions for Ali listed in the brief",
-        "Ali said go; plan started"
+        "Ali said go; plan started",
+        "Plan and brief written on 14 labelled assumptions"
       ],
-      "lastReply": "The brand brief is written. Only the wordmark and the three core colours are marked Confirmed in the book; most of the rest is Proposed. I need your answers on tagline, Arabic typeface, the Druk licence and services before final work."
+      "lastReply": "The plan and the brief for six pieces are written. Designs are English only until an Arabic typeface is approved, and the Proof pillar is locked until you name clients and real figures. I need the accounts, approved proof, and decisions on the typeface, Druk and the logo files."
     },
     "loud-worker": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Drafting batch 1 (six pieces)",
+      "notes": [
+        "Brief received from Faris"
+      ],
       "lastReply": ""
     },
     "tauro-director": {
@@ -526,6 +529,16 @@
       "house": "lamaat",
       "title": "Brief for batch 1",
       "path": "outputs/lamaat/2026-11-20-brief-batch-1.md"
+    },
+    {
+      "house": "loud",
+      "title": "30-day plan",
+      "path": "outputs/loud/2026-11-20-30-day-plan.md"
+    },
+    {
+      "house": "loud",
+      "title": "Brief for batch 1",
+      "path": "outputs/loud/2026-11-20-brief-batch-1.md"
     }
   ],
   "board": [
@@ -587,7 +600,7 @@
     {
       "item": "Loud Production House 30-day plan: Faris is writing it",
       "owner": "loud-director",
-      "status": "working"
+      "status": "done"
     },
     {
       "item": "Sage 30-day plan: written; Dana is drafting batch 1",
