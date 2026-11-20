@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:11:29+03:00",
+  "updated": "2026-11-20T21:12:11+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -235,12 +235,13 @@
       "lastReply": ""
     },
     "mf-designer": {
-      "status": "working",
-      "task": "Designing batch 1 (six pieces)",
+      "status": "done",
+      "task": "Batch 1 designs",
       "notes": [
-        "Joined the team; designing batch 1"
+        "Joined the team; designing batch 1",
+        "15 slides designed for the six pieces; rendered and checked by the main session"
       ],
-      "lastReply": ""
+      "lastReply": "The six pieces are designed as drafts. The logo is a placeholder, headlines are at 96 px to be sure they fit, and the step line and grid are my reading of the book. MF-6 is shown with both headlines."
     },
     "mf-performance": {
       "status": "done",
@@ -552,6 +553,16 @@
       "house": "dorek",
       "title": "Brief for batch 1",
       "path": "outputs/dorek/2026-11-20-brief-batch-1.md"
+    },
+    {
+      "house": "mf",
+      "title": "Batch 1 designs: notes",
+      "path": "outputs/mf/batch-1/designs/NOTES.md"
+    },
+    {
+      "house": "mf",
+      "title": "MF Trading summary (PDF with designs)",
+      "path": "outputs/mf/MF-Trading-summary.pdf"
     }
   ],
   "board": [
@@ -643,7 +654,7 @@
     {
       "item": "MF Trading batch 1: six pieces waiting for Ali; designs in progress",
       "owner": "mf-designer",
-      "status": "working"
+      "status": "approval"
     }
   ]
 }
