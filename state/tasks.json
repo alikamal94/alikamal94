@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:15:20+03:00",
+  "updated": "2026-11-20T21:15:37+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -101,24 +101,26 @@
       "lastReply": "All six pieces are drafted in English with no product facts. I flagged a colour exception on piece 5 and a few wording points for Noura."
     },
     "lamaat-director": {
-      "status": "done",
-      "task": "30-day plan and batch 1 brief",
+      "status": "working",
+      "task": "Reviewing batch 1",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 50 pages; brand brief written",
         "Open questions for Ali listed in the brief",
         "Ali said go; plan started",
-        "Plan and brief written on 16 labelled assumptions"
+        "Plan and brief written on 16 labelled assumptions",
+        "Reviewing Fatma's six drafts"
       ],
       "lastReply": "The plan and the brief for six pieces are written. This month publishes the five questions only, as a checklist for judging any broker, with no programme answers and without naming Tauro Markets. I need the programme facts and the approved Tauro Markets wording."
     },
     "lamaat-worker": {
-      "status": "working",
-      "task": "Drafting batch 1 (six pieces)",
+      "status": "done",
+      "task": "Batch 1 drafts",
       "notes": [
-        "Brief received from Reem"
+        "Brief received from Reem",
+        "Six drafts written; with Reem for review"
       ],
-      "lastReply": ""
+      "lastReply": "All six pieces are drafted: the five questions as a checklist, three single-question posts, the not-for-you post and a story poll. Most on-image lines are the book's own."
     },
     "mf-director": {
       "status": "approval",
