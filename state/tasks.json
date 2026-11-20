@@ -1,9 +1,9 @@
 {
-  "updated": "2026-11-20T18:55:00+03:00",
+  "updated": "2026-11-20T21:07:50+03:00",
   "agents": {
     "chief-of-staff": {
-      "status": "approval",
-      "task": "Waiting for Ali: go or no-go on the four-step plan, then his answers per house",
+      "status": "working",
+      "task": "Tracking all six houses",
       "notes": [
         "Six directors are studying their brand books",
         "All six brand briefs are written; each lists open questions for Ali",
@@ -11,17 +11,19 @@
         "Ali decided the outputs folder stays out of GitHub (the repo is public)",
         "Plan proposed to Ali: his answers, then 30-day plans, then a first batch of about six pieces per house, then review and a weekly performance read. Not yet approved",
         "Suggested order: bo3li.trading, MF Trading, Dorek; then Lama'at Fakhri; then Loud Production House and Sage",
-        "Two spending decisions open: Druk font licence (Loud) and Arabic font licence (bo3li.trading). Nothing is bought without Ali's yes"
+        "Two spending decisions open: Druk font licence (Loud) and Arabic font licence (bo3li.trading). Nothing is bought without Ali's yes",
+        "Ali added a designer and a performance analyst to every house and started all teams"
       ],
-      "lastReply": "All six brand briefs are done; nothing else is moving. I need your go on the four-step plan first, then a few answers per house, starting with bo3li.trading, MF Trading and Dorek. Tauro Markets still has no brand book, and two font licences wait for your yes or no."
+      "lastReply": "All six houses are moving. bo3li.trading and MF Trading have six pieces each waiting for your approval and are now being designed."
     },
     "loud-director": {
-      "status": "done",
-      "task": "Brand brief from the brand book",
+      "status": "working",
+      "task": "Writing the 30-day plan and batch 1 brief",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 34 pages; brand brief written",
-        "Open questions for Ali listed in the brief"
+        "Open questions for Ali listed in the brief",
+        "Ali said go; plan started"
       ],
       "lastReply": "The brand brief is written. Only the wordmark and the three core colours are marked Confirmed in the book; most of the rest is Proposed. I need your answers on tagline, Arabic typeface, the Druk licence and services before final work."
     },
@@ -74,12 +76,13 @@
       "lastReply": "The six batch 1 carousels are drafted as copy and layout specs in outputs/bo3li/batch-1/. They are drafts only: Yousef reviews first, and nothing is in approvals yet. Each file lists the dialect lines I want a native Kuwaiti reader to check."
     },
     "sage-director": {
-      "status": "done",
-      "task": "Brand brief from the brand book",
+      "status": "working",
+      "task": "Writing the 30-day plan and batch 1 brief",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 39 pages; brand brief written",
-        "Open questions for Ali listed in the brief"
+        "Open questions for Ali listed in the brief",
+        "Ali said go; plan started"
       ],
       "lastReply": "The brand brief is written. The book covers visual identity only: purple leads, green supports, Fira Sans. It has nothing on audience, language, platforms or launch, and the mockups contain typos and conflicting prices, so I need the real menu and prices before any content."
     },
@@ -90,12 +93,13 @@
       "lastReply": ""
     },
     "lamaat-director": {
-      "status": "done",
-      "task": "Brand brief from the brand book",
+      "status": "working",
+      "task": "Writing the 30-day plan and batch 1 brief",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 50 pages; brand brief written",
-        "Open questions for Ali listed in the brief"
+        "Open questions for Ali listed in the brief",
+        "Ali said go; plan started"
       ],
       "lastReply": "The brand brief is written. The brand exists to win partners, not retail traders, and compliance is a hard line: no profit claims and no unapproved regulatory wording. I cannot write the core content until I have the partner programme facts, approved Tauro Markets credentials and real photos."
     },
@@ -137,16 +141,109 @@
       "lastReply": "The six batch 1 pieces are drafted as copy and layout specs in outputs/mf/batch-1/. They are drafts only: Bader reviews first, and nothing is in approvals or published. Each file lists the dialect lines I want a native Kuwaiti reader to check and the open points for Bader and you."
     },
     "dorek-director": {
-      "status": "done",
-      "task": "Brand brief from the brand book",
+      "status": "working",
+      "task": "Writing the 30-day plan and batch 1 brief",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 22 pages; brand brief written",
-        "Open questions for Ali listed in the brief"
+        "Open questions for Ali listed in the brief",
+        "Ali said go; plan started"
       ],
       "lastReply": "The brand brief is written. Dorek is queuing, menus and pre-ordering for Kuwait's restaurants; the voice is a calm host who always gives a real time. Every restaurant name, price and figure in the book is a sample, so I need the real pilot restaurants, launch status and pricing before writing anything public."
     },
     "dorek-worker": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "loud-designer": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "loud-performance": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "tauro-designer": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "tauro-performance": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "bo3li-designer": {
+      "status": "working",
+      "task": "Designing batch 1 (six carousels)",
+      "notes": [
+        "Joined the team; designing batch 1"
+      ],
+      "lastReply": ""
+    },
+    "bo3li-performance": {
+      "status": "working",
+      "task": "Setting up the measurement plan and tracker",
+      "notes": [
+        "Joined the team; no data from Ali yet"
+      ],
+      "lastReply": ""
+    },
+    "sage-designer": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "sage-performance": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "lamaat-designer": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "lamaat-performance": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "mf-designer": {
+      "status": "working",
+      "task": "Designing batch 1 (six pieces)",
+      "notes": [
+        "Joined the team; designing batch 1"
+      ],
+      "lastReply": ""
+    },
+    "mf-performance": {
+      "status": "working",
+      "task": "Setting up the measurement plan and tracker",
+      "notes": [
+        "Joined the team; no data from Ali yet"
+      ],
+      "lastReply": ""
+    },
+    "dorek-designer": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "dorek-performance": {
       "status": "idle",
       "task": "",
       "notes": [],

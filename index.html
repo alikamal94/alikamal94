@@ -1247,9 +1247,23 @@ const AGENTS = [
   { id:'mf-worker',       name:'Salem',    house:'mf',     role:'Brand designer',                    ghutra:'red',            status:'done' },
   { id:'dorek-director',  name:'Khaled',   house:'dorek',  role:'Product Director',           dir:1, ghutra:'red',            status:'working' },
   { id:'dorek-worker',    name:'Abdullah', house:'dorek',  role:'App copy & pilot ops',              ghutra:'white', beard:1, status:'approval' },
+  { id:'loud-designer',      name:'Jassim',  house:'loud',   role:'Designer',            fn:'des',  ghutra:'white' },
+  { id:'loud-performance',   name:'Latifa',  house:'loud',   role:'Performance analyst', fn:'perf', f:1 },
+  { id:'tauro-designer',     name:'Hessa',   house:'tauro',  role:'Designer',            fn:'des',  f:1 },
+  { id:'tauro-performance',  name:'Fahad',   house:'tauro',  role:'Performance analyst', fn:'perf', ghutra:'white', beard:1 },
+  { id:'bo3li-designer',     name:'Talal',   house:'bo3li',  role:'Designer',            fn:'des',  ghutra:'red' },
+  { id:'bo3li-performance',  name:'Shaikha', house:'bo3li',  role:'Performance analyst', fn:'perf', f:1 },
+  { id:'sage-designer',      name:'Lulwa',   house:'sage',   role:'Designer',            fn:'des',  f:1 },
+  { id:'sage-performance',   name:'Mishari', house:'sage',   role:'Performance analyst', fn:'perf', ghutra:'red' },
+  { id:'lamaat-designer',    name:'Aisha',   house:'lamaat', role:'Designer',            fn:'des',  f:1 },
+  { id:'lamaat-performance', name:'Dalal',   house:'lamaat', role:'Performance analyst', fn:'perf', f:1 },
+  { id:'mf-designer',        name:'Mubarak', house:'mf',     role:'Designer',            fn:'des',  ghutra:'white', beard:1 },
+  { id:'mf-performance',     name:'Jarrah',  house:'mf',     role:'Performance analyst', fn:'perf', ghutra:'white' },
+  { id:'dorek-designer',     name:'Ghanim',  house:'dorek',  role:'Designer',            fn:'des',  ghutra:'white' },
+  { id:'dorek-performance',  name:'Munira',  house:'dorek',  role:'Performance analyst', fn:'perf', f:1 },
 ];
-// two-person agency split: every house covers all six functions between its two people
-const COVERS = { dir: ['Strategy', 'Performance'], worker: ['Content', 'Copywriting', 'Design', 'Social media'] };
+// four-person agency split: director, worker, designer and performance analyst cover the six functions
+const COVERS = { dir: ['Strategy'], worker: ['Content', 'Copywriting', 'Social media'], des: ['Design'], perf: ['Performance'] };
 const SKINS = ['#e0b088', '#d39c72', '#c98f64', '#e8bd96'];
 
 /* ---- sprites: 10x17 incl. 1px outline, built once per (look, dir, step) ---- */
@@ -1448,11 +1462,13 @@ function buildPeople() {
     const h = houseOf(a.house), cx = h.px + (PW >> 1);
     if (a.kind === 'ali') { ALI = spawn(a, 284, 200, i); ALI.speed = 58; return; }
     if (a.kind === 'chief') { RASHED = spawn(a, 304, 198, i); RASHED.speed = 58; return; }
-    const c = spawn(a, cx + (a.dir ? -16 : 16), h.py + 60, i);
-    // director keeps to the left of the door, worker to the right, so their tags don't stack
-    let x0 = a.dir ? cx - 40 : cx + 8, x1 = a.dir ? cx - 8 : cx + 40;
-    if (h.id === 'dorek') { x0 = a.dir ? cx - 40 : cx - 14; x1 = a.dir ? cx - 20 : cx + 6; c.x = a.dir ? cx - 28 : cx - 4; }
-    c.home = { x0, x1, y0: h.py + 56, y1: h.py + 66, hx: c.x, hy: c.y };
+    // four slots across the front yard, left to right: director, designer | door | worker, performance.
+    // Alternate slots stand further forward so the name tags don't stack.
+    const slot = a.dir ? 0 : a.fn === 'des' ? 1 : a.fn === 'perf' ? 3 : 2;
+    const zones = h.id === 'dorek' ? [[-40, -30], [-27, -17], [-12, -3], [1, 9]] : [[-40, -27], [-22, -9], [9, 22], [27, 40]];
+    const [zx0, zx1] = zones[slot], front = slot % 2 === 1;
+    const c = spawn(a, cx + ((zx0 + zx1) >> 1), h.py + (front ? 64 : 58), i);
+    c.home = { x0: cx + zx0, x1: cx + zx1, y0: h.py + (front ? 62 : 56), y1: h.py + (front ? 66 : 60), hx: c.x, hy: c.y };
   });
   // Dorek's queue of customers (no name tags)
   const dq = houseOf('dorek').queue || [];
@@ -1687,7 +1703,7 @@ function paintPortraits(root) {
 /* ---- side panel ---- */
 function teamCard(a, full) {
   const st = agentState(a.id), status = st.status || 'idle';
-  const covers = a.kind ? [] : (a.dir ? COVERS.dir : COVERS.worker);
+  const covers = a.kind ? [] : COVERS[a.dir ? 'dir' : a.fn || 'worker'];
   return `<div class="card">
     <div class="top">${portrait(a.id)}<div><div class="nm" data-act="person" data-id="${esc(a.id)}">${esc(a.name)}</div><div class="role">${esc(a.role)}</div></div>
       <span class="pill ${esc(status)}">${esc(STATUS_LABEL[status] || status)}</span></div>

@@ -54,3 +54,14 @@ When you finish a file, add `{ "house": "lamaat", "title": "...", "path": "outpu
 - Always write "UIC" (Union of Investment Companies), never "GIC".
 - You only write inside `outputs/` and `state/tasks.json`. You do not edit `index.html`, `CLAUDE.md` or files in `agents/`.
 - No PR work. The house covers strategy, content, copywriting, design, social media and performance.
+
+## Team update: four people per house
+
+Ali has added two people to Lama'at Fakhri. The split of the six agency functions is now:
+
+- **Reem** (`lamaat-director`): strategy. Plans, briefs, reviews everything before it goes to Ali.
+- **Fatma** (`lamaat-worker`): content, copywriting and social media.
+- **Aisha** (`lamaat-designer`): design. Builds the actual post designs from the reviewed copy.
+- **Dalal** (`lamaat-performance`): performance. Measurement plan, tracker and the weekly read.
+
+This replaces the earlier two-person split wherever the text above differs: the director no longer does the performance read alone, and the worker hands layout to the designer.

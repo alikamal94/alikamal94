@@ -31,15 +31,19 @@ Then open http://localhost:3000.
 
 ## Team structure
 
-Each house has two people who split the six agency functions:
-- **Director**: strategy and performance.
-- **Worker**: content, copywriting, design and social media.
+Each house has four people who split the six agency functions:
+- **Director** (`<house>-director`): strategy; plans, briefs and reviews.
+- **Worker** (`<house>-worker`): content, copywriting and social media.
+- **Designer** (`<house>-designer`): design; builds each post as an HTML artboard file.
+- **Performance analyst** (`<house>-performance`): performance; measurement plan, tracker, weekly read from data Ali exports.
 
-Agent ids follow `<house>-director` / `<house>-worker`; Rashed is `chief-of-staff`. Houses: `loud`, `tauro`, `bo3li`, `sage`, `lamaat`, `mf`, `dorek`.
+Rashed is `chief-of-staff`. Houses: `loud`, `tauro`, `bo3li`, `sage`, `lamaat`, `mf`, `dorek`.
+
+Pipeline for a batch: director plan and brief, worker drafts, director review, designer designs, then Ali's approval. Designers write `outputs/<house>/batch-<n>/designs/<id>.html` with one `<section class="slide">` per slide; the main session renders each slide to PNG with Chromium and places the designs in the brand's summary PDF. When several agents run at once, tell them not to edit `state/tasks.json`; the main session updates it.
 
 ## Agents (approved by Ali)
 
-The 15 agent definitions live in `agents/<id>.md`. `.claude/agents` is a symlink to `agents/` so Claude Code can load them as subagents. They may only read, search and write files; they have no tools for posting, sending or spending.
+The 29 agent definitions live in `agents/<id>.md` (Rashed plus four per house). `.claude/agents` is a symlink to `agents/` so Claude Code can load them as subagents. They may only read, search and write files; they have no tools for posting, sending or spending.
 
 When Ali writes `@<agent-id> ...` (usually a line pasted from the village):
 - If the subagent with that id is available, hand the message to it.
