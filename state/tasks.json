@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:23:00+03:00",
+  "updated": "2026-11-20T21:24:12+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -17,20 +17,21 @@
       "lastReply": "All six houses are moving. bo3li.trading and MF Trading have six pieces each waiting for your approval and are now being designed."
     },
     "loud-director": {
-      "status": "working",
-      "task": "Reviewing batch 1",
+      "status": "approval",
+      "task": "Batch 1 reviewed; five pieces waiting for Ali, one on hold",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 34 pages; brand brief written",
         "Open questions for Ali listed in the brief",
         "Ali said go; plan started",
         "Plan and brief written on 14 labelled assumptions",
-        "Reviewing Nawaf's six drafts"
+        "Reviewing Nawaf's six drafts",
+        "Review done: no hard breach; five ready for Ali, LO1-05 on hold"
       ],
-      "lastReply": "The plan and the brief for six pieces are written. Designs are English only until an Arabic typeface is approved, and the Proof pillar is locked until you name clients and real figures. I need the accounts, approved proof, and decisions on the typeface, Druk and the logo files."
+      "lastReply": "Five pieces are ready for you and the Arabic piece is on hold until a typeface is approved. Nothing can publish with Arabic until a native reader proofs the captions. The proof piece should wait unless you have work you would show an enquirer."
     },
     "loud-worker": {
-      "status": "done",
+      "status": "approval",
       "task": "Batch 1 drafts",
       "notes": [
         "Brief received from Faris",
@@ -181,15 +182,19 @@
       "lastReply": "All six pieces are drafted, mostly on the book's own lines, with new Arabic for the carousel and the weekend tip. I flagged two book lines: without waiting, and soon."
     },
     "loud-designer": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Designing batch 1",
+      "notes": [
+        "Designing with a stand-in headline typeface; Druk is not licensed"
+      ],
       "lastReply": ""
     },
     "loud-performance": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Setting up the measurement plan and tracker",
+      "notes": [
+        "No data from Ali yet"
+      ],
       "lastReply": ""
     },
     "tauro-designer": {
@@ -529,6 +534,54 @@
       "agent": "lamaat-worker",
       "summary": "Question story with a native poll. Needs an in-app check that the sticker takes three options.",
       "path": "outputs/lamaat/batch-1/L1-06-story-question-of-the-day.md"
+    },
+    {
+      "id": "LOU-1",
+      "title": "Carousel: SEEN IS THE FIRST JOB.",
+      "house": "loud",
+      "agent": "loud-worker",
+      "summary": "Five slides on seen, remembered, acted on. Confirm the Arabic for the three mission words. Approval covers the copy only.",
+      "path": "outputs/loud/batch-1/2026-11-20-LO1-01-seen-remembered-acted-on.md"
+    },
+    {
+      "id": "LOU-2",
+      "title": "Single image: LOUD IS A VOLUME, NOT A MOOD.",
+      "house": "loud",
+      "agent": "loud-worker",
+      "summary": "The book's own line. Decide whether it runs first, since it may read as a tagline while the tagline is undecided.",
+      "path": "outputs/loud/batch-1/2026-11-20-LO1-02-volume-not-a-mood.md"
+    },
+    {
+      "id": "LOU-3",
+      "title": "Carousel: FOUR RULES WE WRITE BY.",
+      "house": "loud",
+      "agent": "loud-worker",
+      "summary": "Six slides of writing rules with invented examples. Decide whether to publish voice rules the book marks low confidence.",
+      "path": "outputs/loud/batch-1/2026-11-20-LO1-03-lead-with-the-point.md"
+    },
+    {
+      "id": "LOU-4",
+      "title": "Single image: ASK FOR PROOF. NOT PROMISES.",
+      "house": "loud",
+      "agent": "loud-worker",
+      "summary": "Invites the question What can you show me? Decide whether Loud can answer it now; if not, it waits.",
+      "path": "outputs/loud/batch-1/2026-11-20-LO1-04-proof-over-promises.md"
+    },
+    {
+      "id": "LOU-5",
+      "title": "ON HOLD: WRITTEN IN ARABIC. NOT TRANSLATED INTO IT.",
+      "house": "loud",
+      "agent": "loud-worker",
+      "summary": "Carousel about Arabic with an English-only design. On hold until an Arabic typeface is approved; decide hold or run.",
+      "path": "outputs/loud/batch-1/2026-11-20-LO1-05-written-not-translated.md"
+    },
+    {
+      "id": "LOU-6",
+      "title": "Stories: SCOPE / TIMELINE / DELIVERABLES",
+      "house": "loud",
+      "agent": "loud-worker",
+      "summary": "Now four frames, with a closing frame added. No Arabic on the Stories version.",
+      "path": "outputs/loud/batch-1/2026-11-20-LO1-06-three-things-before-the-shoot.md"
     }
   ],
   "outputs": [
@@ -756,6 +809,11 @@
       "house": "lamaat",
       "title": "Batch 1 review",
       "path": "outputs/lamaat/batch-1/REVIEW.md"
+    },
+    {
+      "house": "loud",
+      "title": "Batch 1 review",
+      "path": "outputs/loud/batch-1/REVIEW.md"
     }
   ],
   "board": [
@@ -862,6 +920,11 @@
     {
       "item": "Lama'at Fakhri batch 1: six pieces waiting for Ali; designs in progress",
       "owner": "lamaat-designer",
+      "status": "working"
+    },
+    {
+      "item": "Loud batch 1: five pieces waiting for Ali, one on hold; designs in progress",
+      "owner": "loud-designer",
       "status": "working"
     }
   ]
