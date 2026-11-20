@@ -62,3 +62,7 @@ Majlis meetings: for `@chief-of-staff run a majlis meeting with <ids> about: <to
 ```
 
 Work files go in `outputs/<house>/`; meeting notes in `outputs/meetings/`.
+
+## Privacy
+
+The GitHub repository is public. Brand briefs (`outputs/<house>/brand-brief.md`) are built from Ali's private brand books and stay out of git (see `.gitignore`) until Ali says otherwise. Never commit the brand book PDFs.
