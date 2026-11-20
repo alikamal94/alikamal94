@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:24:24+03:00",
+  "updated": "2026-11-20T21:24:45+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -236,12 +236,13 @@
       "lastReply": ""
     },
     "sage-performance": {
-      "status": "working",
-      "task": "Setting up the measurement plan and tracker",
+      "status": "done",
+      "task": "Measurement plan and tracker",
       "notes": [
-        "No data from Ali yet"
+        "No data from Ali yet",
+        "Measurement plan, tracker, tests and questions written; no baseline yet"
       ],
-      "lastReply": ""
+      "lastReply": "Tracking is set up with every cell empty, because nothing is published. I need the platforms, a follower-count screenshot the day before the first post, and what matters most in the first 90 days."
     },
     "lamaat-designer": {
       "status": "working",
@@ -830,6 +831,21 @@
       "house": "dorek",
       "title": "Questions for Ali (performance)",
       "path": "outputs/dorek/performance/questions-for-ali.md"
+    },
+    {
+      "house": "sage",
+      "title": "Measurement plan",
+      "path": "outputs/sage/performance/measurement-plan.md"
+    },
+    {
+      "house": "sage",
+      "title": "Performance tracker",
+      "path": "outputs/sage/performance/tracker.md"
+    },
+    {
+      "house": "sage",
+      "title": "Questions for Ali (performance)",
+      "path": "outputs/sage/performance/questions-for-ali.md"
     }
   ],
   "board": [
