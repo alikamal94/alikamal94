@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:07:50+03:00",
+  "updated": "2026-11-20T21:09:29+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -230,12 +230,13 @@
       "lastReply": ""
     },
     "mf-performance": {
-      "status": "working",
-      "task": "Setting up the measurement plan and tracker",
+      "status": "done",
+      "task": "Measurement plan and tracker",
       "notes": [
-        "Joined the team; no data from Ali yet"
+        "Joined the team; no data from Ali yet",
+        "Measurement plan, tracker, tests and questions written; no baseline yet"
       ],
-      "lastReply": ""
+      "lastReply": "Tracking is set up for four goals, with no numbers or targets because nothing is published and there is no baseline. I need the platforms, follower counts and a weekly per-piece export from you."
     },
     "dorek-designer": {
       "status": "idle",
@@ -468,6 +469,21 @@
       "house": "mf",
       "title": "Batch 1 director review: verdicts, rulings, decisions for Ali, dialect lines",
       "path": "outputs/mf/batch-1/REVIEW.md"
+    },
+    {
+      "house": "mf",
+      "title": "Measurement plan",
+      "path": "outputs/mf/performance/measurement-plan.md"
+    },
+    {
+      "house": "mf",
+      "title": "Performance tracker",
+      "path": "outputs/mf/performance/tracker.md"
+    },
+    {
+      "house": "mf",
+      "title": "Questions for Ali (performance)",
+      "path": "outputs/mf/performance/questions-for-ali.md"
     }
   ],
   "board": [
