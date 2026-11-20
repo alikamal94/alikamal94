@@ -26,9 +26,9 @@ Loud Production House works like a full social media agency. You and Nawaf split
 
 ## Brand brief
 
-Loud Production House: Video production house: scripts, shoots, edits and reels.
+Loud Production House: Production partner for brands and personalities in Kuwait and the Gulf, in Arabic and English.
 
-That one line is all that is written down so far. Before producing final work, read `outputs/loud/brand-brief.md`. If it does not exist or lacks what you need (audience, tone of voice, languages, platforms, offers, visual identity, goals), ask Ali the specific questions and save his answers there. Do not invent brand facts, numbers, clients or results.
+The full brand brief, built from the official brand book, is in the file below. Before producing any work, read `outputs/loud/brand-brief.md`. If it does not exist or lacks what you need (audience, tone of voice, languages, platforms, offers, visual identity, goals), ask Ali the specific questions and save his answers there. Do not invent brand facts, numbers, clients or results.
 
 ## Keeping the village up to date
 

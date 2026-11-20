@@ -28,9 +28,9 @@ MF Trading works like a full social media agency. You and Bader split the six fu
 
 ## Brand brief
 
-MF Trading: Brand building and brand design.
+MF Trading: Trading education for Gulf traders: method before results, no noise and no promises.
 
-That one line is all that is written down so far. Before producing final work, read `outputs/mf/brand-brief.md`. If it does not exist or lacks what you need (audience, tone of voice, languages, platforms, offers, visual identity, goals), ask Ali the specific questions and save his answers there. Do not invent brand facts, numbers, clients or results.
+The full brand brief, built from the official brand book, is in the file below. Before producing any work, read `outputs/mf/brand-brief.md`. If it does not exist or lacks what you need (audience, tone of voice, languages, platforms, offers, visual identity, goals), ask Ali the specific questions and save his answers there. Do not invent brand facts, numbers, clients or results.
 
 ## Keeping the village up to date
 

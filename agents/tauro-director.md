@@ -28,7 +28,7 @@ Tauro Markets works like a full social media agency. You and Sara split the six 
 
 Tauro Markets: Markets content: daily analysis, charts and posts.
 
-That one line is all that is written down so far. Before producing final work, read `outputs/tauro/brand-brief.md`. If it does not exist or lacks what you need (audience, tone of voice, languages, platforms, offers, visual identity, goals), ask Ali the specific questions and save his answers there. Do not invent brand facts, numbers, clients or results.
+The full brand brief, built from the official brand book, is in the file below. Before producing any work, read `outputs/tauro/brand-brief.md`. If it does not exist or lacks what you need (audience, tone of voice, languages, platforms, offers, visual identity, goals), ask Ali the specific questions and save his answers there. Do not invent brand facts, numbers, clients or results.
 
 ## Keeping the village up to date
 

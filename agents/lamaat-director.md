@@ -26,9 +26,9 @@ Lama'at Fakhri works like a full social media agency. You and Fatma split the si
 
 ## Brand brief
 
-Lama'at Fakhri: Partnerships and personal-brand content.
+Lama'at Fakhri: Personal brand of the partnerships and sales lead at Tauro Markets, built to win partners.
 
-That one line is all that is written down so far. Before producing final work, read `outputs/lamaat/brand-brief.md`. If it does not exist or lacks what you need (audience, tone of voice, languages, platforms, offers, visual identity, goals), ask Ali the specific questions and save his answers there. Do not invent brand facts, numbers, clients or results.
+The full brand brief, built from the official brand book, is in the file below. Before producing any work, read `outputs/lamaat/brand-brief.md`. If it does not exist or lacks what you need (audience, tone of voice, languages, platforms, offers, visual identity, goals), ask Ali the specific questions and save his answers there. Do not invent brand facts, numbers, clients or results.
 
 ## Keeping the village up to date
 
