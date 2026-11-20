@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T16:52:00+03:00",
+  "updated": "2026-11-20T17:10:00+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "approval",
@@ -59,10 +59,17 @@
       "lastReply": "The 30-day plan and the first brief for Mariam are written. Batch 1 is six carousels that need none of your open answers; they will be delivered as copy and layout specs because we have no logo or Canva files yet. I need five answers most: platforms and cadence, the state of Set 1 and the files, your decision on the Set 2 topics, what we may say about the mentorship and community, and which markets we cover."
     },
     "bo3li-worker": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
-      "lastReply": ""
+      "status": "done",
+      "task": "Batch 1: six carousel drafts (B1-01 to B1-06) written, waiting for Yousef's review",
+      "notes": [
+        "Read the brand brief, the batch 1 brief and the 30-day plan in full",
+        "Started drafting six carousels as copy plus layout specs; nothing is published",
+        "Six drafts written in outputs/bo3li/batch-1/: copy, layout spec, caption, two eyebrow options, English gloss, ten-point check",
+        "No win rates, profit figures, balances, buy calls, instruments, prices or currency in any draft; arithmetic in percent and R only",
+        "Open points listed in each file for Yousef: TARGET vs TP label, B1-05 hook order, full stops in the B1-04 hook, swipe cue wording",
+        "Dialect lines flagged in each file for a native Kuwaiti reader; nothing added to approvals"
+      ],
+      "lastReply": "The six batch 1 carousels are drafted as copy and layout specs in outputs/bo3li/batch-1/. They are drafts only: Yousef reviews first, and nothing is in approvals yet. Each file lists the dialect lines I want a native Kuwaiti reader to check."
     },
     "sage-director": {
       "status": "done",
@@ -170,6 +177,36 @@
       "house": "bo3li",
       "title": "Brief for Mariam: batch 1, six carousels",
       "path": "outputs/bo3li/2026-11-20-brief-batch-1.md"
+    },
+    {
+      "house": "bo3li",
+      "title": "B1-01 draft: What this account is (a school, not a tip line)",
+      "path": "outputs/bo3li/batch-1/B1-01-school-not-tip-line.md"
+    },
+    {
+      "house": "bo3li",
+      "title": "B1-02 draft: Plan before entry",
+      "path": "outputs/bo3li/batch-1/B1-02-plan-before-entry.md"
+    },
+    {
+      "house": "bo3li",
+      "title": "B1-03 draft: The trader, not the market",
+      "path": "outputs/bo3li/batch-1/B1-03-trader-not-market.md"
+    },
+    {
+      "house": "bo3li",
+      "title": "B1-04 draft: Loss is part of the game",
+      "path": "outputs/bo3li/batch-1/B1-04-loss-is-part-of-the-game.md"
+    },
+    {
+      "house": "bo3li",
+      "title": "B1-05 draft: Stop before target",
+      "path": "outputs/bo3li/batch-1/B1-05-stop-before-target.md"
+    },
+    {
+      "house": "bo3li",
+      "title": "B1-06 draft: Journal after exit",
+      "path": "outputs/bo3li/batch-1/B1-06-journal-after-exit.md"
     }
   ],
   "board": [
