@@ -11,7 +11,7 @@
   :root { --s: 2; --ink: #1b1410; --cream: #f6ecd2; }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: #14101c; overflow: hidden; }
-  body { display: flex; align-items: center; justify-content: center; font-family: "IBM Plex Sans Arabic", system-ui, sans-serif; }
+  body { display: flex; flex-direction: column; font-family: "IBM Plex Sans Arabic", system-ui, sans-serif; }
   #stage { position: relative; line-height: 0; box-shadow: 0 0 0 4px var(--ink), 8px 8px 0 4px rgba(0,0,0,.5); }
   #view { display: block; image-rendering: pixelated; image-rendering: crisp-edges; cursor: pointer; }
   #labels { position: absolute; inset: 0; pointer-events: none; line-height: 1.15; }
@@ -42,16 +42,94 @@
   .tag[data-st="done"] .st .d { display: block; background: #2f9e44; color: #fff; border: 1px solid #1b1410; border-radius: 50%; padding: 1px 3px; box-shadow: 1px 1px 0 rgba(0,0,0,.5); }
   @keyframes dot { 0%, 60%, 100% { opacity: .25; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-2px); } }
   @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-5px); } }
-  #hint { position: fixed; right: 10px; bottom: 6px; z-index: 9; background: rgba(20,16,28,.8); padding: 2px 6px; color: #a99cc0; font: 11px/1.2 system-ui, sans-serif; opacity: .8; }
+  #wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+  /* ---- retro UI ---- */
+  #hud { flex: none; display: flex; align-items: center; gap: 14px; padding: 6px 12px; background: var(--cream); border-bottom: 4px solid var(--ink); color: var(--ink); z-index: 20; }
+  #hud .logo { font: 16px/1 "Press Start 2P", monospace; letter-spacing: 1px; text-shadow: 2px 2px 0 #e9b82c; }
+  #hud .sub { display: inline-block; font-weight: 600; font-size: 14px; margin-left: 14px; opacity: .85; }
+  #hud .mid { margin-left: auto; display: flex; align-items: center; gap: 10px; font: 10px/1 "Press Start 2P", monospace; }
+  #clock { background: var(--ink); color: #ffe9a8; padding: 6px 8px; }
+  #clock small { font: inherit; opacity: .7; margin-left: 6px; }
+  #live { padding: 5px 7px; border: 2px solid var(--ink); background: #fff; }
+  #live::before { content: "●"; margin-right: 5px; color: #b08900; }
+  #live.on::before { color: #2f9e44; animation: blink 1.2s infinite; }
+  @keyframes blink { 50% { opacity: .2; } }
+  .btn { font: 600 13px/1 "IBM Plex Sans Arabic", system-ui, sans-serif; color: var(--ink); background: #fff; border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); padding: 6px 10px; cursor: pointer; position: relative; white-space: nowrap; }
+  .btn:hover { background: #fff3b8; } .btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+  .btn.pri { background: #2bb5a8; color: #fff; } .btn.pri:hover { background: #1f9a90; }
+  .btn.warn { background: #ffd9d4; } .btn.sm { font-size: 12px; padding: 4px 8px; border-width: 2px; box-shadow: 2px 2px 0 var(--ink); }
+  .btn[disabled] { opacity: .5; cursor: default; }
+  #hud .btns { display: flex; gap: 10px; }
+  .badge { position: absolute; top: -9px; right: -9px; min-width: 20px; height: 20px; padding: 0 4px; background: #e0342b; color: #fff; border: 2px solid var(--ink); font: 700 11px/16px system-ui, sans-serif; text-align: center; }
+  .badge:empty, .badge[data-n="0"] { display: none; }
+  #panel { position: fixed; right: 12px; top: 64px; bottom: 14px; width: 350px; max-width: calc(100vw - 24px); background: var(--cream); border: 4px solid var(--ink); box-shadow: 8px 8px 0 rgba(0,0,0,.75); color: var(--ink); z-index: 30; display: none; flex-direction: column; font-size: 13px; line-height: 1.35; }
+  #panel.open { display: flex; }
+  #panel .head { padding: 10px 12px 8px; border-bottom: 4px solid var(--ink); border-top: 8px solid var(--c, #888); position: relative; background: #fffaf0; }
+  #panel .head h2 { margin: 0; font-size: 18px; font-weight: 700; padding-right: 30px; }
+  #panel .head .ar { direction: rtl; text-align: left; font-weight: 600; font-size: 15px; opacity: .8; }
+  .x { position: absolute; right: 8px; top: 8px; width: 26px; height: 26px; padding: 0; font: 700 14px/1 system-ui, sans-serif; }
+  #panel .body, .modal .body { padding: 10px 12px 14px; overflow-y: auto; }
+  h3 { font: 9px/1 "Press Start 2P", monospace; margin: 16px 0 8px; padding-bottom: 5px; border-bottom: 2px dashed var(--ink); text-transform: uppercase; }
+  h3:first-child { margin-top: 2px; }
+  .desc { margin: 0 0 6px; } .muted { opacity: .65; font-size: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 5px 0; }
+  .chip { font-size: 10.5px; font-weight: 600; border: 1.5px solid var(--ink); padding: 0 5px; background: #fff; }
+  .card { background: #fff; border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); padding: 8px 9px; margin-bottom: 10px; }
+  .card .top { display: flex; align-items: center; gap: 8px; }
+  .card .top canvas { width: 30px; height: 51px; image-rendering: pixelated; flex: none; background: #e2c28a; border: 2px solid var(--ink); }
+  .card .nm { font-weight: 700; font-size: 14px; cursor: pointer; } .card .nm:hover { text-decoration: underline; }
+  .card .role { font-size: 12px; opacity: .75; }
+  .card .task { margin: 6px 0; font-size: 12.5px; } .card .task b { font-weight: 600; }
+  .card .acts { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+  .pill { margin-left: auto; font: 700 10.5px/1 system-ui, sans-serif; padding: 4px 6px; border: 2px solid var(--ink); white-space: nowrap; text-transform: uppercase; letter-spacing: .3px; }
+  .pill.working { background: #fff; } .pill.approval { background: #e0342b; color: #fff; } .pill.done { background: #2f9e44; color: #fff; } .pill.idle { background: #ddd3bb; }
+  ul.list { list-style: none; margin: 0; padding: 0; } ul.list li { padding: 5px 0; border-bottom: 1px solid rgba(27,20,16,.2); font-size: 12.5px; }
+  ul.list li code, .path { font: 11px ui-monospace, Menlo, monospace; opacity: .7; display: block; word-break: break-all; }
+  .reply { background: #fffaf0; border-left: 4px solid var(--ink); padding: 6px 8px; font-size: 12.5px; white-space: pre-wrap; }
+  .board { width: 100%; border-collapse: collapse; font-size: 12px; } .board td, .board th { border: 2px solid var(--ink); padding: 4px 5px; text-align: left; vertical-align: top; background: #fff; } .board th { background: var(--ink); color: #ffe9a8; font-weight: 600; } .board .pill { display: inline-block; }
+  #scrim { position: fixed; inset: 0; background: rgba(12,8,20,.6); z-index: 40; display: none; align-items: center; justify-content: center; padding: 16px; }
+  #scrim.open { display: flex; }
+  .modal { width: 520px; max-width: 100%; max-height: 90vh; display: none; flex-direction: column; background: var(--cream); border: 4px solid var(--ink); box-shadow: 10px 10px 0 #000; color: var(--ink); font-size: 13px; line-height: 1.35; }
+  .modal.open { display: flex; }
+  .modal .head { padding: 12px 14px; border-bottom: 4px solid var(--ink); background: #fffaf0; position: relative; font: 12px/1.3 "Press Start 2P", monospace; }
+  .modal .head span { display: block; font: 600 14px "IBM Plex Sans Arabic", sans-serif; direction: rtl; text-align: left; opacity: .75; margin-top: 4px; }
+  .checks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+  .checks label { display: flex; align-items: center; gap: 6px; background: #fff; border: 2px solid var(--ink); padding: 4px 6px; cursor: pointer; font-size: 12.5px; }
+  .checks label i { width: 10px; height: 10px; border: 1.5px solid var(--ink); flex: none; }
+  input[type=text] { width: 100%; font: 14px "IBM Plex Sans Arabic", system-ui, sans-serif; padding: 7px 8px; border: 3px solid var(--ink); background: #fff; color: var(--ink); }
+  input[type=checkbox] { accent-color: #1b1410; width: 15px; height: 15px; }
+  .row { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px); background: var(--ink); color: #fff; border: 3px solid #ffe9a8; box-shadow: 5px 5px 0 rgba(0,0,0,.6); padding: 9px 13px; z-index: 60; font-size: 13px; line-height: 1.35; max-width: min(560px, 92vw); opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; }
+  #toast.show { opacity: 1; transform: translateX(-50%); }
+  #toast code { display: block; margin-top: 5px; color: #ffe9a8; font: 11.5px ui-monospace, Menlo, monospace; word-break: break-word; }
+  @media (max-width: 760px) { #hud { flex-wrap: wrap; gap: 8px; } #hud .sub { display: none; } #panel { top: auto; height: 62vh; left: 12px; width: auto; } .checks { grid-template-columns: 1fr; } }
+  #hint { position: fixed; left: 10px; bottom: 6px; z-index: 9; background: rgba(20,16,28,.8); padding: 2px 6px; color: #a99cc0; font: 11px/1.2 system-ui, sans-serif; opacity: .8; }
   #hint kbd { background: #2a2338; border: 1px solid #554a6b; border-radius: 3px; padding: 0 4px; color: #e8dcff; }
 </style>
 </head>
 <body>
+<header id="hud">
+  <div><span class="logo">ALI HQ</span><span class="sub" lang="ar">فريج علي · قرية الوكلاء</span></div>
+  <div class="mid"><span id="clock">--:--</span><span id="live" title="Demo data until state/tasks.json is connected">DEMO</span></div>
+  <div class="btns">
+    <button class="btn" data-act="board">Chief's board</button>
+    <button class="btn" data-act="meeting">Majlis meeting</button>
+    <button class="btn" data-act="approvals">Approvals<span class="badge" id="badge"></span></button>
+  </div>
+</header>
+<div id="wrap">
 <div id="stage">
   <canvas id="view" width="640" height="384"></canvas>
   <div id="labels"></div>
   <div id="tags"></div>
 </div>
+</div>
+<aside id="panel" aria-live="polite"></aside>
+<div id="scrim">
+  <div class="modal" id="m-approvals"></div>
+  <div class="modal" id="m-meeting"></div>
+</div>
+<div id="toast" role="status"></div>
 <div id="hint">click the ground or use <kbd>←↑↓→</kbd> to walk · <kbd>N</kbd> toggle night</div>
 
 <script>
@@ -450,6 +528,7 @@ function drawHouse(h) {
   R(cx - 6, wallBottom, 12, 1, '#efe6d2');
 
   solid(hx - 1, py + 5, hw + 2, wallBottom - py - 5);
+  h.body = { x: hx, y: ry - 3, w: hw, h: wallBottom - ry + 3 };
   const lx = px + 5, rx = hx + hw + 4, yardY = py + 55; // prop zones
 
   /* ---- per-house character ---- */
@@ -1087,9 +1166,11 @@ let SCALE = 2, hoverId = null;
 
 function fit() {
   const dpr = window.devicePixelRatio || 1;
-  const availW = window.innerWidth - 24, availH = window.innerHeight - 24 - (document.getElementById('hud') ? document.getElementById('hud').offsetHeight : 0);
-  const k = Math.max(1, Math.floor(Math.min(availW * dpr / W, availH * dpr / H)));
-  view.width = W * k; view.height = H * k;
+  const availW = window.innerWidth - 24, availH = window.innerHeight - 28 - document.getElementById('hud').offsetHeight;
+  const exact = Math.max(0.5, Math.min(availW * dpr / W, availH * dpr / H));
+  let k = Math.max(1, Math.floor(exact));
+  if (k > exact || k / exact < 0.8) k = exact;      // integer scale when it nearly fills the space, else exact fit
+  view.width = Math.round(W * k); view.height = Math.round(H * k);
   SCALE = k / dpr;
   view.style.width = (W * SCALE) + 'px'; view.style.height = (H * SCALE) + 'px';
   stage.style.setProperty('--s', SCALE);
@@ -1105,6 +1186,7 @@ function buildLabels() {
     const s = document.createElement('span'); s.textContent = ar; s.lang = 'ar';
     d.append(b, s);
     d.addEventListener('mouseenter', () => setHover(id)); d.addEventListener('mouseleave', () => setHover(null));
+    d.addEventListener('click', () => id === 'majlis' ? openMeeting() : openHouse(id));
     labelsEl.append(d); return d;
   };
   for (const h of HOUSES) h.plate = mk(h.id, h.en, h.ar, h.color);
@@ -1124,9 +1206,9 @@ function toWorld(e) {
   return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H };
 }
 view.addEventListener('mousemove', e => {
-  const p = toWorld(e); let id = null;
-  for (const h of HOTSPOTS) if (h.id !== 'plaza' && h.id !== 'gate' && p.x >= h.x && p.x < h.x + h.w && p.y >= h.y && p.y < h.y + h.h) id = h.id;
+  const p = toWorld(e), id = personAt(p) ? null : buildingAt(p);
   setHover(id);
+  view.style.cursor = id || personAt(p) ? 'pointer' : 'crosshair';
 });
 view.addEventListener('mouseleave', () => setHover(null));
 window.addEventListener('keydown', e => {
@@ -1353,6 +1435,7 @@ function spawn(a, x, y, i) {
     el.className = 'tag' + (a.kind ? ' ' + a.kind : ''); el.dataset.id = a.id;
     el.innerHTML = '<div class="st"><i class="w"><em></em><em></em><em></em></i><i class="a">!</i><i class="d">✓</i></div><div class="nm"></div>';
     el.querySelector('.nm').textContent = (a.kind === 'ali' ? '★ ' : '') + a.name;
+    el.querySelector('.nm').addEventListener('click', () => openPerson(a.id));
     tagsEl.append(el); c.tag = el; setStatus(c, c.status);
   }
   return c;
@@ -1427,6 +1510,18 @@ function updatePeople(dt) {
   // --- house staff: wander near the door
   for (const c of chars) {
     if (c === ALI || (c === RASHED && c.mode === 'home') || c.mode === 'static') { }
+    else if (c.mode === 'called' || c.mode === 'meeting') {
+      c.moving = followPath(c, dt);
+      if (!c.moving) {
+        if (c.mode === 'called') faceBy(c, ALI.x - c.x, ALI.y - c.y); else faceBy(c, FOUNTAIN.x - c.x, (FOUNTAIN.y - c.y) * 3);
+        c.stay -= dt;
+        if (c.stay <= 0) sendHome(c);
+      }
+    }
+    else if (c.mode === 'return') {
+      c.moving = followPath(c, dt);
+      if (!c.moving) { c.mode = 'home'; c.speed = 20; c.wait = 1 + rnd() * 3; c.dir = 'down'; }
+    }
     else if (c.mode === 'home' && c.home) {
       c.moving = followPath(c, dt);
       if (!c.moving) {
@@ -1466,8 +1561,20 @@ function drawPeople(t) {
 function layoutTags() {
   for (const c of chars) if (c.tag) c.tag.style.transform = `translate(${Math.round(c.x * SCALE)}px,${Math.round((c.y - 17) * SCALE)}px) translate(-50%,-100%)`;
 }
+function personAt(p) {
+  let best = null;
+  for (const c of chars) if (c.tag && Math.abs(p.x - c.x) <= 6 && p.y <= c.y + 2 && p.y >= c.y - 18 && (!best || c.y > best.y)) best = c;
+  return best;
+}
+function buildingAt(p) {
+  for (const h of HOUSES) { const b = h.body; if (p.x >= b.x && p.x < b.x + b.w && p.y >= b.y && p.y < b.y + b.h) return h.id; }
+  const m = MAJLIS; if (p.x >= m.x && p.x < m.x + m.w && p.y >= m.roofY - 16 && p.y < m.wallY + m.wallH) return 'majlis';
+  return null;
+}
 view.addEventListener('click', e => {
   const p = toWorld(e);
+  const who = personAt(p); if (who) { openPerson(who.id); return; }
+  const b = buildingAt(p); if (b) { b === 'majlis' ? openMeeting() : openHouse(b); return; }
   const c = nearestCell(p.x, p.y); if (c < 0) return;
   let tx = p.x | 0, ty = p.y | 0;
   if (isBlocked(tx, ty)) { tx = (c % GC) * CS + 2; ty = ((c / GC) | 0) * CS + 2; }
@@ -1476,6 +1583,254 @@ view.addEventListener('click', e => {
 window.addEventListener('keydown', e => { if (e.key.startsWith('Arrow') && !/INPUT|TEXTAREA/.test(e.target.tagName)) { keys[e.key] = true; e.preventDefault(); } });
 window.addEventListener('keyup', e => { keys[e.key] = false; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+
+
+/* =====================================================================
+   PHASE 3 — interface
+   ===================================================================== */
+const HOUSE_INFO = {
+  loud:   'Video production house: scripts, shoots, edits and reels.',
+  tauro:  'Markets content: daily analysis, charts and posts.',
+  bo3li:  'Trading education: lessons and carousels.',
+  sage:   'A brand being launched: identity, launch plan and social content.',
+  ali:    'Home base. Ali, the Chief Human Officer, and his Chief of Staff, Rashed.',
+  lamaat: 'Partnerships and personal-brand content.',
+  mf:     'Brand building and brand design.',
+  dorek:  'App product: copy and pilot operations.',
+};
+const STATUS_LABEL = { working: 'Working', approval: 'Needs you', done: 'Done', idle: 'Idle' };
+// Demo data, same shape as state/tasks.json (wired up in Phase 4).
+const DEMO_STATE = {
+  agents: {
+    'chief-of-staff':  { status: 'working',  task: 'Collecting updates from all houses', notes: ['3 items are waiting for Ali', 'Demo data: nothing here is real yet'], lastReply: 'Three approvals are waiting for you. Everything else is on track.' },
+    'loud-director':   { status: 'working',  task: 'Planning this month\'s video slate', notes: ['Slate draft started'], lastReply: '' },
+    'loud-worker':     { status: 'done',     task: 'Reel script, first draft', notes: ['Script draft finished'], lastReply: '' },
+    'tauro-director':  { status: 'approval', task: 'Weekly gold outlook post', notes: ['Post drafted', 'Waiting for Ali\'s approval'], lastReply: 'The weekly outlook is ready for your review.' },
+    'tauro-worker':    { status: 'working',  task: 'Charts for the weekly outlook', notes: [], lastReply: '' },
+    'bo3li-director':  { status: 'idle',     task: '', notes: [], lastReply: '' },
+    'bo3li-worker':    { status: 'working',  task: 'Lesson carousel, slides 1 to 5', notes: [], lastReply: '' },
+    'sage-director':   { status: 'done',     task: 'Launch plan outline', notes: ['Outline finished'], lastReply: '' },
+    'sage-worker':     { status: 'approval', task: 'Launch week content calendar', notes: ['Calendar drafted'], lastReply: '' },
+    'lamaat-director': { status: 'working',  task: 'Partner shortlist', notes: [], lastReply: '' },
+    'lamaat-worker':   { status: 'idle',     task: '', notes: [], lastReply: '' },
+    'mf-director':     { status: 'working',  task: 'Brand positioning notes', notes: [], lastReply: '' },
+    'mf-worker':       { status: 'done',     task: 'Logo colour options', notes: [], lastReply: '' },
+    'dorek-director':  { status: 'working',  task: 'Pilot checklist', notes: [], lastReply: '' },
+    'dorek-worker':    { status: 'approval', task: 'Onboarding screen copy v1', notes: ['Copy drafted'], lastReply: '' },
+  },
+  approvals: [
+    { id: 'TAU-001', title: 'Weekly gold outlook post', house: 'tauro', agent: 'tauro-director', summary: 'Draft post for review. Demo item.' },
+    { id: 'SAG-001', title: 'Launch week content calendar', house: 'sage', agent: 'sage-worker', summary: 'Seven-day calendar draft. Demo item.' },
+    { id: 'DOR-001', title: 'Onboarding screen copy v1', house: 'dorek', agent: 'dorek-worker', summary: 'First pass of app copy. Demo item.' },
+  ],
+  outputs: [
+    { house: 'loud',  title: 'Reel script, first draft', path: 'outputs/loud/reel-script-draft.md' },
+    { house: 'sage',  title: 'Launch plan outline', path: 'outputs/sage/launch-plan-outline.md' },
+    { house: 'mf',    title: 'Logo colour options', path: 'outputs/mf/logo-colour-options.md' },
+  ],
+  board: [
+    { item: 'Weekly gold outlook post', owner: 'tauro-director', status: 'approval' },
+    { item: 'Launch week content calendar', owner: 'sage-worker', status: 'approval' },
+    { item: 'Onboarding screen copy v1', owner: 'dorek-worker', status: 'approval' },
+    { item: 'Video slate for the month', owner: 'loud-director', status: 'working' },
+    { item: 'Lesson carousel', owner: 'bo3li-worker', status: 'working' },
+    { item: 'Partner shortlist', owner: 'lamaat-director', status: 'working' },
+    { item: 'Brand positioning notes', owner: 'mf-director', status: 'working' },
+  ],
+};
+let STATE = DEMO_STATE, LIVE = false, current = null;
+const copied = new Set();
+const $ = id => document.getElementById(id);
+const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+const agentDef = id => AGENTS.find(a => a.id === id);
+const agentState = id => (STATE.agents && STATE.agents[id]) || { status: 'idle', task: '', notes: [], lastReply: '' };
+
+function applyState(st, live) {
+  STATE = st || DEMO_STATE; LIVE = !!live;
+  for (const c of chars) if (c.tag && c !== ALI) setStatus(c, agentState(c.id).status || 'idle');
+  const n = (STATE.approvals || []).length;
+  $('badge').textContent = n || ''; $('badge').dataset.n = n;
+  $('live').textContent = LIVE ? 'LIVE' : 'DEMO'; $('live').classList.toggle('on', LIVE);
+  renderPanel(); if ($('m-approvals').classList.contains('open')) renderApprovals();
+}
+
+/* ---- clipboard + toast ---- */
+let toastT = 0;
+function toast(msg, code) {
+  const t = $('toast'); t.innerHTML = esc(msg) + (code ? '<code>' + esc(code) + '</code>' : '');
+  t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), code ? 5200 : 2600);
+}
+async function copyLine(text, what) {
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
+    const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0'; document.body.append(ta); ta.select();
+    try { ok = document.execCommand('copy'); } catch (e2) { } ta.remove();
+  }
+  window.ALIHQ.lastCopied = text;
+  toast(ok ? (what || 'Copied.') + ' Paste it into Claude Code.' : 'Could not copy automatically. Copy this line into Claude Code:', text);
+}
+
+/* ---- portraits ---- */
+function portrait(id) {
+  const c = byId[id]; if (!c) return '';
+  return `<canvas width="10" height="17" data-portrait="${esc(id)}"></canvas>`;
+}
+function paintPortraits(root) {
+  for (const cv of root.querySelectorAll('canvas[data-portrait]')) {
+    const c = byId[cv.dataset.portrait]; const x = cv.getContext('2d'); x.clearRect(0, 0, 10, 17); x.drawImage(getSprite(c.look, 'down', 0), 0, 0);
+  }
+}
+
+/* ---- side panel ---- */
+function teamCard(a, full) {
+  const st = agentState(a.id), status = st.status || 'idle';
+  const covers = a.kind ? [] : (a.dir ? COVERS.dir : COVERS.worker);
+  return `<div class="card">
+    <div class="top">${portrait(a.id)}<div><div class="nm" data-act="person" data-id="${esc(a.id)}">${esc(a.name)}</div><div class="role">${esc(a.role)}</div></div>
+      <span class="pill ${esc(status)}">${esc(STATUS_LABEL[status] || status)}</span></div>
+    ${covers.length ? `<div class="chips">${covers.map(c => `<span class="chip">${esc(c)}</span>`).join('')}</div>` : ''}
+    <div class="task"><b>Current task:</b> ${st.task ? esc(st.task) : '<span class="muted">nothing assigned</span>'}</div>
+    <div class="acts"><button class="btn sm pri" data-act="talk" data-id="${esc(a.id)}">Talk</button><button class="btn sm" data-act="call" data-id="${esc(a.id)}">Call over</button></div>
+  </div>`;
+}
+function approvalCard(ap) {
+  const who = agentDef(ap.agent);
+  return `<div class="card">
+    <div class="top"><div><div style="font-weight:700">${esc(ap.title)}</div><div class="role">${esc(ap.id)}${who ? ' · ' + esc(who.name) : ''}${ap.house && houseOf(ap.house) ? ' · ' + esc(houseOf(ap.house).en) : ''}</div></div>${copied.has(ap.id) ? '<span class="pill done">Copied</span>' : ''}</div>
+    ${ap.summary ? `<div class="task">${esc(ap.summary)}</div>` : ''}${ap.path ? `<span class="path">${esc(ap.path)}</span>` : ''}
+    <div class="acts"><button class="btn sm pri" data-act="approve" data-id="${esc(ap.id)}">Approve</button><button class="btn sm warn" data-act="sendback" data-id="${esc(ap.id)}">Send back</button></div>
+  </div>`;
+}
+function renderPanel() {
+  const el = $('panel');
+  if (!current) { el.classList.remove('open'); return; }
+  let html = '';
+  if (current.type === 'house') {
+    const h = houseOf(current.id), team = AGENTS.filter(a => a.house === h.id && a.kind !== 'ali');
+    const outs = (STATE.outputs || []).filter(o => o.house === h.id), aps = (STATE.approvals || []).filter(a => a.house === h.id);
+    el.style.setProperty('--c', h.color);
+    html = `<div class="head"><h2>${esc(h.en)}</h2><div class="ar" lang="ar">${esc(h.ar)}</div><button class="btn x" data-act="close" aria-label="Close">✕</button></div>
+    <div class="body"><p class="desc">${esc(HOUSE_INFO[h.id] || '')}</p>
+      ${h.id === 'ali' ? '' : '<div class="chips">' + ['Strategy', 'Content', 'Copywriting', 'Design', 'Social media', 'Performance'].map(c => `<span class="chip">${c}</span>`).join('') + '</div>'}
+      <h3>Team</h3>${team.map(a => teamCard(a)).join('')}
+      <h3>Outputs</h3>${outs.length ? `<ul class="list">${outs.map(o => `<li>${esc(o.title)}<code>${esc(o.path)}</code></li>`).join('')}</ul>` : '<p class="muted">No outputs yet.</p>'}
+      <h3>Waiting for you</h3>${aps.length ? aps.map(approvalCard).join('') : '<p class="muted">Nothing is waiting for your approval.</p>'}
+    </div>`;
+  } else {
+    const a = agentDef(current.id), h = houseOf(a.house), st = agentState(a.id);
+    el.style.setProperty('--c', a.kind === 'chief' ? '#5a3a1e' : h.color);
+    if (a.kind === 'ali') {
+      html = `<div class="head"><h2>★ Ali</h2><div class="ar" lang="ar">علي</div><button class="btn x" data-act="close" aria-label="Close">✕</button></div>
+      <div class="body"><div class="card"><div class="top">${portrait('ali')}<div><div style="font-weight:700">Ali</div><div class="role">Chief Human Officer</div></div></div>
+      <div class="task">That's you. Click the ground or use the arrow keys to walk. Rashed follows a few steps behind.</div></div></div>`;
+    } else {
+      const notes = (st.notes || []).slice(-3).reverse();
+      html = `<div class="head"><h2>${esc(a.name)}</h2><div class="ar" style="direction:ltr">${esc(a.role)} · <span data-act="house" data-id="${esc(h.id)}" style="cursor:pointer;text-decoration:underline">${esc(h.en)}</span></div><button class="btn x" data-act="close" aria-label="Close">✕</button></div>
+      <div class="body">${teamCard(a)}
+        <h3>Last 3 notes</h3>${notes.length ? `<ul class="list">${notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : '<p class="muted">No notes yet.</p>'}
+        <h3>Last reply</h3>${st.lastReply ? `<div class="reply">${esc(st.lastReply)}</div>` : '<p class="muted">No reply yet.</p>'}
+        ${a.kind === 'chief' ? `<h3>Chief's board</h3>${(STATE.board || []).length ? `<table class="board"><tr><th>Item</th><th>Owner</th><th>Status</th></tr>${STATE.board.map(b => { const o = agentDef(b.owner); return `<tr><td>${esc(b.item)}</td><td>${esc(o ? o.name : b.owner)}</td><td><span class="pill ${esc(b.status)}" style="margin:0">${esc(STATUS_LABEL[b.status] || b.status)}</span></td></tr>`; }).join('')}</table>` : '<p class="muted">The board is empty.</p>'}` : ''}
+      </div>`;
+    }
+  }
+  el.innerHTML = html; el.classList.add('open'); paintPortraits(el);
+}
+function openHouse(id) { current = { type: 'house', id }; renderPanel(); }
+function openPerson(id) { current = { type: 'person', id }; renderPanel(); }
+function closePanel() { current = null; renderPanel(); }
+
+/* ---- modals ---- */
+function openModal(id) { for (const m of document.querySelectorAll('.modal')) m.classList.toggle('open', m.id === id); $('scrim').classList.add('open'); }
+function closeModal() { $('scrim').classList.remove('open'); for (const m of document.querySelectorAll('.modal')) m.classList.remove('open'); }
+function renderApprovals() {
+  const aps = STATE.approvals || [];
+  $('m-approvals').innerHTML = `<div class="head">APPROVALS<span lang="ar">بانتظار موافقتك</span><button class="btn x" data-act="close-modal" aria-label="Close">✕</button></div>
+    <div class="body">${aps.length ? aps.map(approvalCard).join('') : '<p class="muted">Nothing is waiting for your approval.</p>'}
+    <p class="muted">Approve and Send back only copy a line for Rashed. Nothing is posted, sent or published from this page.</p></div>`;
+}
+function openApprovals() { renderApprovals(); openModal('m-approvals'); }
+function openMeeting() {
+  const dirs = AGENTS.filter(a => a.dir);
+  $('m-meeting').innerHTML = `<div class="head">MAJLIS MEETING<span lang="ar">اجتماع المجلس</span><button class="btn x" data-act="close-modal" aria-label="Close">✕</button></div>
+    <div class="body"><h3>Who joins</h3>
+      <div class="checks">${dirs.map(a => `<label><input type="checkbox" value="${esc(a.id)}" checked><i style="background:${houseOf(a.house).color}"></i><span><b>${esc(a.name)}</b> · ${esc(houseOf(a.house).en)}</span></label>`).join('')}</div>
+      <div class="row"><button class="btn sm" data-act="meet-all">Select all</button><button class="btn sm" data-act="meet-none">Clear</button></div>
+      <h3>Topic</h3><input type="text" id="topic" placeholder="e.g. plans for next week" maxlength="200">
+      <div class="row"><button class="btn pri" data-act="meet-start">Call the meeting</button><button class="btn" data-act="meet-end">Send everyone home</button></div>
+      <p class="muted">The selected directors walk to the plaza, and a line for Rashed is copied to your clipboard.</p></div>`;
+  openModal('m-meeting'); setTimeout(() => $('topic') && $('topic').focus(), 30);
+}
+
+/* ---- call over + meeting movement ---- */
+function freeSpot(x, y, taken) {
+  for (const r of [13, 18, 24, 30]) for (let k = 0; k < 10; k++) {
+    const a = (k / 10) * Math.PI * 2 + 0.6, sx = Math.round(x + Math.cos(a) * r), sy = Math.round(y + Math.sin(a) * r * 0.75);
+    if (isBlocked(sx, sy)) continue;
+    if (taken.some(t => Math.hypot(t[0] - sx, t[1] - sy) < 11)) continue;
+    return [sx, sy];
+  }
+  return [x | 0, y | 0];
+}
+function sendHome(c) { if (!c.home) return; c.mode = 'return'; c.speed = 44; if (!goTo(c, c.home.hx, c.home.hy)) { c.x = c.home.hx; c.y = c.home.hy; } }
+function callOver(id) {
+  const c = byId[id], a = agentDef(id); if (!c) return;
+  if (c === RASHED) { toast('Rashed is already at your side.'); return; }
+  const taken = chars.filter(o => o !== c && (o.mode === 'called' || o === RASHED)).map(o => o.path && o.path.length ? o.path[o.path.length - 1] : [o.x, o.y]);
+  const [sx, sy] = freeSpot(ALI.x, ALI.y, taken);
+  c.mode = 'called'; c.speed = 46; c.stay = 14;
+  if (!goTo(c, sx, sy)) c.path = null;
+  toast(a.name + ' is walking over to you.');
+}
+function startMeeting(ids) {
+  const list = ids.map(id => byId[id]).filter(Boolean), n = list.length;
+  list.forEach((c, i) => {
+    const t = n === 1 ? 0.5 : i / (n - 1), ang = Math.PI * (0.08 + 0.84 * t);       // semicircle south of the fountain
+    let x = Math.round(FOUNTAIN.x - Math.cos(ang) * 54), y = Math.round(FOUNTAIN.y + 4 + Math.sin(ang) * 25);
+    if (isBlocked(x, y)) { const cell = nearestCell(x, y); x = (cell % GC) * CS + 2; y = ((cell / GC) | 0) * CS + 2; }
+    c.mode = 'meeting'; c.speed = 46; c.stay = 60; goTo(c, x, y);
+  });
+}
+
+/* ---- actions ---- */
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) { if (e.target.id === 'scrim') closeModal(); return; }
+  const act = b.dataset.act, id = b.dataset.id;
+  if (act === 'close') closePanel();
+  else if (act === 'close-modal') closeModal();
+  else if (act === 'board') openPerson('chief-of-staff');
+  else if (act === 'approvals') openApprovals();
+  else if (act === 'meeting') openMeeting();
+  else if (act === 'person') openPerson(id);
+  else if (act === 'house') openHouse(id);
+  else if (act === 'talk') copyLine(`@${id} what's the status on your current task, and what do you need from me?`, `Line for ${agentDef(id).name} copied.`);
+  else if (act === 'call') callOver(id);
+  else if (act === 'approve' || act === 'sendback') {
+    const ap = (STATE.approvals || []).find(a => a.id === id); if (!ap) return;
+    copyLine(act === 'approve' ? `@chief-of-staff APPROVED: ${ap.title} (${ap.id}). Go ahead.` : `@chief-of-staff SEND BACK: ${ap.title} (${ap.id}). Changes needed: `,
+      act === 'approve' ? 'Approval line copied.' : 'Send-back line copied. Add your changes after pasting.');
+    copied.add(ap.id); renderPanel(); if ($('m-approvals').classList.contains('open')) renderApprovals();
+  }
+  else if (act === 'meet-all' || act === 'meet-none') { for (const cb of $('m-meeting').querySelectorAll('input[type=checkbox]')) cb.checked = act === 'meet-all'; }
+  else if (act === 'meet-end') { for (const c of chars) if (c.mode === 'meeting') sendHome(c); closeModal(); toast('Meeting over. Everyone is heading home.'); }
+  else if (act === 'meet-start') {
+    const ids = [...$('m-meeting').querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value), topic = $('topic').value.trim();
+    if (!ids.length) { toast('Pick at least one director.'); return; }
+    if (!topic) { toast('Add a topic for the meeting.'); $('topic').focus(); return; }
+    startMeeting(ids); closeModal();
+    copyLine(`@chief-of-staff run a majlis meeting with ${ids.join(', ')} about: ${topic}. Each director gives a 3-line update and one blocker. Write notes and action items to outputs/meetings/.`, 'Meeting line copied.');
+  }
+});
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if ($('scrim').classList.contains('open')) closeModal(); else closePanel(); }
+  if (e.key === 'Enter' && e.target.id === 'topic') $('m-meeting').querySelector('[data-act="meet-start"]').click();
+});
+function tickClock() {
+  const d = new Date();
+  const tm = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kuwait', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(d);
+  const dt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kuwait', weekday: 'short', day: 'numeric', month: 'short' }).format(d);
+  $('clock').innerHTML = esc(tm) + '<small>KWT · ' + esc(dt) + '</small>';
+}
+setInterval(tickClock, 1000);
 
 let lastMs = 0;
 function render(ms) {
@@ -1498,9 +1853,12 @@ function render(ms) {
 buildBackground();
 buildPeople();
 buildLabels();
+tickClock();
+applyState(DEMO_STATE, false);
 fit();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 requestAnimationFrame(render);
-window.ALIHQ = { chars, byId, goTo, getSprite, setStatus, setNight: v => { nightOverride = v; nightShown = v == null ? null : v ? 1 : 0; } };
+window.ALIHQ = { applyState, openHouse, openPerson, chars, byId, goTo, getSprite, setStatus, setNight: v => { nightOverride = v; nightShown = v == null ? null : v ? 1 : 0; } };
 </script>
 </body>
 </html>
