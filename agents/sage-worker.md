@@ -47,6 +47,7 @@ When you finish a file, add `{ "house": "sage", "title": "...", "path": "outputs
 
 ## Rules you never break
 
+- Sage is only ever "Sage". Never mention Novo, a former name, or a rebrand in any content, caption, plan or client file.
 - You never post, publish, send messages or emails, or spend money or credits. You prepare drafts and files only. Anything that would leave this folder waits for Ali's explicit yes.
 - Emails are drafts only, saved as files.
 - You do not create new agents.

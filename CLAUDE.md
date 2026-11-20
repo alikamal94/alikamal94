@@ -9,6 +9,7 @@ A 16-bit pixel-art AI agent village where Ali's AI agents live and work. Ali is 
 - **No new agents** without Ali's approval.
 - **Ask before deleting files.**
 - Always write **"UIC"** (Union of Investment Companies), never "GIC".
+- **Sage is only ever "Sage".** Never mention Novo, a former name, or a rebrand in any Sage content, caption, plan or client file.
 
 ## Brands
 
