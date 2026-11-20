@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:09:29+03:00",
+  "updated": "2026-11-20T21:09:50+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -190,12 +190,13 @@
       "lastReply": ""
     },
     "bo3li-performance": {
-      "status": "working",
-      "task": "Setting up the measurement plan and tracker",
+      "status": "done",
+      "task": "Measurement plan and tracker",
       "notes": [
-        "Joined the team; no data from Ali yet"
+        "Joined the team; no data from Ali yet",
+        "Measurement plan, tracker, tests and questions written; no baseline yet"
       ],
-      "lastReply": ""
+      "lastReply": "Tracking is set up around the funnel: free content, community, mentorship. There are no numbers or targets because nothing is published. I need the platforms, follower counts, and your definition of a mentorship enquiry."
     },
     "sage-designer": {
       "status": "idle",
@@ -484,6 +485,21 @@
       "house": "mf",
       "title": "Questions for Ali (performance)",
       "path": "outputs/mf/performance/questions-for-ali.md"
+    },
+    {
+      "house": "bo3li",
+      "title": "Measurement plan",
+      "path": "outputs/bo3li/performance/measurement-plan.md"
+    },
+    {
+      "house": "bo3li",
+      "title": "Performance tracker",
+      "path": "outputs/bo3li/performance/tracker.md"
+    },
+    {
+      "house": "bo3li",
+      "title": "Questions for Ali (performance)",
+      "path": "outputs/bo3li/performance/questions-for-ali.md"
     }
   ],
   "board": [
