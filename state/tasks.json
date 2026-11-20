@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:09:50+03:00",
+  "updated": "2026-11-20T21:10:32+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -76,20 +76,23 @@
       "lastReply": "The six batch 1 carousels are drafted as copy and layout specs in outputs/bo3li/batch-1/. They are drafts only: Yousef reviews first, and nothing is in approvals yet. Each file lists the dialect lines I want a native Kuwaiti reader to check."
     },
     "sage-director": {
-      "status": "working",
-      "task": "Writing the 30-day plan and batch 1 brief",
+      "status": "done",
+      "task": "30-day plan and batch 1 brief",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 39 pages; brand brief written",
         "Open questions for Ali listed in the brief",
-        "Ali said go; plan started"
+        "Ali said go; plan started",
+        "Plan and brief written on 14 labelled assumptions"
       ],
-      "lastReply": "The brand brief is written. The book covers visual identity only: purple leads, green supports, Fira Sans. It has nothing on audience, language, platforms or launch, and the mockups contain typos and conflicting prices, so I need the real menu and prices before any content."
+      "lastReply": "The plan and the brief for six brand-level pieces are written. They are English, type-and-graphic only, with no product facts, because the book covers visuals only. I need the real menu, the market, the languages and the launch date."
     },
     "sage-worker": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Drafting batch 1 (six pieces)",
+      "notes": [
+        "Brief received from Noura"
+      ],
       "lastReply": ""
     },
     "lamaat-director": {
@@ -500,6 +503,16 @@
       "house": "bo3li",
       "title": "Questions for Ali (performance)",
       "path": "outputs/bo3li/performance/questions-for-ali.md"
+    },
+    {
+      "house": "sage",
+      "title": "30-day plan",
+      "path": "outputs/sage/2026-11-20-30-day-plan.md"
+    },
+    {
+      "house": "sage",
+      "title": "Brief for batch 1",
+      "path": "outputs/sage/2026-11-20-brief-batch-1.md"
     }
   ],
   "board": [
@@ -582,6 +595,11 @@
       "item": "Spending decision: Neue Helvetica Arabic licence for bo3li.trading, book estimates $400-900, or keep IBM Plex Sans Arabic (nothing bought without Ali's yes)",
       "owner": "chief-of-staff",
       "status": "approval"
+    },
+    {
+      "item": "Sage 30-day plan: not started",
+      "owner": "sage-director",
+      "status": "done"
     }
   ]
 }
