@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T17:42:00+03:00",
+  "updated": "2026-11-20T17:58:00+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "approval",
@@ -106,15 +106,20 @@
       "lastReply": ""
     },
     "mf-director": {
-      "status": "working",
-      "task": "30-day plan and batch 1 brief for Salem",
+      "status": "done",
+      "task": "30-day plan and batch 1 brief for Salem written; waiting on Ali's answers and rulings",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 28 pages; brand brief written",
         "Open questions for Ali listed in the brief",
-        "Ali said go; writing the 30-day plan and the batch 1 brief on labelled working assumptions"
+        "Ali said go; writing the 30-day plan and the batch 1 brief on labelled working assumptions",
+        "30-day plan written (20 Nov to 19 Dec): three pillars from the book's labels, 18 pieces over weeks 2 to 4, no numeric targets until Ali gives a baseline",
+        "Formats limited to the book's three: 4:5 post, five-slide carousel, story; video and anything else needs a spec from Ali",
+        "16 working assumptions labelled; proposed rulings on all ten contradictions in the book (the earlier count of seven was wrong)",
+        "Batch 1 brief written for Salem: six pieces (M1-01 to M1-06) that need none of the open answers; drafts due 23 and 25 Nov",
+        "No piece can be published until Ali names the regulator and who does the check the book requires (p. 26)"
       ],
-      "lastReply": "Ali said go, so I am writing the MF Trading 30-day plan and the first brief for Salem. The open questions are not answered yet, so every point that rests on one is labelled as an assumption for you to confirm."
+      "lastReply": "The 30-day plan and the first brief for Salem are written: three pillars taken from the book's own labels, and six first pieces that need none of your open answers. Nothing is posted; I have no performance data yet and set no numeric targets. I need five answers most: what MF Trading sells, licence and regulator, platforms and handles with a baseline, markets and data sources, and the logo files with your rulings on the book's ten contradictions."
     },
     "mf-worker": {
       "status": "idle",
@@ -264,6 +269,16 @@
       "house": "bo3li",
       "title": "Batch 1 director review: verdicts, rulings, decisions for Ali, dialect lines",
       "path": "outputs/bo3li/batch-1/REVIEW.md"
+    },
+    {
+      "house": "mf",
+      "title": "30-day plan, 20 Nov to 19 Dec 2026 (working assumptions, proposed rulings on the book's contradictions)",
+      "path": "outputs/mf/2026-11-20-30-day-plan.md"
+    },
+    {
+      "house": "mf",
+      "title": "Brief for Salem: batch 1, six pieces (M1-01 to M1-06)",
+      "path": "outputs/mf/2026-11-20-brief-batch-1.md"
     }
   ],
   "board": [
@@ -308,9 +323,9 @@
       "status": "done"
     },
     {
-      "item": "MF Trading 30-day plan: not started, waiting on Ali's go and answers (what it sells, licence and regulator, real contact details, rulings on the book's contradictions)",
+      "item": "MF Trading 30-day plan: written on labelled working assumptions, with the batch 1 brief for Salem; Ali's answers still open (what it sells, licence and regulator, platforms and handles, markets and data sources, logo files and rulings on the book's ten contradictions)",
       "owner": "mf-director",
-      "status": "idle"
+      "status": "done"
     },
     {
       "item": "Dorek 30-day plan: not started, waiting on Ali's go and answers (launch status, pilot restaurants, pricing, guests or restaurants first)",
