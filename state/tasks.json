@@ -1,16 +1,20 @@
 {
-  "updated": "2026-11-20T12:00:00+03:00",
+  "updated": "2026-11-20T15:36:26+03:00",
   "agents": {
     "chief-of-staff": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
-      "lastReply": ""
+      "status": "working",
+      "task": "Tracking six brand book reviews",
+      "notes": [
+        "Six directors are studying their brand books"
+      ],
+      "lastReply": "Six directors are reading their brand books. Tauro Markets has no brand book yet."
     },
     "loud-director": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Studying the Loud Production House brand book",
+      "notes": [
+        "Ali shared the brand book; reading all of it"
+      ],
       "lastReply": ""
     },
     "loud-worker": {
@@ -32,9 +36,11 @@
       "lastReply": ""
     },
     "bo3li-director": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Studying the bo3li.trading brand book",
+      "notes": [
+        "Ali shared the brand book; reading all of it"
+      ],
       "lastReply": ""
     },
     "bo3li-worker": {
@@ -44,9 +50,11 @@
       "lastReply": ""
     },
     "sage-director": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Studying the Sage brand book",
+      "notes": [
+        "Ali shared the brand book; reading all of it"
+      ],
       "lastReply": ""
     },
     "sage-worker": {
@@ -56,9 +64,11 @@
       "lastReply": ""
     },
     "lamaat-director": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Studying the Lama'at Fakhri brand book",
+      "notes": [
+        "Ali shared the brand book; reading all of it"
+      ],
       "lastReply": ""
     },
     "lamaat-worker": {
@@ -68,9 +78,11 @@
       "lastReply": ""
     },
     "mf-director": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Studying the MF Trading brand book",
+      "notes": [
+        "Ali shared the brand book; reading all of it"
+      ],
       "lastReply": ""
     },
     "mf-worker": {
@@ -80,9 +92,11 @@
       "lastReply": ""
     },
     "dorek-director": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Studying the Dorek brand book",
+      "notes": [
+        "Ali shared the brand book; reading all of it"
+      ],
       "lastReply": ""
     },
     "dorek-worker": {
@@ -94,5 +108,36 @@
   },
   "approvals": [],
   "outputs": [],
-  "board": []
+  "board": [
+    {
+      "item": "Loud Production House brand brief from the brand book",
+      "owner": "loud-director",
+      "status": "working"
+    },
+    {
+      "item": "bo3li.trading brand brief from the brand book",
+      "owner": "bo3li-director",
+      "status": "working"
+    },
+    {
+      "item": "Dorek brand brief from the brand book",
+      "owner": "dorek-director",
+      "status": "working"
+    },
+    {
+      "item": "Lama'at Fakhri brand brief from the brand book",
+      "owner": "lamaat-director",
+      "status": "working"
+    },
+    {
+      "item": "MF Trading brand brief from the brand book",
+      "owner": "mf-director",
+      "status": "working"
+    },
+    {
+      "item": "Sage brand brief from the brand book",
+      "owner": "sage-director",
+      "status": "working"
+    }
+  ]
 }
