@@ -1,9 +1,9 @@
 {
-  "updated": "2026-11-20T22:06:30+03:00",
+  "updated": "2026-11-20T22:27:41+03:00",
   "agents": {
     "chief-of-staff": {
-      "status": "working",
-      "task": "Tracking all six houses",
+      "status": "approval",
+      "task": "Waiting for Ali: the bo3li.trading logo file, and sharing the Drive folder with clients",
       "notes": [
         "Six directors are studying their brand books",
         "All six brand briefs are written; each lists open questions for Ali",
@@ -12,13 +12,15 @@
         "Plan proposed to Ali: his answers, then 30-day plans, then a first batch of about six pieces per house, then review and a weekly performance read. Not yet approved",
         "Suggested order: bo3li.trading, MF Trading, Dorek; then Lama'at Fakhri; then Loud Production House and Sage",
         "Two spending decisions open: Druk font licence (Loud) and Arabic font licence (bo3li.trading). Nothing is bought without Ali's yes",
-        "Ali added a designer and a performance analyst to every house and started all teams"
+        "Ali added a designer and a performance analyst to every house and started all teams",
+        "Ali approved all 36 pieces",
+        "Client packs uploaded to Google Drive, private to Ali"
       ],
-      "lastReply": "All six houses are moving. bo3li.trading and MF Trading have six pieces each waiting for your approval and are now being designed."
+      "lastReply": "All six brands are approved and packed in Google Drive with logos and captions. bo3li.trading still needs its logo file. Nothing has been sent to any client."
     },
     "loud-director": {
-      "status": "approval",
-      "task": "Batch 1 reviewed; five pieces waiting for Ali, one on hold",
+      "status": "done",
+      "task": "Batch 1 approved by Ali; client pack ready",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 34 pages; brand brief written",
@@ -26,16 +28,18 @@
         "Ali said go; plan started",
         "Plan and brief written on 14 labelled assumptions",
         "Reviewing Nawaf's six drafts",
-        "Review done: no hard breach; five ready for Ali, LO1-05 on hold"
+        "Review done: no hard breach; five ready for Ali, LO1-05 on hold",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "Five pieces are ready for you and the Arabic piece is on hold until a typeface is approved. Nothing can publish with Arabic until a native reader proofs the captions. The proof piece should wait unless you have work you would show an enquirer."
     },
     "loud-worker": {
-      "status": "approval",
+      "status": "done",
       "task": "Batch 1 drafts",
       "notes": [
         "Brief received from Faris",
-        "Six drafts written; with Faris for review"
+        "Six drafts written; with Faris for review",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "All six pieces are drafted with English on the design and captions in English and Arabic. The Arabic has not been proofed by a native reader, so that check is open on every piece."
     },
@@ -52,10 +56,9 @@
       "lastReply": ""
     },
     "bo3li-director": {
-      "status": "approval",
-      "task": "Batch 1 review done: six carousel drafts waiting for Ali (BO3-1 to BO3-6)",
+      "status": "done",
+      "task": "Batch 1 approved by Ali; client pack ready",
       "notes": [
-        "Open questions for Ali listed in the brief",
         "Ali said go and chose bo3li.trading first; writing the 30-day plan on labelled working assumptions",
         "30-day plan written (20 Nov to 19 Dec): five pillars, four-week calendar of 16 carousel slots, no numeric targets until Ali gives a baseline",
         "Set 2 topics proposed for Ali to approve; nothing is written for Set 2 until he decides",
@@ -64,12 +67,13 @@
         "Reviewed all six batch 1 drafts line by line against the claims policy and the ten-point check: no breach found",
         "Two director edits, both in B1-06: slide 03 headline names one idea; slide 04 diagram can no longer be read as a ratio",
         "Ruled on Mariam's 12 points; left to Ali: series name, swipe cue, B1-04 hook punctuation, sourcing rule for arithmetic examples, tagline as hook",
-        "REVIEW.md written; six items added to approvals. Approval accepts the copy only; nothing is posted"
+        "REVIEW.md written; six items added to approvals. Approval accepts the copy only; nothing is posted",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "I reviewed Mariam's six batch 1 drafts and found no breach of the claims policy or the ten-point check; I made two small edits to B1-06. All six are ready for your read as copy and layout specs, and your approval accepts the copy only, it is not permission to post. I need a native Kuwaiti reader for the dialect lines, your choice of series name and swipe cue, and the logo and Canva files before anything can be built; the full list is in outputs/bo3li/batch-1/REVIEW.md."
     },
     "bo3li-worker": {
-      "status": "approval",
+      "status": "done",
       "task": "Batch 1: six carousel drafts (B1-01 to B1-06) written, waiting for Yousef's review",
       "notes": [
         "Read the brand brief, the batch 1 brief and the 30-day plan in full",
@@ -77,13 +81,14 @@
         "Six drafts written in outputs/bo3li/batch-1/: copy, layout spec, caption, two eyebrow options, English gloss, ten-point check",
         "No win rates, profit figures, balances, buy calls, instruments, prices or currency in any draft; arithmetic in percent and R only",
         "Open points listed in each file for Yousef: TARGET vs TP label, B1-05 hook order, full stops in the B1-04 hook, swipe cue wording",
-        "Dialect lines flagged in each file for a native Kuwaiti reader; nothing added to approvals"
+        "Dialect lines flagged in each file for a native Kuwaiti reader; nothing added to approvals",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "The six batch 1 carousels are drafted as copy and layout specs in outputs/bo3li/batch-1/. They are drafts only: Yousef reviews first, and nothing is in approvals yet. Each file lists the dialect lines I want a native Kuwaiti reader to check."
     },
     "sage-director": {
-      "status": "approval",
-      "task": "Batch 1 reviewed; six pieces waiting for Ali",
+      "status": "done",
+      "task": "Batch 1 approved by Ali; client pack ready",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 39 pages; brand brief written",
@@ -91,22 +96,24 @@
         "Ali said go; plan started",
         "Plan and brief written on 14 labelled assumptions",
         "Reviewing Dana's six drafts",
-        "Review done: three layout fixes, all six ready for Ali"
+        "Review done: three layout fixes, all six ready for Ali",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "All six pieces are ready for you. I fixed three layout points so purple leads everywhere; the copy is unchanged apart from two lines. Final artwork is blocked until the official logo and pattern files arrive."
     },
     "sage-worker": {
-      "status": "approval",
+      "status": "done",
       "task": "Batch 1 drafts",
       "notes": [
         "Brief received from Noura",
-        "Six drafts written; with Noura for review"
+        "Six drafts written; with Noura for review",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "All six pieces are drafted in English with no product facts. I flagged a colour exception on piece 5 and a few wording points for Noura."
     },
     "lamaat-director": {
-      "status": "approval",
-      "task": "Batch 1 reviewed; six pieces waiting for Ali",
+      "status": "done",
+      "task": "Batch 1 approved by Ali; client pack ready",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 50 pages; brand brief written",
@@ -114,24 +121,25 @@
         "Ali said go; plan started",
         "Plan and brief written on 16 labelled assumptions",
         "Reviewing Fatma's six drafts",
-        "Review done: three fixes, all six ready for Ali"
+        "Review done: three fixes, all six ready for Ali",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "All six pieces are ready for you. I restored the promise word for word on piece 5 and widened the risk-line slot. Piece 5 needs a compliance read of one line before it goes anywhere."
     },
     "lamaat-worker": {
-      "status": "approval",
+      "status": "done",
       "task": "Batch 1 drafts",
       "notes": [
         "Brief received from Reem",
-        "Six drafts written; with Reem for review"
+        "Six drafts written; with Reem for review",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "All six pieces are drafted: the five questions as a checklist, three single-question posts, the not-for-you post and a story poll. Most on-image lines are the book's own."
     },
     "mf-director": {
-      "status": "approval",
-      "task": "Batch 1 review done: six drafts waiting for Ali (MF-1 to MF-6)",
+      "status": "done",
+      "task": "Batch 1 approved by Ali; client pack ready",
       "notes": [
-        "Ali said go; writing the 30-day plan and the batch 1 brief on labelled working assumptions",
         "30-day plan written (20 Nov to 19 Dec): three pillars from the book's labels, 18 pieces over weeks 2 to 4, no numeric targets until Ali gives a baseline",
         "Formats limited to the book's three: 4:5 post, five-slide carousel, story; video and anything else needs a spec from Ali",
         "16 working assumptions labelled; proposed rulings on all ten contradictions in the book (the earlier count of seven was wrong)",
@@ -140,12 +148,13 @@
         "Reviewed all six batch 1 drafts line by line against the book's compliance rules and the plan's checklist; disclaimer exact in all 11 places",
         "Two must-fixes made: small Signal Blue label broke the book's contrast rule in five pieces (now Steel or navy text with a Signal Blue rule); M1-03 slide 03 line could read as advice on how much to risk",
         "Ruled on Salem's 14 points; left to Ali: M1-06 headline, where the one question may sit, use of the book's sample lines, tagline overlap in M1-04, visual system confirmations",
-        "REVIEW.md written; six items added to approvals. Approval accepts the copy only; nothing is posted"
+        "REVIEW.md written; six items added to approvals. Approval accepts the copy only; nothing is posted",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "I reviewed Salem's six batch 1 drafts and all six are ready for your read as copy and layout specs; your approval accepts the copy only, it is not permission to post. I fixed two things: the small blue category label broke the book's own contrast rule in five pieces, and one line in M1-03 could be read as advice on how much to risk. I need your choice of headline for M1-06, your reading of the one-question rule, a native Kuwaiti reader, and the regulator and logo files before anything can go out; the full list is in outputs/mf/batch-1/REVIEW.md."
     },
     "mf-worker": {
-      "status": "approval",
+      "status": "done",
       "task": "Batch 1: six drafts (M1-01 to M1-06) written, ready for Bader's review",
       "notes": [
         "Read the brand brief, the batch 1 brief and the 30-day plan in full",
@@ -154,13 +163,14 @@
         "No results, market figures, instruments, illustrative numbers, licence claims, contacts, offers or tagline in any draft; the only numbers are the count 3 and slide numbers",
         "Official disclaimer pasted exactly, on every frame and in every caption (the story has no caption)",
         "Open for Bader: small Signal Blue label on navy and on Mist is below the book's own contrast rule; logo minimum size on a 1080 canvas; where the one question sits",
-        "Dialect lines flagged in each file for a native Kuwaiti reader; nothing added to approvals"
+        "Dialect lines flagged in each file for a native Kuwaiti reader; nothing added to approvals",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "The six batch 1 pieces are drafted as copy and layout specs in outputs/mf/batch-1/. They are drafts only: Bader reviews first, and nothing is in approvals or published. Each file lists the dialect lines I want a native Kuwaiti reader to check and the open points for Bader and you."
     },
     "dorek-director": {
-      "status": "approval",
-      "task": "Batch 1 reviewed; six pieces waiting for Ali",
+      "status": "done",
+      "task": "Batch 1 approved by Ali; client pack ready",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 22 pages; brand brief written",
@@ -168,16 +178,18 @@
         "Ali said go; plan started",
         "Plan and brief written on 17 labelled assumptions",
         "Reviewing Abdullah's six drafts",
-        "Review done: two must-fixes, all six ready for Ali"
+        "Review done: two must-fixes, all six ready for Ali",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "All six pieces are ready for you after design. I made two fixes: the English carousel cover is now English only, and the order-ahead line no longer says soon. Four pieces should wait until guests can actually use Dorek."
     },
     "dorek-worker": {
-      "status": "approval",
+      "status": "done",
       "task": "Batch 1 drafts",
       "notes": [
         "Brief received from Khaled",
-        "Six drafts written; with Khaled for review"
+        "Six drafts written; with Khaled for review",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "All six pieces are drafted, mostly on the book's own lines, with new Arabic for the carousel and the weekend tip. I flagged two book lines: without waiting, and soon."
     },
@@ -186,7 +198,8 @@
       "task": "Batch 1 designs",
       "notes": [
         "Designing with a stand-in headline typeface; Druk is not licensed",
-        "22 slides designed with a stand-in headline typeface; rendered and checked by the main session; notes file not written"
+        "22 slides designed with a stand-in headline typeface; rendered and checked by the main session; notes file not written",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "The six pieces are designed as drafts in black, white and red. The headline typeface is a stand-in for Druk, which is not licensed."
     },
@@ -216,7 +229,8 @@
       "task": "Batch 1 designs",
       "notes": [
         "Joined the team; designing batch 1",
-        "30 slides designed for the six carousels; rendered and checked by the main session"
+        "30 slides designed for the six carousels; rendered and checked by the main session",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "The six carousels are designed as drafts, 30 slides. The logo is a placeholder, the series label uses option A as a stand-in, and longer hooks are set below 96 px so they stay on one line."
     },
@@ -234,7 +248,8 @@
       "task": "Batch 1 designs",
       "notes": [
         "Designing the six pieces with placeholders for logo and pattern",
-        "15 slides designed; rendered and checked by the main session"
+        "15 slides designed; rendered and checked by the main session",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "The six pieces are designed as drafts in the three brand colours. The logo, leaf mark and pattern are labelled placeholders, so the leaf carousel cannot be judged until the official files arrive."
     },
@@ -252,7 +267,8 @@
       "task": "Batch 1 designs",
       "notes": [
         "Designing the six pieces, type and graphics only",
-        "Seven slides designed; rendered and checked by the main session; notes file not written"
+        "Seven slides designed; rendered and checked by the main session; notes file not written",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "The six pieces are designed as drafts on light grounds with rose as an accent. Each keeps an empty slot for the risk line. The logo is a placeholder."
     },
@@ -270,7 +286,8 @@
       "task": "Batch 1 designs",
       "notes": [
         "Joined the team; designing batch 1",
-        "15 slides designed for the six pieces; rendered and checked by the main session"
+        "15 slides designed for the six pieces; rendered and checked by the main session",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "The six pieces are designed as drafts. The logo is a placeholder, headlines are at 96 px to be sure they fit, and the step line and grid are my reading of the book. MF-6 is shown with both headlines."
     },
@@ -288,7 +305,8 @@
       "task": "Batch 1 designs",
       "notes": [
         "Designing the six pieces and the Arabic versions",
-        "15 slides designed; rendered and checked by the main session"
+        "15 slides designed; rendered and checked by the main session",
+        "Ali approved batch 1; client pack with logos and captions is in Google Drive"
       ],
       "lastReply": "The six pieces are designed as drafts, with the carousel and the tip in English and Arabic versions. The logo is a placeholder."
     },
@@ -302,296 +320,7 @@
       "lastReply": "Tracking is set up with no numbers or targets, because nothing is published and I do not know if the account exists. I need a same-day screenshot of the profile and insights as a baseline, and the one goal for the next 30 days."
     }
   },
-  "approvals": [
-    {
-      "id": "BO3-1",
-      "title": "B1-01 carousel copy: What this account is",
-      "house": "bo3li",
-      "agent": "bo3li-worker",
-      "summary": "Draft copy and layout spec, reviewed by Yousef, no claims breach. Ali decides: tagline as a carousel hook, series name, swipe cue, whether we may say the lessons are free, dialect read. Copy approval only, not permission to post.",
-      "path": "outputs/bo3li/batch-1/B1-01-school-not-tip-line.md"
-    },
-    {
-      "id": "BO3-2",
-      "title": "B1-02 carousel copy: Plan before entry",
-      "house": "bo3li",
-      "agent": "bo3li-worker",
-      "summary": "Draft copy and layout spec, reviewed by Yousef, no claims breach. Ali decides: series name, swipe cue, whether the 1% arithmetic example needs a source under the house rule, dialect read. Copy approval only, not permission to post.",
-      "path": "outputs/bo3li/batch-1/B1-02-plan-before-entry.md"
-    },
-    {
-      "id": "BO3-3",
-      "title": "B1-03 carousel copy: The trader, not the market",
-      "house": "bo3li",
-      "agent": "bo3li-worker",
-      "summary": "Draft copy and layout spec, reviewed by Yousef, no claims breach. Ali decides: hook wording (from us, or from the trader as in the book), series name, swipe cue, dialect read. Copy approval only, not permission to post.",
-      "path": "outputs/bo3li/batch-1/B1-03-trader-not-market.md"
-    },
-    {
-      "id": "BO3-4",
-      "title": "B1-04 carousel copy: Loss is part of the game",
-      "house": "bo3li",
-      "agent": "bo3li-worker",
-      "summary": "Draft copy and layout spec, reviewed by Yousef, no claims breach. Ali decides: full stops in the hook (check book p. 17), series name, swipe cue, whether to add a line that a stop can fill worse than planned, dialect read. Copy approval only, not permission to post.",
-      "path": "outputs/bo3li/batch-1/B1-04-loss-is-part-of-the-game.md"
-    },
-    {
-      "id": "BO3-5",
-      "title": "B1-05 carousel copy: Stop before target",
-      "house": "bo3li",
-      "agent": "bo3li-worker",
-      "summary": "Draft copy and layout spec, reviewed by Yousef, no claims breach. Ali decides: series name, swipe cue, whether the R:R 1:3 arithmetic example needs a source under the house rule, dialect read; optional hook alternative in the file. Copy approval only, not permission to post.",
-      "path": "outputs/bo3li/batch-1/B1-05-stop-before-target.md"
-    },
-    {
-      "id": "BO3-6",
-      "title": "B1-06 carousel copy: Journal after exit",
-      "house": "bo3li",
-      "agent": "bo3li-worker",
-      "summary": "Draft copy and layout spec, reviewed by Yousef with two edits (slide 03 headline, slide 04 diagram), no claims breach. Ali decides: series name, swipe cue, dialect read. Copy approval only, not permission to post.",
-      "path": "outputs/bo3li/batch-1/B1-06-journal-after-exit.md"
-    },
-    {
-      "id": "MF-1",
-      "title": "M1-01 post copy: The stop is your limit",
-      "house": "mf",
-      "agent": "mf-worker",
-      "summary": "Draft copy and layout spec, reviewed by Bader, label contrast fixed. Ali decides: headline departs from the book's sample wording on purpose, label treatment, dialect read. Copy approval only; publishing still needs the regulator check.",
-      "path": "outputs/mf/batch-1/M1-01-stop-is-your-limit.md"
-    },
-    {
-      "id": "MF-2",
-      "title": "M1-02 carousel copy: 3 questions before any trade",
-      "house": "mf",
-      "agent": "mf-worker",
-      "summary": "Draft copy and layout spec, reviewed by Bader, label contrast fixed. Ali decides: whether three content questions plus one reader question in the caption meet the one-question rule, White or Mist slides, book's hook and CTA used word for word, dialect read. Copy approval only; publishing still needs the regulator check.",
-      "path": "outputs/mf/batch-1/M1-02-three-questions.md"
-    },
-    {
-      "id": "MF-3",
-      "title": "M1-03 carousel copy: 3 mistakes that cost the trader",
-      "house": "mf",
-      "agent": "mf-worker",
-      "summary": "Draft copy and layout spec, reviewed by Bader with two fixes (slide 03 line no longer reads as advice on how much to risk; label contrast). Ali decides: carousel is the book's sample almost as printed, hook wording, dialect read. Copy approval only; publishing still needs the regulator check.",
-      "path": "outputs/mf/batch-1/M1-03-three-mistakes.md"
-    },
-    {
-      "id": "MF-4",
-      "title": "M1-04 post copy: Read the market calmly",
-      "house": "mf",
-      "agent": "mf-worker",
-      "summary": "Draft copy and layout spec, reviewed by Bader, label contrast on Mist fixed. Ali decides: headline is the book's sample and close to the proposed tagline, logo variant on Mist, dialect read. Copy approval only; publishing still needs the regulator check.",
-      "path": "outputs/mf/batch-1/M1-04-read-the-market-calmly.md"
-    },
-    {
-      "id": "MF-5",
-      "title": "M1-05 story copy: Question of the day",
-      "house": "mf",
-      "agent": "mf-worker",
-      "summary": "Draft copy and layout spec, reviewed by Bader, no changes needed. Ali decides: story size and reply sticker (depend on the platform), dialect read of the question. Copy approval only; publishing still needs the regulator check.",
-      "path": "outputs/mf/batch-1/M1-05-question-of-the-day-plan.md"
-    },
-    {
-      "id": "MF-6",
-      "title": "M1-06 post copy: What you learn here",
-      "house": "mf",
-      "agent": "mf-worker",
-      "summary": "Draft copy and layout spec, reviewed by Bader, label contrast fixed. Ali decides: headline, the main version (we do not promise you profit) or Alternative B (the method before the result); question in the caption; dialect read. Copy approval only; publishing still needs the regulator check.",
-      "path": "outputs/mf/batch-1/M1-06-what-you-learn-here.md"
-    },
-    {
-      "id": "DOR-1",
-      "title": "Statement post: لا تنطر عند الباب",
-      "house": "dorek",
-      "agent": "dorek-worker",
-      "summary": "Arabic statement post on Ivory, book wording plus a new caption. Decide whether guests can join a queue yet; needs a native read. Approval covers the copy only.",
-      "path": "outputs/dorek/batch-1/D1-01-statement-ar.md"
-    },
-    {
-      "id": "DOR-2",
-      "title": "Brand line: The best tables are worth the wait",
-      "house": "dorek",
-      "agent": "dorek-worker",
-      "summary": "English brand line on Deep Emerald. Decide on Champagne used as the template shows. Can go before the app is live.",
-      "path": "outputs/dorek/batch-1/D1-02-brand-line-en.md"
-    },
-    {
-      "id": "DOR-3",
-      "title": "Carousel: How Dorek works",
-      "house": "dorek",
-      "agent": "dorek-worker",
-      "summary": "Four slides, as an English set and a separate Arabic-led set. Decide the Arabic cover wording, payment and KNET, and which set runs.",
-      "path": "outputs/dorek/batch-1/D1-03-carousel-how-it-works.md"
-    },
-    {
-      "id": "DOR-4",
-      "title": "Weekend tip",
-      "house": "dorek",
-      "agent": "dorek-worker",
-      "summary": "English post (book wording) and a new Arabic post. Decide the Arabic series label and which version runs.",
-      "path": "outputs/dorek/batch-1/D1-04-weekend-tip.md"
-    },
-    {
-      "id": "DOR-5",
-      "title": "Feature post: Your food, ready when you sit",
-      "house": "dorek",
-      "agent": "dorek-worker",
-      "summary": "Order-ahead post on Champagne. Decide whether the headline is a promise Dorek makes publicly, and the support line.",
-      "path": "outputs/dorek/batch-1/D1-05-feature-order-ahead.md"
-    },
-    {
-      "id": "DOR-6",
-      "title": "Story poll: أطول وقت انتظرت فيه طاولة؟",
-      "house": "dorek",
-      "agent": "dorek-worker",
-      "summary": "Arabic poll story, book wording, no percentages. Accept Instagram's typeface on the sticker.",
-      "path": "outputs/dorek/batch-1/D1-06-story-poll-ar.md"
-    },
-    {
-      "id": "SAG-1",
-      "title": "Purpose post: Quick Meals, Redefined.",
-      "house": "sage",
-      "agent": "sage-worker",
-      "summary": "Single purple post stating why Sage exists. Approve the copy and direction. Approval covers the copy only.",
-      "path": "outputs/sage/batch-1/2026-11-20-S1-01-purpose.md"
-    },
-    {
-      "id": "SAG-2",
-      "title": "Carousel: What We Stand For",
-      "house": "sage",
-      "agent": "sage-worker",
-      "summary": "Seven slides on the five values in the book's names. Confirm the words healthy and fresh are acceptable.",
-      "path": "outputs/sage/batch-1/2026-11-20-S1-02-values-carousel.md"
-    },
-    {
-      "id": "SAG-3",
-      "title": "Simplicity post: Healthy Food, Made Simple.",
-      "house": "sage",
-      "agent": "sage-worker",
-      "summary": "Headline-only post on Snow Drift. Decide whether this line is the official tagline; an alternative is held.",
-      "path": "outputs/sage/batch-1/2026-11-20-S1-03-simplicity.md"
-    },
-    {
-      "id": "SAG-4",
-      "title": "Quality post: Where Speed Meets Quality.",
-      "house": "sage",
-      "agent": "sage-worker",
-      "summary": "Single purple post. Approve the copy and how firm the supporting line should be.",
-      "path": "outputs/sage/batch-1/2026-11-20-S1-04-quality-first.md"
-    },
-    {
-      "id": "SAG-5",
-      "title": "Lifestyle post: Designed for Your Pace.",
-      "house": "sage",
-      "agent": "sage-worker",
-      "summary": "Single post, purple with a green block. A green-led version is yours to allow as an exception.",
-      "path": "outputs/sage/batch-1/2026-11-20-S1-05-modern-lifestyle.md"
-    },
-    {
-      "id": "SAG-6",
-      "title": "Carousel: Meet the Sage Leaf",
-      "house": "sage",
-      "agent": "sage-worker",
-      "summary": "Four slides on what the leaf and frame mean. Cannot be judged until the logo and pattern files arrive.",
-      "path": "outputs/sage/batch-1/2026-11-20-S1-06-sage-leaf-carousel.md"
-    },
-    {
-      "id": "LAM-1",
-      "title": "Checklist post: خمس أسئلة قبل ما تبدأ",
-      "house": "lamaat",
-      "agent": "lamaat-worker",
-      "summary": "The five questions before signature as one checklist. Decide on the risk line. Approval covers the copy only.",
-      "path": "outputs/lamaat/batch-1/L1-01-five-questions-checklist.md"
-    },
-    {
-      "id": "LAM-2",
-      "title": "Question 1: شلون ومتى تنصرف عمولتك؟",
-      "house": "lamaat",
-      "agent": "lamaat-worker",
-      "summary": "Commission question, book copy on the image. Decide what is said when readers ask the question back.",
-      "path": "outputs/lamaat/batch-1/L1-02-q1-commission.md"
-    },
-    {
-      "id": "LAM-3",
-      "title": "Question 2: شلون تتابع عملاءك بالأرقام؟",
-      "house": "lamaat",
-      "agent": "lamaat-worker",
-      "summary": "Tracking question. Approve the on-image body line, which is the team's own writing.",
-      "path": "outputs/lamaat/batch-1/L1-03-q2-tracking.md"
-    },
-    {
-      "id": "LAM-4",
-      "title": "Question 3: من يرد على عملائك إذا صار شي؟",
-      "house": "lamaat",
-      "agent": "lamaat-worker",
-      "summary": "Who answers your clients. Approve the team's body line and the headline spelling.",
-      "path": "outputs/lamaat/batch-1/L1-04-q3-who-answers.md"
-    },
-    {
-      "id": "LAM-5",
-      "title": "Quote post: هذا مو مناسب لك الحين.",
-      "house": "lamaat",
-      "agent": "lamaat-worker",
-      "summary": "The monthly not-for post. Needs a compliance read: the caption names profit and fixed income as things refused.",
-      "path": "outputs/lamaat/batch-1/L1-05-not-for-you-yet.md"
-    },
-    {
-      "id": "LAM-6",
-      "title": "Story poll: سؤال اليوم",
-      "house": "lamaat",
-      "agent": "lamaat-worker",
-      "summary": "Question story with a native poll. Needs an in-app check that the sticker takes three options.",
-      "path": "outputs/lamaat/batch-1/L1-06-story-question-of-the-day.md"
-    },
-    {
-      "id": "LOU-1",
-      "title": "Carousel: SEEN IS THE FIRST JOB.",
-      "house": "loud",
-      "agent": "loud-worker",
-      "summary": "Five slides on seen, remembered, acted on. Confirm the Arabic for the three mission words. Approval covers the copy only.",
-      "path": "outputs/loud/batch-1/2026-11-20-LO1-01-seen-remembered-acted-on.md"
-    },
-    {
-      "id": "LOU-2",
-      "title": "Single image: LOUD IS A VOLUME, NOT A MOOD.",
-      "house": "loud",
-      "agent": "loud-worker",
-      "summary": "The book's own line. Decide whether it runs first, since it may read as a tagline while the tagline is undecided.",
-      "path": "outputs/loud/batch-1/2026-11-20-LO1-02-volume-not-a-mood.md"
-    },
-    {
-      "id": "LOU-3",
-      "title": "Carousel: FOUR RULES WE WRITE BY.",
-      "house": "loud",
-      "agent": "loud-worker",
-      "summary": "Six slides of writing rules with invented examples. Decide whether to publish voice rules the book marks low confidence.",
-      "path": "outputs/loud/batch-1/2026-11-20-LO1-03-lead-with-the-point.md"
-    },
-    {
-      "id": "LOU-4",
-      "title": "Single image: ASK FOR PROOF. NOT PROMISES.",
-      "house": "loud",
-      "agent": "loud-worker",
-      "summary": "Invites the question What can you show me? Decide whether Loud can answer it now; if not, it waits.",
-      "path": "outputs/loud/batch-1/2026-11-20-LO1-04-proof-over-promises.md"
-    },
-    {
-      "id": "LOU-5",
-      "title": "ON HOLD: WRITTEN IN ARABIC. NOT TRANSLATED INTO IT.",
-      "house": "loud",
-      "agent": "loud-worker",
-      "summary": "Carousel about Arabic with an English-only design. On hold until an Arabic typeface is approved; decide hold or run.",
-      "path": "outputs/loud/batch-1/2026-11-20-LO1-05-written-not-translated.md"
-    },
-    {
-      "id": "LOU-6",
-      "title": "Stories: SCOPE / TIMELINE / DELIVERABLES",
-      "house": "loud",
-      "agent": "loud-worker",
-      "summary": "Now four frames, with a closing frame added. No Arabic on the Stories version.",
-      "path": "outputs/loud/batch-1/2026-11-20-LO1-06-three-things-before-the-shoot.md"
-    }
-  ],
+  "approvals": [],
   "outputs": [
     {
       "house": "loud",
@@ -902,6 +631,36 @@
       "house": "loud",
       "title": "Questions for Ali (performance)",
       "path": "outputs/loud/performance/questions-for-ali.md"
+    },
+    {
+      "house": "bo3li",
+      "title": "Client pack: posts and captions (PDF)",
+      "path": "outputs/bo3li/client/bo3li-trading-posts-and-captions.pdf"
+    },
+    {
+      "house": "mf",
+      "title": "Client pack: posts and captions (PDF)",
+      "path": "outputs/mf/client/MF-Trading-posts-and-captions.pdf"
+    },
+    {
+      "house": "dorek",
+      "title": "Client pack: posts and captions (PDF)",
+      "path": "outputs/dorek/client/Dorek-posts-and-captions.pdf"
+    },
+    {
+      "house": "lamaat",
+      "title": "Client pack: posts and captions (PDF)",
+      "path": "outputs/lamaat/client/Lamaat-Fakhri-posts-and-captions.pdf"
+    },
+    {
+      "house": "loud",
+      "title": "Client pack: posts and captions (PDF)",
+      "path": "outputs/loud/client/Loud-Production-House-posts-and-captions.pdf"
+    },
+    {
+      "house": "sage",
+      "title": "Client pack: posts and captions (PDF)",
+      "path": "outputs/sage/client/Sage-posts-and-captions.pdf"
     }
   ],
   "board": [
@@ -941,33 +700,13 @@
       "status": "done"
     },
     {
-      "item": "bo3li.trading 30-day plan: written on labelled working assumptions, with a Set 2 proposal and the batch 1 brief for Mariam; Ali's answers still open (platforms and cadence, Set 1 status and files, Set 2 topics, mentorship and community, markets covered)",
-      "owner": "bo3li-director",
-      "status": "done"
-    },
-    {
-      "item": "MF Trading 30-day plan: written on labelled working assumptions, with the batch 1 brief for Salem; Ali's answers still open (what it sells, licence and regulator, platforms and handles, markets and data sources, logo files and rulings on the book's ten contradictions)",
-      "owner": "mf-director",
-      "status": "done"
-    },
-    {
       "item": "Dorek 30-day plan: Khaled is writing it",
       "owner": "dorek-director",
       "status": "done"
     },
     {
-      "item": "Lama'at Fakhri 30-day plan: written; Fatma is drafting batch 1",
-      "owner": "lamaat-director",
-      "status": "done"
-    },
-    {
       "item": "Loud Production House 30-day plan: Faris is writing it",
       "owner": "loud-director",
-      "status": "done"
-    },
-    {
-      "item": "Sage 30-day plan: written; Dana is drafting batch 1",
-      "owner": "sage-director",
       "status": "done"
     },
     {
@@ -986,33 +725,13 @@
       "status": "approval"
     },
     {
-      "item": "bo3li.trading batch 1: six pieces waiting for Ali; designs in progress",
+      "item": "Batch 1 for six brands: approved by Ali; client packs in Google Drive, not yet shared with clients",
+      "owner": "chief-of-staff",
+      "status": "done"
+    },
+    {
+      "item": "bo3li.trading logo: needs the logo file before its posts go to the client",
       "owner": "bo3li-designer",
-      "status": "approval"
-    },
-    {
-      "item": "MF Trading batch 1: six pieces waiting for Ali; designs in progress",
-      "owner": "mf-designer",
-      "status": "approval"
-    },
-    {
-      "item": "Dorek batch 1: six pieces waiting for Ali; designs in progress",
-      "owner": "dorek-designer",
-      "status": "approval"
-    },
-    {
-      "item": "Sage batch 1: six pieces waiting for Ali; designs in progress",
-      "owner": "sage-designer",
-      "status": "approval"
-    },
-    {
-      "item": "Lama'at Fakhri batch 1: six pieces waiting for Ali; designs in progress",
-      "owner": "lamaat-designer",
-      "status": "approval"
-    },
-    {
-      "item": "Loud batch 1: five pieces waiting for Ali, one on hold; designs in progress",
-      "owner": "loud-designer",
       "status": "approval"
     }
   ]

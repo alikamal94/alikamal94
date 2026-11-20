@@ -74,3 +74,7 @@ The GitHub repository is public. Everything in `outputs/` (brand briefs, plans, 
 ## Brand summary PDFs
 
 Ali wants everything done for each brand summarised in a PDF. Each house keeps `outputs/<house>/summary.md` (brand in brief, what we did, current work, decisions waiting on Ali, next steps) and a rendered `outputs/<house>/<Brand>-summary.pdf`. After every milestone for a house (plan written, batch drafted, review done, approvals decided), update its `summary.md` and re-render the PDF: convert the markdown to HTML with IBM Plex Sans / IBM Plex Sans Arabic and print to A4 with Chromium (Playwright `page.pdf`). Then send Ali the new PDF.
+
+## Client packs
+
+When Ali approves a batch, build each brand's client pack in `outputs/<house>/client/`: post images with the official logo placed (taken from the brand book artwork, never redrawn), a posts-and-captions PDF, a zip of the images and a captions document. Upload them to Ali's Google Drive folder "Ali HQ - Client deliverables" in one subfolder per brand. Leave sharing private; Ali shares with clients himself. Internal placeholders, risk-line slots and mock-up frames never go in a client pack.
