@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:14:46+03:00",
+  "updated": "2026-11-20T21:15:20+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -196,12 +196,13 @@
       "lastReply": ""
     },
     "bo3li-designer": {
-      "status": "working",
-      "task": "Designing batch 1 (six carousels)",
+      "status": "done",
+      "task": "Batch 1 designs",
       "notes": [
-        "Joined the team; designing batch 1"
+        "Joined the team; designing batch 1",
+        "30 slides designed for the six carousels; rendered and checked by the main session"
       ],
-      "lastReply": ""
+      "lastReply": "The six carousels are designed as drafts, 30 slides. The logo is a placeholder, the series label uses option A as a stand-in, and longer hooks are set below 96 px so they stay on one line."
     },
     "bo3li-performance": {
       "status": "done",
@@ -565,6 +566,16 @@
       "house": "mf",
       "title": "MF Trading summary (PDF with designs)",
       "path": "outputs/mf/MF-Trading-summary.pdf"
+    },
+    {
+      "house": "bo3li",
+      "title": "Batch 1 designs: notes",
+      "path": "outputs/bo3li/batch-1/designs/NOTES.md"
+    },
+    {
+      "house": "bo3li",
+      "title": "bo3li.trading summary (PDF with designs)",
+      "path": "outputs/bo3li/bo3li-trading-summary.pdf"
     }
   ],
   "board": [
@@ -651,7 +662,7 @@
     {
       "item": "bo3li.trading batch 1: six pieces waiting for Ali; designs in progress",
       "owner": "bo3li-designer",
-      "status": "working"
+      "status": "approval"
     },
     {
       "item": "MF Trading batch 1: six pieces waiting for Ali; designs in progress",
