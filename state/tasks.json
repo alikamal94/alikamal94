@@ -1,13 +1,13 @@
 {
-  "updated": "2026-11-20T15:39:07+03:00",
+  "updated": "2026-11-20T15:39:08+03:00",
   "agents": {
     "chief-of-staff": {
-      "status": "working",
-      "task": "Tracking brand book reviews (1 still running)",
+      "status": "done",
+      "task": "Brand book reviews complete",
       "notes": [
         "Six directors are studying their brand books"
       ],
-      "lastReply": "5 of 6 brand briefs are written."
+      "lastReply": "All six brand briefs are written. Each lists open questions for you. Tauro Markets has no brand book yet."
     },
     "loud-director": {
       "status": "done",
@@ -54,12 +54,14 @@
       "lastReply": ""
     },
     "sage-director": {
-      "status": "working",
-      "task": "Studying the Sage brand book",
+      "status": "done",
+      "task": "Brand brief from the brand book",
       "notes": [
-        "Ali shared the brand book; reading all of it"
+        "Ali shared the brand book; reading all of it",
+        "Read all 39 pages; brand brief written",
+        "Open questions for Ali listed in the brief"
       ],
-      "lastReply": ""
+      "lastReply": "The brand brief is written. The book covers visual identity only: purple leads, green supports, Fira Sans. It has nothing on audience, language, platforms or launch, and the mockups contain typos and conflicting prices, so I need the real menu and prices before any content."
     },
     "sage-worker": {
       "status": "idle",
@@ -142,6 +144,11 @@
       "house": "dorek",
       "title": "Brand brief (from the brand book)",
       "path": "outputs/dorek/brand-brief.md"
+    },
+    {
+      "house": "sage",
+      "title": "Brand brief (from the brand book)",
+      "path": "outputs/sage/brand-brief.md"
     }
   ],
   "board": [
@@ -173,7 +180,7 @@
     {
       "item": "Sage brand brief from the brand book",
       "owner": "sage-director",
-      "status": "working"
+      "status": "done"
     }
   ]
 }
