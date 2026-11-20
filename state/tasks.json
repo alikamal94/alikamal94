@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:10:32+03:00",
+  "updated": "2026-11-20T21:10:48+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -96,20 +96,23 @@
       "lastReply": ""
     },
     "lamaat-director": {
-      "status": "working",
-      "task": "Writing the 30-day plan and batch 1 brief",
+      "status": "done",
+      "task": "30-day plan and batch 1 brief",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 50 pages; brand brief written",
         "Open questions for Ali listed in the brief",
-        "Ali said go; plan started"
+        "Ali said go; plan started",
+        "Plan and brief written on 16 labelled assumptions"
       ],
-      "lastReply": "The brand brief is written. The brand exists to win partners, not retail traders, and compliance is a hard line: no profit claims and no unapproved regulatory wording. I cannot write the core content until I have the partner programme facts, approved Tauro Markets credentials and real photos."
+      "lastReply": "The plan and the brief for six pieces are written. This month publishes the five questions only, as a checklist for judging any broker, with no programme answers and without naming Tauro Markets. I need the programme facts and the approved Tauro Markets wording."
     },
     "lamaat-worker": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Drafting batch 1 (six pieces)",
+      "notes": [
+        "Brief received from Reem"
+      ],
       "lastReply": ""
     },
     "mf-director": {
@@ -513,6 +516,16 @@
       "house": "sage",
       "title": "Brief for batch 1",
       "path": "outputs/sage/2026-11-20-brief-batch-1.md"
+    },
+    {
+      "house": "lamaat",
+      "title": "30-day plan",
+      "path": "outputs/lamaat/2026-11-20-30-day-plan.md"
+    },
+    {
+      "house": "lamaat",
+      "title": "Brief for batch 1",
+      "path": "outputs/lamaat/2026-11-20-brief-batch-1.md"
     }
   ],
   "board": [
@@ -599,6 +612,11 @@
     {
       "item": "Sage 30-day plan: not started",
       "owner": "sage-director",
+      "status": "done"
+    },
+    {
+      "item": "Lama'at Fakhri 30-day plan: not started",
+      "owner": "lamaat-director",
       "status": "done"
     }
   ]
