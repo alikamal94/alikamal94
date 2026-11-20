@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T16:24:00+03:00",
+  "updated": "2026-11-20T16:52:00+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "approval",
@@ -44,15 +44,19 @@
       "lastReply": ""
     },
     "bo3li-director": {
-      "status": "working",
+      "status": "done",
       "task": "30-day plan and first brief for Mariam (batch 1, six pieces)",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 35 pages; brand brief written",
         "Open questions for Ali listed in the brief",
-        "Ali said go and chose bo3li.trading first; writing the 30-day plan on labelled working assumptions"
+        "Ali said go and chose bo3li.trading first; writing the 30-day plan on labelled working assumptions",
+        "30-day plan written (20 Nov to 19 Dec): five pillars, four-week calendar of 16 carousel slots, no numeric targets until Ali gives a baseline",
+        "Set 2 topics proposed for Ali to approve; nothing is written for Set 2 until he decides",
+        "Batch 1 brief written for Mariam: six carousels that need none of the open answers; drafts due 24 and 27 Nov",
+        "14 working assumptions labelled in the plan; top five questions for Ali listed"
       ],
-      "lastReply": "The brand brief is written. The claims policy is locked: no win rates, profit figures or buy calls, and the disclaimer goes on every CTA, caption and end card. I need platforms and handles, the mentorship details, access to the logo and Canva files, and your decision on the Arabic font licence."
+      "lastReply": "The 30-day plan and the first brief for Mariam are written. Batch 1 is six carousels that need none of your open answers; they will be delivered as copy and layout specs because we have no logo or Canva files yet. I need five answers most: platforms and cadence, the state of Set 1 and the files, your decision on the Set 2 topics, what we may say about the mentorship and community, and which markets we cover."
     },
     "bo3li-worker": {
       "status": "idle",
@@ -156,6 +160,16 @@
       "house": "sage",
       "title": "Brand brief (from the brand book)",
       "path": "outputs/sage/brand-brief.md"
+    },
+    {
+      "house": "bo3li",
+      "title": "30-day plan, 20 Nov to 19 Dec 2026 (working assumptions, Set 2 proposal)",
+      "path": "outputs/bo3li/2026-11-20-30-day-plan.md"
+    },
+    {
+      "house": "bo3li",
+      "title": "Brief for Mariam: batch 1, six carousels",
+      "path": "outputs/bo3li/2026-11-20-brief-batch-1.md"
     }
   ],
   "board": [
@@ -195,9 +209,9 @@
       "status": "approval"
     },
     {
-      "item": "bo3li.trading 30-day plan: not started, waiting on Ali's go and answers (platforms and handles, mentorship details, logo and Canva files, markets covered)",
+      "item": "bo3li.trading 30-day plan: written on labelled working assumptions, with a Set 2 proposal and the batch 1 brief for Mariam; Ali's answers still open (platforms and cadence, Set 1 status and files, Set 2 topics, mentorship and community, markets covered)",
       "owner": "bo3li-director",
-      "status": "idle"
+      "status": "done"
     },
     {
       "item": "MF Trading 30-day plan: not started, waiting on Ali's go and answers (what it sells, licence and regulator, real contact details, rulings on the book's contradictions)",
