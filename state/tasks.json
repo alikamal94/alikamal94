@@ -1,11 +1,10 @@
 {
-  "updated": "2026-11-20T22:27:41+03:00",
+  "updated": "2026-11-20T23:39:32+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "approval",
-      "task": "Waiting for Ali: the bo3li.trading logo file, and sharing the Drive folder with clients",
+      "task": "Waiting for Ali: confirm the batch 1 approval, the bo3li.trading logo file, and the open checks before anything goes to clients",
       "notes": [
-        "Six directors are studying their brand books",
         "All six brand briefs are written; each lists open questions for Ali",
         "Tauro Markets has no brand book, so its team has nothing to work from",
         "Ali decided the outputs folder stays out of GitHub (the repo is public)",
@@ -14,9 +13,10 @@
         "Two spending decisions open: Druk font licence (Loud) and Arabic font licence (bo3li.trading). Nothing is bought without Ali's yes",
         "Ali added a designer and a performance analyst to every house and started all teams",
         "Ali approved all 36 pieces",
-        "Client packs uploaded to Google Drive, private to Ali"
+        "Client packs uploaded to Google Drive, private to Ali",
+        "Status given to Ali: batch 1 packed for six brands, nothing shared or published; asked him to confirm the approval and listed the open checks (Arabic proofread, bo3li.trading logo, compliance, MF Trading regulator, platforms and baselines, Tauro Markets brand book)"
       ],
-      "lastReply": "All six brands are approved and packed in Google Drive with logos and captions. bo3li.trading still needs its logo file. Nothing has been sent to any client."
+      "lastReply": "Batch 1 is finished and packed in Google Drive for six brands; nothing has been shared with a client or published. I need you to confirm the approval, upload the bo3li.trading logo, and settle the checks that stand before clients: Arabic proofread, compliance, and the MF Trading regulator. Tauro Markets is still idle without a brand book."
     },
     "loud-director": {
       "status": "done",
@@ -725,14 +725,74 @@
       "status": "approval"
     },
     {
-      "item": "Batch 1 for six brands: approved by Ali; client packs in Google Drive, not yet shared with clients",
+      "item": "Batch 1 for six brands (36 pieces): plan, drafts, review, designs and performance set-up finished; client packs in Ali's private Google Drive folder, not shared with any client",
       "owner": "chief-of-staff",
       "status": "done"
     },
     {
-      "item": "bo3li.trading logo: needs the logo file before its posts go to the client",
+      "item": "Batch 1 approval: Ali said they are all great, taken as approval of all 36 pieces; waiting for Ali to confirm",
+      "owner": "chief-of-staff",
+      "status": "approval"
+    },
+    {
+      "item": "bo3li.trading logo: posts have no logo; Ali needs to upload the logo file before its pack goes to the client",
       "owner": "bo3li-designer",
       "status": "approval"
+    },
+    {
+      "item": "Arabic proofread: no native reader has checked the new Arabic lines; needed before anything goes to clients or is published",
+      "owner": "chief-of-staff",
+      "status": "approval"
+    },
+    {
+      "item": "Lama'at Fakhri: captions carry a risk line pending Tauro Markets compliance, and one caption needs a compliance read",
+      "owner": "lamaat-director",
+      "status": "approval"
+    },
+    {
+      "item": "MF Trading: nothing can be published until Ali names the regulator and the compliance checker",
+      "owner": "mf-director",
+      "status": "approval"
+    },
+    {
+      "item": "MF Trading piece 6: two headline options, Ali to choose one",
+      "owner": "mf-director",
+      "status": "approval"
+    },
+    {
+      "item": "Loud Production House: headline typeface on the posts is a stand-in for the unlicensed Druk",
+      "owner": "loud-designer",
+      "status": "approval"
+    },
+    {
+      "item": "Sage: pattern areas on the posts are empty; needs the pattern file from Ali",
+      "owner": "sage-designer",
+      "status": "approval"
+    },
+    {
+      "item": "Platforms, handles and baseline numbers for every brand: unknown, so no performance data exists; waiting on Ali",
+      "owner": "chief-of-staff",
+      "status": "approval"
+    },
+    {
+      "item": "Arabic steps for downloading the files to an iPhone: written; adding them to each Drive folder waits for Ali's yes",
+      "owner": "chief-of-staff",
+      "status": "approval"
+    },
+    {
+      "item": "Loud Production House performance files: written but not reviewed (session hit a usage limit)",
+      "owner": "loud-performance",
+      "status": "idle"
+    },
+    {
+      "item": "Loud Production House designer notes file: not written (session hit a usage limit)",
+      "owner": "loud-designer",
+      "status": "idle"
+    },
+    {
+      "item": "Lama'at Fakhri designer notes file: not written (session hit a usage limit)",
+      "owner": "lamaat-designer",
+      "status": "idle"
     }
   ]
 }
