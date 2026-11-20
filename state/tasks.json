@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T15:36:26+03:00",
+  "updated": "2026-11-20T15:38:04+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -10,12 +10,14 @@
       "lastReply": "Six directors are reading their brand books. Tauro Markets has no brand book yet."
     },
     "loud-director": {
-      "status": "working",
-      "task": "Studying the Loud Production House brand book",
+      "status": "done",
+      "task": "Brand brief from the brand book",
       "notes": [
-        "Ali shared the brand book; reading all of it"
+        "Ali shared the brand book; reading all of it",
+        "Read all 34 pages; brand brief written",
+        "Open questions for Ali listed in the brief"
       ],
-      "lastReply": ""
+      "lastReply": "The brand brief is written. Only the wordmark and the three core colours are marked Confirmed in the book; most of the rest is Proposed. I need your answers on tagline, Arabic typeface, the Druk licence and services before final work."
     },
     "loud-worker": {
       "status": "idle",
@@ -107,12 +109,18 @@
     }
   },
   "approvals": [],
-  "outputs": [],
+  "outputs": [
+    {
+      "house": "loud",
+      "title": "Brand brief (from the brand book)",
+      "path": "outputs/loud/brand-brief.md"
+    }
+  ],
   "board": [
     {
       "item": "Loud Production House brand brief from the brand book",
       "owner": "loud-director",
-      "status": "working"
+      "status": "done"
     },
     {
       "item": "bo3li.trading brand brief from the brand book",
