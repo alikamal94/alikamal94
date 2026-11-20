@@ -35,4 +35,30 @@ Each house has two people who split the six agency functions:
 - **Director**: strategy and performance.
 - **Worker**: content, copywriting, design and social media.
 
-Agent ids follow `<house>-director` / `<house>-worker`; Rashed is `chief-of-staff`.
+Agent ids follow `<house>-director` / `<house>-worker`; Rashed is `chief-of-staff`. Houses: `loud`, `tauro`, `bo3li`, `sage`, `lamaat`, `mf`, `dorek`.
+
+## Agents (approved by Ali)
+
+The 15 agent definitions live in `agents/<id>.md`. `.claude/agents` is a symlink to `agents/` so Claude Code can load them as subagents. They may only read, search and write files; they have no tools for posting, sending or spending.
+
+When Ali writes `@<agent-id> ...` (usually a line pasted from the village):
+- If the subagent with that id is available, hand the message to it.
+- If it is not, read `agents/<agent-id>.md` and answer as that agent, following its rules.
+
+Majlis meetings: for `@chief-of-staff run a majlis meeting with <ids> about: <topic> ...`, ask each listed director for a 3-line update and one blocker (in parallel), then give those updates to `chief-of-staff`, who writes the notes and action items to `outputs/meetings/`.
+
+## Live state
+
+`index.html` polls `state/tasks.json` every 4 seconds and shows LIVE when it loads (DEMO when it cannot). Keep the file valid JSON:
+
+```json
+{
+  "updated": "ISO 8601 time",
+  "agents": { "<agent-id>": { "status": "working | approval | done | idle", "task": "", "notes": [], "lastReply": "" } },
+  "approvals": [ { "id": "TAU-1", "title": "", "house": "tauro", "agent": "tauro-director", "summary": "", "path": "outputs/tauro/file.md" } ],
+  "outputs": [ { "house": "tauro", "title": "", "path": "outputs/tauro/file.md" } ],
+  "board": [ { "item": "", "owner": "<agent-id>", "status": "working" } ]
+}
+```
+
+Work files go in `outputs/<house>/`; meeting notes in `outputs/meetings/`.

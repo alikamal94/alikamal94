@@ -1,0 +1,98 @@
+{
+  "updated": "2026-11-20T12:00:00+03:00",
+  "agents": {
+    "chief-of-staff": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "loud-director": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "loud-worker": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "tauro-director": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "tauro-worker": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "bo3li-director": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "bo3li-worker": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "sage-director": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "sage-worker": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "lamaat-director": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "lamaat-worker": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "mf-director": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "mf-worker": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "dorek-director": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    },
+    "dorek-worker": {
+      "status": "idle",
+      "task": "",
+      "notes": [],
+      "lastReply": ""
+    }
+  },
+  "approvals": [],
+  "outputs": [],
+  "board": []
+}

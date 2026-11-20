@@ -84,7 +84,7 @@
   .pill { margin-left: auto; font: 700 10.5px/1 system-ui, sans-serif; padding: 4px 6px; border: 2px solid var(--ink); white-space: nowrap; text-transform: uppercase; letter-spacing: .3px; }
   .pill.working { background: #fff; } .pill.approval { background: #e0342b; color: #fff; } .pill.done { background: #2f9e44; color: #fff; } .pill.idle { background: #ddd3bb; }
   ul.list { list-style: none; margin: 0; padding: 0; } ul.list li { padding: 5px 0; border-bottom: 1px solid rgba(27,20,16,.2); font-size: 12.5px; }
-  ul.list li code, .path { font: 11px ui-monospace, Menlo, monospace; opacity: .7; display: block; word-break: break-all; }
+  ul.list li code, .path { color: inherit; font: 11px ui-monospace, Menlo, monospace; opacity: .7; display: block; word-break: break-all; }
   .reply { background: #fffaf0; border-left: 4px solid var(--ink); padding: 6px 8px; font-size: 12.5px; white-space: pre-wrap; }
   .board { width: 100%; border-collapse: collapse; font-size: 12px; } .board td, .board th { border: 2px solid var(--ink); padding: 4px 5px; text-align: left; vertical-align: top; background: #fff; } .board th { background: var(--ink); color: #ffe9a8; font-weight: 600; } .board .pill { display: inline-block; }
   #scrim { position: fixed; inset: 0; background: rgba(12,8,20,.6); z-index: 40; display: none; align-items: center; justify-content: center; padding: 16px; }
@@ -1644,10 +1644,13 @@ const $ = id => document.getElementById(id);
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 const agentDef = id => AGENTS.find(a => a.id === id);
 const agentState = id => (STATE.agents && STATE.agents[id]) || { status: 'idle', task: '', notes: [], lastReply: '' };
+const safePath = p => typeof p === 'string' && /^outputs\/[\w.\-\/ ]+$/.test(p) && !p.includes('..') ? p : null;
+const pathLink = p => safePath(p) ? `<a class="path" href="${esc(encodeURI(p))}" target="_blank" rel="noopener">${esc(p)}</a>` : (p ? `<span class="path">${esc(p)}</span>` : '');
 
 function applyState(st, live) {
   STATE = st || DEMO_STATE; LIVE = !!live;
-  for (const c of chars) if (c.tag && c !== ALI) setStatus(c, agentState(c.id).status || 'idle');
+  for (const c of chars) if (c.tag && c !== ALI) { const v = agentState(c.id).status; setStatus(c, STATUS_LABEL[v] ? v : 'idle'); }
+  $('live').title = LIVE ? 'Reading state/tasks.json' + (STATE.updated ? ' · last update ' + STATE.updated : '') : 'Demo data: state/tasks.json could not be read';
   const n = (STATE.approvals || []).length;
   $('badge').textContent = n || ''; $('badge').dataset.n = n;
   $('live').textContent = LIVE ? 'LIVE' : 'DEMO'; $('live').classList.toggle('on', LIVE);
@@ -1697,7 +1700,7 @@ function approvalCard(ap) {
   const who = agentDef(ap.agent);
   return `<div class="card">
     <div class="top"><div><div style="font-weight:700">${esc(ap.title)}</div><div class="role">${esc(ap.id)}${who ? ' · ' + esc(who.name) : ''}${ap.house && houseOf(ap.house) ? ' · ' + esc(houseOf(ap.house).en) : ''}</div></div>${copied.has(ap.id) ? '<span class="pill done">Copied</span>' : ''}</div>
-    ${ap.summary ? `<div class="task">${esc(ap.summary)}</div>` : ''}${ap.path ? `<span class="path">${esc(ap.path)}</span>` : ''}
+    ${ap.summary ? `<div class="task">${esc(ap.summary)}</div>` : ''}${pathLink(ap.path)}
     <div class="acts"><button class="btn sm pri" data-act="approve" data-id="${esc(ap.id)}">Approve</button><button class="btn sm warn" data-act="sendback" data-id="${esc(ap.id)}">Send back</button></div>
   </div>`;
 }
@@ -1713,7 +1716,7 @@ function renderPanel() {
     <div class="body"><p class="desc">${esc(HOUSE_INFO[h.id] || '')}</p>
       ${h.id === 'ali' ? '' : '<div class="chips">' + ['Strategy', 'Content', 'Copywriting', 'Design', 'Social media', 'Performance'].map(c => `<span class="chip">${c}</span>`).join('') + '</div>'}
       <h3>Team</h3>${team.map(a => teamCard(a)).join('')}
-      <h3>Outputs</h3>${outs.length ? `<ul class="list">${outs.map(o => `<li>${esc(o.title)}<code>${esc(o.path)}</code></li>`).join('')}</ul>` : '<p class="muted">No outputs yet.</p>'}
+      <h3>Outputs</h3>${outs.length ? `<ul class="list">${outs.map(o => `<li>${esc(o.title)}${pathLink(o.path)}</li>`).join('')}</ul>` : '<p class="muted">No outputs yet.</p>'}
       <h3>Waiting for you</h3>${aps.length ? aps.map(approvalCard).join('') : '<p class="muted">Nothing is waiting for your approval.</p>'}
     </div>`;
   } else {
@@ -1832,6 +1835,38 @@ function tickClock() {
 }
 setInterval(tickClock, 1000);
 
+/* =====================================================================
+   PHASE 4 — live: follow state/tasks.json
+   ===================================================================== */
+let lastText = null;
+async function pollState() {
+  let txt;
+  try {
+    const r = await fetch('state/tasks.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error('missing');
+    txt = await r.text();
+  } catch (e) {
+    if (LIVE || lastText !== '') { lastText = ''; applyState(DEMO_STATE, false); }
+    return;
+  }
+  if (txt === lastText) return;
+  let st;
+  try { st = JSON.parse(txt); } catch (e) { return; }              // caught mid-write: keep what we have, retry next tick
+  if (!st || typeof st !== 'object' || typeof st.agents !== 'object') return;
+  const wasLive = LIVE, before = new Set((STATE.approvals || []).map(a => a.id)), prevAgents = STATE.agents || {};
+  lastText = txt;
+  for (const id of [...copied]) if (!(st.approvals || []).some(a => a.id === id)) copied.delete(id);
+  applyState(st, true);
+  if (!wasLive) return;
+  const fresh = (st.approvals || []).filter(a => !before.has(a.id));
+  if (fresh.length) toast('Waiting for your approval: ' + fresh.map(a => a.title).join(', '));
+  else {
+    const done = Object.keys(st.agents).filter(id => st.agents[id].status === 'done' && (prevAgents[id] || {}).status !== 'done' && agentDef(id));
+    if (done.length) toast(done.map(id => agentDef(id).name).join(', ') + (done.length > 1 ? ' have' : ' has') + ' finished a task.');
+  }
+}
+setInterval(pollState, 4000);
+
 let lastMs = 0;
 function render(ms) {
   const t = ms / 1000, dt = Math.min(0.05, Math.max(0, (ms - lastMs) / 1000)); lastMs = ms;
@@ -1855,6 +1890,7 @@ buildPeople();
 buildLabels();
 tickClock();
 applyState(DEMO_STATE, false);
+pollState();
 fit();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 requestAnimationFrame(render);
