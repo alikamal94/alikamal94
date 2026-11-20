@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:22:30+03:00",
+  "updated": "2026-11-20T21:23:00+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -104,20 +104,21 @@
       "lastReply": "All six pieces are drafted in English with no product facts. I flagged a colour exception on piece 5 and a few wording points for Noura."
     },
     "lamaat-director": {
-      "status": "working",
-      "task": "Reviewing batch 1",
+      "status": "approval",
+      "task": "Batch 1 reviewed; six pieces waiting for Ali",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 50 pages; brand brief written",
         "Open questions for Ali listed in the brief",
         "Ali said go; plan started",
         "Plan and brief written on 16 labelled assumptions",
-        "Reviewing Fatma's six drafts"
+        "Reviewing Fatma's six drafts",
+        "Review done: three fixes, all six ready for Ali"
       ],
-      "lastReply": "The plan and the brief for six pieces are written. This month publishes the five questions only, as a checklist for judging any broker, with no programme answers and without naming Tauro Markets. I need the programme facts and the approved Tauro Markets wording."
+      "lastReply": "All six pieces are ready for you. I restored the promise word for word on piece 5 and widened the risk-line slot. Piece 5 needs a compliance read of one line before it goes anywhere."
     },
     "lamaat-worker": {
-      "status": "done",
+      "status": "approval",
       "task": "Batch 1 drafts",
       "notes": [
         "Brief received from Reem",
@@ -238,15 +239,19 @@
       "lastReply": ""
     },
     "lamaat-designer": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Designing batch 1",
+      "notes": [
+        "Designing the six pieces, type and graphics only"
+      ],
       "lastReply": ""
     },
     "lamaat-performance": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
+      "status": "working",
+      "task": "Setting up the measurement plan and tracker",
+      "notes": [
+        "No data from Ali yet"
+      ],
       "lastReply": ""
     },
     "mf-designer": {
@@ -476,6 +481,54 @@
       "agent": "sage-worker",
       "summary": "Four slides on what the leaf and frame mean. Cannot be judged until the logo and pattern files arrive.",
       "path": "outputs/sage/batch-1/2026-11-20-S1-06-sage-leaf-carousel.md"
+    },
+    {
+      "id": "LAM-1",
+      "title": "Checklist post: خمس أسئلة قبل ما تبدأ",
+      "house": "lamaat",
+      "agent": "lamaat-worker",
+      "summary": "The five questions before signature as one checklist. Decide on the risk line. Approval covers the copy only.",
+      "path": "outputs/lamaat/batch-1/L1-01-five-questions-checklist.md"
+    },
+    {
+      "id": "LAM-2",
+      "title": "Question 1: شلون ومتى تنصرف عمولتك؟",
+      "house": "lamaat",
+      "agent": "lamaat-worker",
+      "summary": "Commission question, book copy on the image. Decide what is said when readers ask the question back.",
+      "path": "outputs/lamaat/batch-1/L1-02-q1-commission.md"
+    },
+    {
+      "id": "LAM-3",
+      "title": "Question 2: شلون تتابع عملاءك بالأرقام؟",
+      "house": "lamaat",
+      "agent": "lamaat-worker",
+      "summary": "Tracking question. Approve the on-image body line, which is the team's own writing.",
+      "path": "outputs/lamaat/batch-1/L1-03-q2-tracking.md"
+    },
+    {
+      "id": "LAM-4",
+      "title": "Question 3: من يرد على عملائك إذا صار شي؟",
+      "house": "lamaat",
+      "agent": "lamaat-worker",
+      "summary": "Who answers your clients. Approve the team's body line and the headline spelling.",
+      "path": "outputs/lamaat/batch-1/L1-04-q3-who-answers.md"
+    },
+    {
+      "id": "LAM-5",
+      "title": "Quote post: هذا مو مناسب لك الحين.",
+      "house": "lamaat",
+      "agent": "lamaat-worker",
+      "summary": "The monthly not-for post. Needs a compliance read: the caption names profit and fixed income as things refused.",
+      "path": "outputs/lamaat/batch-1/L1-05-not-for-you-yet.md"
+    },
+    {
+      "id": "LAM-6",
+      "title": "Story poll: سؤال اليوم",
+      "house": "lamaat",
+      "agent": "lamaat-worker",
+      "summary": "Question story with a native poll. Needs an in-app check that the sticker takes three options.",
+      "path": "outputs/lamaat/batch-1/L1-06-story-question-of-the-day.md"
     }
   ],
   "outputs": [
@@ -698,6 +751,11 @@
       "house": "sage",
       "title": "Batch 1 review",
       "path": "outputs/sage/batch-1/REVIEW.md"
+    },
+    {
+      "house": "lamaat",
+      "title": "Batch 1 review",
+      "path": "outputs/lamaat/batch-1/REVIEW.md"
     }
   ],
   "board": [
@@ -799,6 +857,11 @@
     {
       "item": "Sage batch 1: six pieces waiting for Ali; designs in progress",
       "owner": "sage-designer",
+      "status": "working"
+    },
+    {
+      "item": "Lama'at Fakhri batch 1: six pieces waiting for Ali; designs in progress",
+      "owner": "lamaat-designer",
       "status": "working"
     }
   ]
