@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T17:58:00+03:00",
+  "updated": "2026-11-20T18:40:00+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "approval",
@@ -122,10 +122,18 @@
       "lastReply": "The 30-day plan and the first brief for Salem are written: three pillars taken from the book's own labels, and six first pieces that need none of your open answers. Nothing is posted; I have no performance data yet and set no numeric targets. I need five answers most: what MF Trading sells, licence and regulator, platforms and handles with a baseline, markets and data sources, and the logo files with your rulings on the book's ten contradictions."
     },
     "mf-worker": {
-      "status": "idle",
-      "task": "",
-      "notes": [],
-      "lastReply": ""
+      "status": "done",
+      "task": "Batch 1: six drafts (M1-01 to M1-06) written, ready for Bader's review",
+      "notes": [
+        "Read the brand brief, the batch 1 brief and the 30-day plan in full",
+        "Started drafting the six pieces in outputs/mf/batch-1/; nothing is published",
+        "Six drafts written: three posts, two carousels, one story; each has copy, English gloss, layout spec, caption, checklist, dialect lines and open points",
+        "No results, market figures, instruments, illustrative numbers, licence claims, contacts, offers or tagline in any draft; the only numbers are the count 3 and slide numbers",
+        "Official disclaimer pasted exactly, on every frame and in every caption (the story has no caption)",
+        "Open for Bader: small Signal Blue label on navy and on Mist is below the book's own contrast rule; logo minimum size on a 1080 canvas; where the one question sits",
+        "Dialect lines flagged in each file for a native Kuwaiti reader; nothing added to approvals"
+      ],
+      "lastReply": "The six batch 1 pieces are drafted as copy and layout specs in outputs/mf/batch-1/. They are drafts only: Bader reviews first, and nothing is in approvals or published. Each file lists the dialect lines I want a native Kuwaiti reader to check and the open points for Bader and you."
     },
     "dorek-director": {
       "status": "done",
@@ -279,6 +287,36 @@
       "house": "mf",
       "title": "Brief for Salem: batch 1, six pieces (M1-01 to M1-06)",
       "path": "outputs/mf/2026-11-20-brief-batch-1.md"
+    },
+    {
+      "house": "mf",
+      "title": "M1-01 draft: The stop is not a loss, it is your limit (post)",
+      "path": "outputs/mf/batch-1/M1-01-stop-is-your-limit.md"
+    },
+    {
+      "house": "mf",
+      "title": "M1-02 draft: Three questions before any trade (carousel)",
+      "path": "outputs/mf/batch-1/M1-02-three-questions.md"
+    },
+    {
+      "house": "mf",
+      "title": "M1-03 draft: Three mistakes that cost the trader (carousel)",
+      "path": "outputs/mf/batch-1/M1-03-three-mistakes.md"
+    },
+    {
+      "house": "mf",
+      "title": "M1-04 draft: Read the market calmly (post on Mist)",
+      "path": "outputs/mf/batch-1/M1-04-read-the-market-calmly.md"
+    },
+    {
+      "house": "mf",
+      "title": "M1-05 draft: Question of the day, plan before the trade (story)",
+      "path": "outputs/mf/batch-1/M1-05-question-of-the-day-plan.md"
+    },
+    {
+      "house": "mf",
+      "title": "M1-06 draft: What you learn here, the method before the result (post)",
+      "path": "outputs/mf/batch-1/M1-06-what-you-learn-here.md"
     }
   ],
   "board": [
