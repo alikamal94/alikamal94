@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:12:11+03:00",
+  "updated": "2026-11-20T21:14:46+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -79,24 +79,26 @@
       "lastReply": "The six batch 1 carousels are drafted as copy and layout specs in outputs/bo3li/batch-1/. They are drafts only: Yousef reviews first, and nothing is in approvals yet. Each file lists the dialect lines I want a native Kuwaiti reader to check."
     },
     "sage-director": {
-      "status": "done",
-      "task": "30-day plan and batch 1 brief",
+      "status": "working",
+      "task": "Reviewing batch 1",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 39 pages; brand brief written",
         "Open questions for Ali listed in the brief",
         "Ali said go; plan started",
-        "Plan and brief written on 14 labelled assumptions"
+        "Plan and brief written on 14 labelled assumptions",
+        "Reviewing Dana's six drafts"
       ],
       "lastReply": "The plan and the brief for six brand-level pieces are written. They are English, type-and-graphic only, with no product facts, because the book covers visuals only. I need the real menu, the market, the languages and the launch date."
     },
     "sage-worker": {
-      "status": "working",
-      "task": "Drafting batch 1 (six pieces)",
+      "status": "done",
+      "task": "Batch 1 drafts",
       "notes": [
-        "Brief received from Noura"
+        "Brief received from Noura",
+        "Six drafts written; with Noura for review"
       ],
-      "lastReply": ""
+      "lastReply": "All six pieces are drafted in English with no product facts. I flagged a colour exception on piece 5 and a few wording points for Noura."
     },
     "lamaat-director": {
       "status": "done",
