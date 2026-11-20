@@ -65,4 +65,4 @@ Work files go in `outputs/<house>/`; meeting notes in `outputs/meetings/`.
 
 ## Privacy
 
-The GitHub repository is public. Brand briefs (`outputs/<house>/brand-brief.md`) are built from Ali's private brand books and stay out of git (see `.gitignore`) until Ali says otherwise. Never commit the brand book PDFs.
+The GitHub repository is public. Everything in `outputs/` (brand briefs, plans, drafts, meeting notes) stays out of git (see `.gitignore`) until Ali says otherwise. Never commit the brand book PDFs. Only the earlier village screenshots in `outputs/screenshots/` are tracked.
