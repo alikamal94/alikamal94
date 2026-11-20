@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:10:48+03:00",
+  "updated": "2026-11-20T21:10:59+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "working",
@@ -560,9 +560,9 @@
       "status": "done"
     },
     {
-      "item": "Ali's decision on the four-step plan (answers, 30-day plans, first batch, review)",
+      "item": "Ali's decision on the four-step plan: go, all houses started",
       "owner": "chief-of-staff",
-      "status": "approval"
+      "status": "done"
     },
     {
       "item": "bo3li.trading 30-day plan: written on labelled working assumptions, with a Set 2 proposal and the batch 1 brief for Mariam; Ali's answers still open (platforms and cadence, Set 1 status and files, Set 2 topics, mentorship and community, markets covered)",
@@ -575,24 +575,24 @@
       "status": "done"
     },
     {
-      "item": "Dorek 30-day plan: not started, waiting on Ali's go and answers (launch status, pilot restaurants, pricing, guests or restaurants first)",
+      "item": "Dorek 30-day plan: Khaled is writing it",
       "owner": "dorek-director",
-      "status": "idle"
+      "status": "working"
     },
     {
-      "item": "Lama'at Fakhri 30-day plan: not started, waiting on Ali's go, partner programme facts and Tauro Markets approvals (credentials, naming, risk line)",
+      "item": "Lama'at Fakhri 30-day plan: written; Fatma is drafting batch 1",
       "owner": "lamaat-director",
-      "status": "idle"
+      "status": "done"
     },
     {
-      "item": "Loud Production House 30-day plan: not started, waiting on Ali's go and answers (tagline, Arabic typeface, services, platforms, confirmation of Proposed items)",
+      "item": "Loud Production House 30-day plan: Faris is writing it",
       "owner": "loud-director",
-      "status": "idle"
+      "status": "working"
     },
     {
-      "item": "Sage 30-day plan: not started, waiting on Ali's go and answers (real menu and prices, market and sales channels, languages, platforms and launch date)",
+      "item": "Sage 30-day plan: written; Dana is drafting batch 1",
       "owner": "sage-director",
-      "status": "idle"
+      "status": "done"
     },
     {
       "item": "Tauro Markets: no brand book, team has nothing to work from; waiting on Ali",
@@ -610,14 +610,14 @@
       "status": "approval"
     },
     {
-      "item": "Sage 30-day plan: not started",
-      "owner": "sage-director",
-      "status": "done"
+      "item": "bo3li.trading batch 1: six pieces waiting for Ali; designs in progress",
+      "owner": "bo3li-designer",
+      "status": "working"
     },
     {
-      "item": "Lama'at Fakhri 30-day plan: not started",
-      "owner": "lamaat-director",
-      "status": "done"
+      "item": "MF Trading batch 1: six pieces waiting for Ali; designs in progress",
+      "owner": "mf-designer",
+      "status": "working"
     }
   ]
 }
