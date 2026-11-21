@@ -1,11 +1,10 @@
 {
-  "updated": "2026-11-21T00:27:39+03:00",
+  "updated": "2026-11-21T12:45:01+03:00",
   "agents": {
     "chief-of-staff": {
-      "status": "approval",
-      "task": "Waiting for Ali: confirm the batch 1 approval, the bo3li.trading logo file, and the open checks before anything goes to clients",
+      "status": "done",
+      "task": "Majlis: plans for next week (7 directors)",
       "notes": [
-        "All six brand briefs are written; each lists open questions for Ali",
         "Tauro Markets has no brand book, so its team has nothing to work from",
         "Ali decided the outputs folder stays out of GitHub (the repo is public)",
         "Plan proposed to Ali: his answers, then 30-day plans, then a first batch of about six pieces per house, then review and a weekly performance read. Not yet approved",
@@ -14,9 +13,10 @@
         "Ali added a designer and a performance analyst to every house and started all teams",
         "Ali approved all 36 pieces",
         "Client packs uploaded to Google Drive, private to Ali",
-        "Status given to Ali: batch 1 packed for six brands, nothing shared or published; asked him to confirm the approval and listed the open checks (Arabic proofread, bo3li.trading logo, compliance, MF Trading regulator, platforms and baselines, Tauro Markets brand book)"
+        "Status given to Ali: batch 1 packed for six brands, nothing shared or published; asked him to confirm the approval and listed the open checks (Arabic proofread, bo3li.trading logo, compliance, MF Trading regulator, platforms and baselines, Tauro Markets brand book)",
+        "Notes and action items written to outputs/meetings/"
       ],
-      "lastReply": "Batch 1 is finished and packed in Google Drive for six brands; nothing has been shared with a client or published. I need you to confirm the approval, upload the bo3li.trading logo, and settle the checks that stand before clients: Arabic proofread, compliance, and the MF Trading regulator. Tauro Markets is still idle without a brand book."
+      "lastReply": "Majlis notes ready. Top asks for Ali: Tauro Markets brief and compliance basics; platforms, handles and baselines; MF regulator and compliance checker."
     },
     "loud-director": {
       "status": "done",
@@ -87,8 +87,8 @@
       "lastReply": "The six batch 1 carousels are drafted as copy and layout specs in outputs/bo3li/batch-1/. They are drafts only: Yousef reviews first, and nothing is in approvals yet. Each file lists the dialect lines I want a native Kuwaiti reader to check."
     },
     "sage-director": {
-      "status": "approval",
-      "task": "Sage batch 1 redesign waiting for Ali",
+      "status": "idle",
+      "task": "Waiting for Ali: go on the new engagement plan and original food photos",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 39 pages; brand brief written",
@@ -100,7 +100,7 @@
         "Ali approved batch 1; client pack with logos and captions is in Google Drive",
         "First designs not approved by Ali; redesign delivered"
       ],
-      "lastReply": "All six pieces are ready for you. I fixed three layout points so purple leads everywhere; the copy is unchanged apart from two lines. Final artwork is blocked until the official logo and pattern files arrive."
+      "lastReply": "Blocker: original high-resolution food photos from Ali."
     },
     "sage-worker": {
       "status": "done",
@@ -322,16 +322,7 @@
       "lastReply": "Tracking is set up with no numbers or targets, because nothing is published and I do not know if the account exists. I need a same-day screenshot of the profile and insights as a baseline, and the one goal for the next 30 days."
     }
   },
-  "approvals": [
-    {
-      "id": "SAG-V2",
-      "title": "Sage batch 1, redesigned",
-      "house": "sage",
-      "agent": "sage-designer",
-      "summary": "All six pieces rebuilt in the style of the Sage product stories. Copy unchanged. Approve the new look or send back.",
-      "path": "outputs/sage/client/Sage-posts-and-captions.pdf"
-    }
-  ],
+  "approvals": [],
   "outputs": [
     {
       "house": "loud",
@@ -672,6 +663,11 @@
       "house": "sage",
       "title": "Client pack: posts and captions (PDF)",
       "path": "outputs/sage/client/Sage-posts-and-captions.pdf"
+    },
+    {
+      "house": "ali",
+      "title": "Majlis: plans for next week (21 Nov)",
+      "path": "outputs/meetings/2026-11-21-plans-for-next-weeks-content.md"
     }
   ],
   "board": [
@@ -809,6 +805,11 @@
       "item": "Sage batch 1: first designs rejected by Ali; redesign waiting for his review",
       "owner": "sage-designer",
       "status": "approval"
+    },
+    {
+      "item": "Majlis: plans for next week",
+      "owner": "chief-of-staff",
+      "status": "done"
     }
   ]
 }
