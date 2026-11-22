@@ -1,9 +1,9 @@
 {
-  "updated": "2026-11-21T12:45:01+03:00",
+  "updated": "2026-11-22T11:57:50+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "done",
-      "task": "Majlis: plans for next week (7 directors)",
+      "task": "Majlis: Sage growth strategy",
       "notes": [
         "Tauro Markets has no brand book, so its team has nothing to work from",
         "Ali decided the outputs folder stays out of GitHub (the repo is public)",
@@ -16,7 +16,7 @@
         "Status given to Ali: batch 1 packed for six brands, nothing shared or published; asked him to confirm the approval and listed the open checks (Arabic proofread, bo3li.trading logo, compliance, MF Trading regulator, platforms and baselines, Tauro Markets brand book)",
         "Notes and action items written to outputs/meetings/"
       ],
-      "lastReply": "Majlis notes ready. Top asks for Ali: Tauro Markets brief and compliance basics; platforms, handles and baselines; MF regulator and compliance checker."
+      "lastReply": "Sage majlis notes written."
     },
     "loud-director": {
       "status": "done",
@@ -87,8 +87,8 @@
       "lastReply": "The six batch 1 carousels are drafted as copy and layout specs in outputs/bo3li/batch-1/. They are drafts only: Yousef reviews first, and nothing is in approvals yet. Each file lists the dialect lines I want a native Kuwaiti reader to check."
     },
     "sage-director": {
-      "status": "idle",
-      "task": "Waiting for Ali: go on the new engagement plan and original food photos",
+      "status": "approval",
+      "task": "Sage growth strategy waiting for Ali",
       "notes": [
         "Ali shared the brand book; reading all of it",
         "Read all 39 pages; brand brief written",
@@ -98,9 +98,10 @@
         "Reviewing Dana's six drafts",
         "Review done: three layout fixes, all six ready for Ali",
         "Ali approved batch 1; client pack with logos and captions is in Google Drive",
-        "First designs not approved by Ali; redesign delivered"
+        "First designs not approved by Ali; redesign delivered",
+        "Strategy: Comfort, counted. Five series, 2-week calendar"
       ],
-      "lastReply": "Blocker: original high-resolution food photos from Ali."
+      "lastReply": "Strategy ready: Comfort, counted. Blocker: original full-resolution food photos."
     },
     "sage-worker": {
       "status": "done",
@@ -322,7 +323,16 @@
       "lastReply": "Tracking is set up with no numbers or targets, because nothing is published and I do not know if the account exists. I need a same-day screenshot of the profile and insights as a baseline, and the one goal for the next 30 days."
     }
   },
-  "approvals": [],
+  "approvals": [
+    {
+      "id": "SAG-STRAT",
+      "title": "Sage growth strategy",
+      "house": "sage",
+      "agent": "sage-director",
+      "summary": "Comfort, counted: five engagement series, two-week calendar, blur fix, one sample post first",
+      "path": "outputs/sage/2026-11-22-growth-strategy.md"
+    }
+  ],
   "outputs": [
     {
       "house": "loud",
@@ -668,6 +678,16 @@
       "house": "ali",
       "title": "Majlis: plans for next week (21 Nov)",
       "path": "outputs/meetings/2026-11-21-plans-for-next-weeks-content.md"
+    },
+    {
+      "house": "sage",
+      "title": "Sage growth strategy",
+      "path": "outputs/sage/2026-11-22-growth-strategy.md"
+    },
+    {
+      "house": "ali",
+      "title": "Majlis: Sage growth strategy (22 Nov)",
+      "path": "outputs/meetings/2026-11-22-sage-growth-strategy.md"
     }
   ],
   "board": [
@@ -810,6 +830,11 @@
       "item": "Majlis: plans for next week",
       "owner": "chief-of-staff",
       "status": "done"
+    },
+    {
+      "item": "Sage growth strategy",
+      "owner": "sage-director",
+      "status": "approval"
     }
   ]
 }
