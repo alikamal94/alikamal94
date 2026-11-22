@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-22T11:57:50+03:00",
+  "updated": "2026-11-22T12:51:29+03:00",
   "agents": {
     "chief-of-staff": {
       "status": "done",
@@ -88,9 +88,8 @@
     },
     "sage-director": {
       "status": "approval",
-      "task": "Sage growth strategy waiting for Ali",
+      "task": "Sample post GK-01 Guess the Kcal: Butter Chicken",
       "notes": [
-        "Ali shared the brand book; reading all of it",
         "Read all 39 pages; brand brief written",
         "Open questions for Ali listed in the brief",
         "Ali said go; plan started",
@@ -99,9 +98,10 @@
         "Review done: three layout fixes, all six ready for Ali",
         "Ali approved batch 1; client pack with logos and captions is in Google Drive",
         "First designs not approved by Ali; redesign delivered",
-        "Strategy: Comfort, counted. Five series, 2-week calendar"
+        "Strategy: Comfort, counted. Five series, 2-week calendar",
+        "Strategy approved by Ali 22 Nov"
       ],
-      "lastReply": "Strategy ready: Comfort, counted. Blocker: original full-resolution food photos."
+      "lastReply": "Sample ready: 3-slide carousel + 9s Reel. Waiting for Ali."
     },
     "sage-worker": {
       "status": "done",
@@ -247,14 +247,14 @@
     },
     "sage-designer": {
       "status": "approval",
-      "task": "Batch 1 redesigned in the style of the Sage product stories",
+      "task": "GK-01 sample designed",
       "notes": [
         "Designing the six pieces with placeholders for logo and pattern",
         "15 slides designed; rendered and checked by the main session",
         "Ali approved batch 1; client pack with logos and captions is in Google Drive",
         "Ali rejected the first designs; rebuilt all six pieces from his own Sage stories"
       ],
-      "lastReply": "I rebuilt the six pieces in the style of your Sage product stories: purple ground, big yellow headline, real food photos, leaf sprigs and the Talabat, Keeta and Trolley badges. They are waiting for your review."
+      "lastReply": "Food photo used at real size, no blur."
     },
     "sage-performance": {
       "status": "done",
@@ -331,6 +331,14 @@
       "agent": "sage-director",
       "summary": "Comfort, counted: five engagement series, two-week calendar, blur fix, one sample post first",
       "path": "outputs/sage/2026-11-22-growth-strategy.md"
+    },
+    {
+      "id": "SAG-GK01",
+      "title": "Sage sample: Guess the Kcal, Butter Chicken",
+      "house": "sage",
+      "agent": "sage-director",
+      "summary": "3-slide carousel (guess, reveal, order) and a 9-second number-reveal Reel",
+      "path": "outputs/sage/sample/GK-01-preview.png"
     }
   ],
   "outputs": [
@@ -688,6 +696,11 @@
       "house": "ali",
       "title": "Majlis: Sage growth strategy (22 Nov)",
       "path": "outputs/meetings/2026-11-22-sage-growth-strategy.md"
+    },
+    {
+      "house": "sage",
+      "title": "Sample GK-01 Butter Chicken (carousel + Reel)",
+      "path": "outputs/sage/sample/GK-01-preview.png"
     }
   ],
   "board": [
@@ -834,6 +847,11 @@
     {
       "item": "Sage growth strategy",
       "owner": "sage-director",
+      "status": "done"
+    },
+    {
+      "item": "Sage sample post GK-01",
+      "owner": "sage-designer",
       "status": "approval"
     }
   ]
