@@ -325,14 +325,6 @@
   },
   "approvals": [
     {
-      "id": "SAG-STRAT",
-      "title": "Sage growth strategy",
-      "house": "sage",
-      "agent": "sage-director",
-      "summary": "Comfort, counted: five engagement series, two-week calendar, blur fix, one sample post first",
-      "path": "outputs/sage/2026-11-22-growth-strategy.md"
-    },
-    {
       "id": "SAG-GK01",
       "title": "Sage sample: Guess the Kcal, Butter Chicken",
       "house": "sage",
