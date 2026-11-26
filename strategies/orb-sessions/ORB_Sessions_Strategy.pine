@@ -1,0 +1,495 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © alikamal94
+//
+// ORB Sessions STRATEGY — backtest version of the "ORB Sessions" indicator
+// Same rules as the indicator, but it places real strategy orders so the TradingView Strategy Tester
+// can report net profit, win rate, drawdown, profit factor and the full trade list.
+//
+// ORB Sessions — Opening Range Breakout + Retest for ASIA, LONDON, NY OPEN and NY CLOSE
+//  1) Builds an opening range (1, 5 or 15 minutes) at the open of every enabled session.
+//  2) Watches for a breakout of that session's ORB High, ORB Low or 50% level (candle CLOSE beyond the level).
+//  3) Confirms the entry on the retest with a Fair Value Gap, a level (High/Low) retest, or a strong rejection candle.
+//  Each session has its own range, state, signals and trade, so sessions can overlap without interfering.
+//  Session times are set in each session's own time zone, so daylight saving is handled automatically.
+//
+// Non-repainting rules:
+//  - Every signal, label and line is created only on a CONFIRMED (closed) candle.
+//  - All drawings use xloc.bar_time with fixed end points, so nothing is ever moved after it is drawn.
+//  - Drawings are stored per session in var arrays; only whole old sessions are deleted (Days to keep).
+//  - One breakout label per level/direction per session, and no new setups once the session's signal limit is reached.
+//
+// Chart timeframe: the opening range can only be built when the chart timeframe fits inside it.
+//  1m chart -> 1/5/15m ORB · 5m chart -> 5/15m ORB · 15m chart -> 15m ORB
+
+//@version=6
+strategy("ORB Sessions Strategy — Asia / London / NY Open / NY Close", "ORB Sessions BT", overlay = true,
+     initial_capital = 10000, currency = currency.USD, pyramiding = 1,
+     default_qty_type = strategy.fixed, default_qty_value = 1,
+     commission_type = strategy.commission.percent, commission_value = 0, slippage = 0,
+     margin_long = 1, margin_short = 1, process_orders_on_close = false,
+     max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
+
+// ───────────────────────────── Inputs: sessions ─────────────────────────────
+const string TZ_TIP  = "IANA time zone of the session's own market, e.g. Asia/Tokyo, Europe/London, America/New_York. Daylight saving is applied automatically."
+const string SIG_TIP = "How long after the session open new breakouts/signals are allowed (minutes)."
+const string LVL_TIP = "How long after the session open the levels are drawn and open trades are managed (minutes)."
+
+const string G_AS = "① ASIA session"
+asOn   = input.bool(true, "Enable", group = G_AS, inline = "a0")
+asCol  = input.color(#FFB300, "", group = G_AS, inline = "a0")
+asTz   = input.string("Asia/Tokyo", "Time zone", group = G_AS, tooltip = TZ_TIP)
+asH    = input.int(9,  "Open hour",  0, 23, group = G_AS, inline = "a1")
+asM    = input.int(0,  "minute",     0, 59, group = G_AS, inline = "a1")
+asSig  = input.int(180, "Signals for (min)", minval = 5, group = G_AS, inline = "a2", tooltip = SIG_TIP)
+asLvl  = input.int(360, "Levels for (min)",  minval = 5, group = G_AS, inline = "a2", tooltip = LVL_TIP)
+
+const string G_LN = "② LONDON session"
+lnOn   = input.bool(true, "Enable", group = G_LN, inline = "l0")
+lnCol  = input.color(#2196F3, "", group = G_LN, inline = "l0")
+lnTz   = input.string("Europe/London", "Time zone", group = G_LN, tooltip = TZ_TIP)
+lnH    = input.int(8,  "Open hour",  0, 23, group = G_LN, inline = "l1")
+lnM    = input.int(0,  "minute",     0, 59, group = G_LN, inline = "l1")
+lnSig  = input.int(180, "Signals for (min)", minval = 5, group = G_LN, inline = "l2", tooltip = SIG_TIP)
+lnLvl  = input.int(300, "Levels for (min)",  minval = 5, group = G_LN, inline = "l2", tooltip = LVL_TIP)
+
+const string G_NO = "③ NY OPEN session"
+noOn   = input.bool(true, "Enable", group = G_NO, inline = "n0")
+noCol  = input.color(#AB47BC, "", group = G_NO, inline = "n0")
+noTz   = input.string("America/New_York", "Time zone", group = G_NO, tooltip = TZ_TIP)
+noH    = input.int(9,  "Open hour",  0, 23, group = G_NO, inline = "n1")
+noM    = input.int(30, "minute",     0, 59, group = G_NO, inline = "n1")
+noSig  = input.int(150, "Signals for (min)", minval = 5, group = G_NO, inline = "n2", tooltip = SIG_TIP)
+noLvl  = input.int(390, "Levels for (min)",  minval = 5, group = G_NO, inline = "n2", tooltip = LVL_TIP)
+
+const string G_NC = "④ NY CLOSE session"
+ncOn   = input.bool(true, "Enable", group = G_NC, inline = "c0")
+ncCol  = input.color(#26A69A, "", group = G_NC, inline = "c0")
+ncTz   = input.string("America/New_York", "Time zone", group = G_NC, tooltip = TZ_TIP)
+ncH    = input.int(15, "Open hour",  0, 23, group = G_NC, inline = "c1")
+ncM    = input.int(0,  "minute",     0, 59, group = G_NC, inline = "c1")
+ncSig  = input.int(60,  "Signals for (min)", minval = 5, group = G_NC, inline = "c2", tooltip = SIG_TIP)
+ncLvl  = input.int(120, "Levels for (min)",  minval = 5, group = G_NC, inline = "c2", tooltip = LVL_TIP)
+
+// ───────────────────────────── Inputs: strategy ─────────────────────────────
+const string G_ORB = "Opening range"
+orbTF       = input.string("Auto", "ORB length (minutes)", options = ["Auto", "1", "5", "15"], group = G_ORB,
+               tooltip = "Auto = same as the chart timeframe when it is 1/5/15 minutes, otherwise 15.")
+showMid     = input.bool(true, "Show 50% level", group = G_ORB)
+showBox     = input.bool(true, "Shade range box", group = G_ORB)
+keepDays    = input.int(10, "Days of drawings to keep", minval = 1, maxval = 30, group = G_ORB)
+
+const string G_BRK = "Breakout"
+useHL       = input.bool(true, "Trade ORB High / Low breakouts", group = G_BRK)
+useMid      = input.bool(true, "Trade 50% level breakouts", group = G_BRK)
+tolATR      = input.float(0.25, "Retest tolerance (× ATR)", minval = 0, step = 0.05, group = G_BRK,
+               tooltip = "How close price must come back to the broken level to count as a retest. Also the buffer used to invalidate a breakout.")
+maxWait     = input.int(30, "Max bars to wait for the retest", minval = 1, group = G_BRK)
+maxTrades   = input.int(1, "Max signals per session", minval = 1, group = G_BRK,
+               tooltip = "Once this many signals have fired in a session, that session is locked until its next open.")
+showBreaks  = input.bool(true, "Label breakouts / invalidations", group = G_BRK)
+
+const string G_CNF = "Entry confirmation (any enabled one confirms)"
+cFVG        = input.bool(true, "Fair Value Gap retest", group = G_CNF)
+cLvl        = input.bool(true, "High / Low level retest (close holds the level)", group = G_CNF)
+cRej        = input.bool(true, "Strong rejection candle (pin bar / engulfing)", group = G_CNF)
+wickPct     = input.float(0.5, "Rejection: min wick as % of candle", minval = 0.1, maxval = 0.9, step = 0.05, group = G_CNF)
+showFVG     = input.bool(true, "Draw breakout FVG", group = G_CNF)
+
+const string G_RSK = "Risk"
+entryMode   = input.string("Retest level", "Entry price", options = ["Retest level", "Signal candle close"], group = G_RSK,
+               tooltip = "Retest level = the broken ORB level (or the FVG edge for FVG entries). Signal candle close = close of the confirmation candle.")
+slMode      = input.string("Retest candle", "Stop loss", options = ["Retest candle", "Opposite ORB side", "ORB 50%"], group = G_RSK,
+               tooltip = "Retest candle = beyond the high (shorts) / low (longs) of the retest candles. Opposite ORB side = ORB High for shorts, ORB Low for longs.")
+slBufATR    = input.float(0.1, "SL buffer (× ATR)", minval = 0, step = 0.05, group = G_RSK)
+rr          = input.float(2.0, "Take profit (R multiple)", minval = 0.1, step = 0.25, group = G_RSK)
+tradeBars   = input.int(30, "Trade line length (bars)", minval = 5, maxval = 400, group = G_RSK)
+showTrade   = input.bool(true, "Draw entry / SL / TP", group = G_RSK)
+showTable   = input.bool(true, "Show info table", group = G_RSK)
+
+const string G_BT = "Backtest"
+btStart     = input.time(timestamp("2025-01-01T00:00:00"), "Start date", group = G_BT)
+btEnd       = input.time(timestamp("2099-12-31T00:00:00"), "End date",   group = G_BT)
+sizeMode    = input.string("Risk % of equity", "Position size", options = ["Risk % of equity", "Fixed quantity"], group = G_BT)
+riskPct     = input.float(1.0, "Risk per trade (%)", minval = 0.01, step = 0.25, group = G_BT)
+fixedQty    = input.float(1.0, "Fixed quantity (contracts / units / lots)", minval = 0.0001, group = G_BT,
+               tooltip = "Quantity in the symbol's own units. For forex, 1 standard lot = 100000 units; for XAUUSD CFDs, 1 lot = 100 oz on most brokers.")
+limitBars   = input.int(10, "Limit entry: cancel if not filled after (bars)", minval = 1, group = G_BT,
+               tooltip = "Used when Entry price = Retest level: the entry is a limit order at the level.")
+
+// Signal colours
+const color C_ENTRY = #2962FF   // blue
+const color C_SL    = #F23645   // red
+const color C_TP    = #089981   // green
+const color C_BRK   = #9C27B0   // purple
+
+// ───────────────────────────── Common ─────────────────────────────
+atr     = ta.atr(14)
+tfSec   = timeframe.in_seconds()
+tfMs    = tfSec * 1000
+closed  = barstate.isconfirmed
+tol     = atr * tolATR
+buf     = atr * slBufATR
+tkr     = syminfo.ticker
+
+orbMins = switch orbTF
+    "1"  => 1
+    "5"  => 5
+    "15" => 15
+    =>      tfSec == 60 ? 1 : tfSec == 300 ? 5 : 15
+orbOK   = tfSec <= orbMins * 60 and (orbMins * 60) % tfSec == 0
+
+// ───────────────────────────── Drawing storage ─────────────────────────────
+type DrawSet
+    array<line>  lines
+    array<label> labels
+    array<box>   boxes
+
+var array<DrawSet> sets = array.new<DrawSet>()
+
+regLine(line l) =>
+    if sets.size() > 0
+        sets.last().lines.push(l)
+    l
+
+regLabel(label l) =>
+    if sets.size() > 0
+        sets.last().labels.push(l)
+    l
+
+regBox(box b) =>
+    if sets.size() > 0
+        sets.last().boxes.push(b)
+    b
+
+newDrawSet() =>
+    sets.push(DrawSet.new(array.new<line>(), array.new<label>(), array.new<box>()))
+    if sets.size() > keepDays * 4
+        old = sets.shift()
+        for l in old.lines
+            line.delete(l)
+        for l in old.labels
+            label.delete(l)
+        for b in old.boxes
+            box.delete(b)
+    sets.size()
+
+// ───────────────────────────── Session object ─────────────────────────────
+type Sess
+    string name
+    color  col
+    bool   on
+    string tz
+    int    oh
+    int    om
+    int    sigMins
+    int    lvlMins
+    float  hi       = na
+    float  lo       = na
+    int    startT   = na
+    int    endT     = na
+    int    sigEnd   = na
+    int    lvlEnd   = na
+    int    readyBar = na
+    bool   building = false
+    bool   ready    = false
+    int    state    = 0      // 0 watching, 1 waiting for retest, 2 in trade
+    int    dir      = 0
+    float  lvl      = na
+    string lvlName  = ""
+    int    brkBar   = na
+    float  fvgTop   = na
+    float  fvgBot   = na
+    int    fvgBar   = na
+    int    trades   = 0
+    float  entry    = na
+    float  sl       = na
+    float  tp       = na
+    int    entryBar = na
+    bool   lbHiUp   = false
+    bool   lbLoDn   = false
+    bool   lbMidUp  = false
+    bool   lbMidDn  = false
+
+method mid(Sess s) =>
+    (s.hi + s.lo) / 2
+
+var array<Sess> sessions = array.from(Sess.new("Asia", asCol, asOn, asTz, asH, asM, asSig, asLvl), Sess.new("London", lnCol, lnOn, lnTz, lnH, lnM, lnSig, lnLvl), Sess.new("NY Open", noCol, noOn, noTz, noH, noM, noSig, noLvl), Sess.new("NY Close", ncCol, ncOn, ncTz, ncH, ncM, ncSig, ncLvl))
+
+longSig  = false
+shortSig = false
+string longWho  = ""
+string shortWho = ""
+
+// ───────────────────────────── Order / position tracking ─────────────────────────────
+// The strategy holds one position at a time (a single account is net long or short).
+var int    activeIdx    = -1     // index of the session that owns the open order/position
+var string activeId     = ""
+var int    orderBar     = na
+var bool   isLimit      = false
+var int    closedBefore = 0
+inWindow = time >= btStart and time <= btEnd
+
+if activeIdx >= 0
+    a       = sessions.get(activeIdx)
+    inPos   = strategy.position_size != 0
+    tradeDone = strategy.closedtrades > closedBefore and not inPos
+    if tradeDone
+        a.state   := 0
+        activeIdx := -1
+    else if not inPos and isLimit and bar_index - orderBar > limitBars
+        strategy.cancel(activeId)
+        a.state   := 0
+        activeIdx := -1
+    else if time_close >= a.lvlEnd
+        if inPos
+            strategy.close(activeId, comment = "Time exit")
+        else
+            strategy.cancel(activeId)
+        a.state   := 0
+        activeIdx := -1
+
+// ───────────────────────────── Per-session engine ─────────────────────────────
+for [si, s] in sessions
+    if s.on and orbOK
+        // Today's open in the session's own time zone (DST handled by the tz)
+        st      = timestamp(s.tz, year(time, s.tz), month(time, s.tz), dayofmonth(time, s.tz), s.oh, s.om)
+        newSess = time >= st and (na(time[1]) or time[1] < st)
+
+        // New session: reset everything
+        if newSess
+            newDrawSet()
+            s.hi       := high
+            s.lo       := low
+            s.startT   := st
+            s.endT     := st + orbMins * 60000
+            s.sigEnd   := st + s.sigMins * 60000
+            s.lvlEnd   := st + s.lvlMins * 60000
+            s.building := true
+            s.ready    := false
+            s.state    := 0
+            s.trades   := 0
+            s.lbHiUp   := false
+            s.lbLoDn   := false
+            s.lbMidUp  := false
+            s.lbMidDn  := false
+        else if s.building
+            s.hi := math.max(s.hi, high)
+            s.lo := math.min(s.lo, low)
+
+        // Lock the range when its last candle has CLOSED, then draw it once with fixed end points
+        if s.building and closed and time_close >= s.endT
+            s.building := false
+            s.ready    := true
+            s.readyBar := bar_index
+            if showBox
+                regBox(box.new(s.startT, s.hi, time_close, s.lo, xloc = xloc.bar_time, border_color = color.new(s.col, 60), bgcolor = color.new(s.col, 88)))
+            regLine(line.new(s.startT, s.hi, s.lvlEnd, s.hi, xloc = xloc.bar_time, color = s.col, width = 2))
+            regLine(line.new(s.startT, s.lo, s.lvlEnd, s.lo, xloc = xloc.bar_time, color = s.col, width = 2))
+            if showMid
+                regLine(line.new(s.startT, s.mid(), s.lvlEnd, s.mid(), xloc = xloc.bar_time, color = color.new(s.col, 30), style = line.style_dashed))
+            regLabel(label.new(s.lvlEnd, s.hi, s.name + " " + str.tostring(orbMins) + "m ORB", xloc = xloc.bar_time, style = label.style_label_left,
+                               color = color.new(color.black, 100), textcolor = s.col, size = size.small))
+
+        canSignal = s.ready and bar_index > s.readyBar and time >= s.startT and time < s.sigEnd and s.trades < maxTrades and inWindow
+
+        if closed
+            // 1) Breakout detection
+            if s.state == 0 and canSignal
+                hi = s.hi
+                lo = s.lo
+                md = s.mid()
+                int    d = 0
+                float  L = na
+                string n = ""
+                if useHL and close > hi and close[1] <= hi
+                    d := 1
+                    L := hi
+                    n := "ORB High"
+                else if useHL and close < lo and close[1] >= lo
+                    d := -1
+                    L := lo
+                    n := "ORB Low"
+                else if useMid and close > md and close[1] <= md and close <= hi
+                    d := 1
+                    L := md
+                    n := "ORB 50%"
+                else if useMid and close < md and close[1] >= md and close >= lo
+                    d := -1
+                    L := md
+                    n := "ORB 50%"
+                if d != 0
+                    s.state   := 1
+                    s.dir     := d
+                    s.lvl     := L
+                    s.lvlName := n
+                    s.brkBar  := bar_index
+                    s.fvgTop  := na
+                    s.fvgBot  := na
+                    s.fvgBar  := na
+                    isHi  = n == "ORB High"
+                    isLo  = n == "ORB Low"
+                    first = isHi ? not s.lbHiUp : isLo ? not s.lbLoDn : d == 1 ? not s.lbMidUp : not s.lbMidDn
+                    if isHi
+                        s.lbHiUp := true
+                    else if isLo
+                        s.lbLoDn := true
+                    else if d == 1
+                        s.lbMidUp := true
+                    else
+                        s.lbMidDn := true
+                    if showBreaks and first
+                        regLabel(label.new(time, d == 1 ? high : low, (d == 1 ? "↑ " : "↓ ") + s.name + " " + n, xloc = xloc.bar_time,
+                                           style = d == 1 ? label.style_label_down : label.style_label_up,
+                                           color = C_BRK, textcolor = color.white, size = size.tiny))
+                    alert(tkr + " ORB " + s.name + ": " + (d == 1 ? "bullish" : "bearish") + " breakout of " + n + " (" + str.tostring(L, format.mintick) + ") — waiting for retest", alert.freq_once_per_bar_close)
+
+            // 2) Retest + confirmation
+            else if s.state == 1 and bar_index > s.brkBar
+                if na(s.fvgTop)
+                    if s.dir == 1 and low > high[2]
+                        s.fvgTop := low
+                        s.fvgBot := high[2]
+                        s.fvgBar := bar_index
+                    else if s.dir == -1 and high < low[2]
+                        s.fvgTop := low[2]
+                        s.fvgBot := high
+                        s.fvgBar := bar_index
+                    if not na(s.fvgTop) and showFVG
+                        regBox(box.new(time[2], s.fvgTop, time + 5 * tfMs, s.fvgBot, xloc = xloc.bar_time, border_color = na,
+                                 bgcolor = color.new(s.dir == 1 ? C_TP : C_SL, 80), text = "FVG", text_size = size.tiny,
+                                 text_color = color.new(color.gray, 20), text_halign = text.align_right))
+
+                dir       = s.dir
+                lv        = s.lvl
+                rng       = high - low
+                touchLvl  = dir == 1 ? low <= lv + tol : high >= lv - tol
+                hold      = dir == 1 ? close > lv : close < lv
+                dirCandle = dir == 1 ? close > open : close < open
+                wick      = dir == 1 ? math.min(open, close) - low : high - math.max(open, close)
+                closePos  = rng > 0 ? (dir == 1 ? close - low : high - close) / rng : 0.0
+                pinBar    = rng > 0 and wick >= wickPct * rng and closePos >= 0.6
+                engulf    = dir == 1 ? close > open and close[1] < open[1] and close >= open[1] and open <= close[1] :
+                                       close < open and close[1] > open[1] and close <= open[1] and open >= close[1]
+                touchFVG  = not na(s.fvgTop) and bar_index > s.fvgBar and (dir == 1 ? low <= s.fvgTop and close > s.fvgBot : high >= s.fvgBot and close < s.fvgTop)
+
+                okFVG   = cFVG and touchFVG and hold and dirCandle
+                okRej   = cRej and touchLvl and hold and (pinBar or engulf)
+                okLvl   = cLvl and touchLvl and hold and dirCandle
+                invalid = dir == 1 ? close < lv - tol : close > lv + tol
+
+                if invalid or bar_index - s.brkBar > maxWait or time >= s.sigEnd
+                    s.state := 0
+                    if showBreaks
+                        regLabel(label.new(time, dir == 1 ? low : high, invalid ? "✕ failed" : "✕ no retest", xloc = xloc.bar_time,
+                                           style = dir == 1 ? label.style_label_up : label.style_label_down,
+                                           color = color.new(color.gray, 40), textcolor = color.white, size = size.tiny))
+                else if (okFVG or okRej or okLvl) and activeIdx >= 0
+                    // another session already holds the account's position -> skip this signal
+                    s.state := 0
+                    if showBreaks
+                        regLabel(label.new(time, dir == 1 ? low : high, s.name + " signal skipped (in trade)", xloc = xloc.bar_time,
+                                           style = dir == 1 ? label.style_label_up : label.style_label_down,
+                                           color = color.new(color.gray, 40), textcolor = color.white, size = size.tiny))
+                else if okFVG or okRej or okLvl
+                    how = okRej ? (pinBar ? "Rejection wick" : "Engulfing") : okLvl ? "Level retest" : "FVG retest"
+                    s.trades   := s.trades + 1
+                    s.state    := 2
+                    s.entryBar := bar_index
+
+                    // Entry: broken level (FVG edge for pure FVG entries) or the signal candle close
+                    fvgOnly = how == "FVG retest"
+                    e = entryMode == "Signal candle close" ? close : fvgOnly ? (dir == 1 ? s.fvgTop : s.fvgBot) : lv
+
+                    // Stop loss — LONG below, SHORT above the entry
+                    retestLow  = math.min(low, low[1], e)
+                    retestHigh = math.max(high, high[1], e)
+                    float stop = switch slMode
+                        "Opposite ORB side" => dir == 1 ? s.lo - buf    : s.hi + buf
+                        "ORB 50%"           => dir == 1 ? s.mid() - buf : s.mid() + buf
+                        =>                     dir == 1 ? retestLow - buf : retestHigh + buf
+                    risk = dir == 1 ? e - stop : stop - e
+                    if risk <= 0
+                        stop := dir == 1 ? retestLow - buf : retestHigh + buf
+                        risk := dir == 1 ? e - stop : stop - e
+                    if risk <= 0
+                        risk := math.max(atr * 0.5, syminfo.mintick)
+                        stop := dir == 1 ? e - risk : e + risk
+
+                    // Take profit — LONG: entry + R×risk (above), SHORT: entry − R×risk (below)
+                    target = dir == 1 ? e + rr * risk : e - rr * risk
+                    s.entry := e
+                    s.sl    := stop
+                    s.tp    := target
+
+                    // ── Strategy orders ──
+                    qty = sizeMode == "Fixed quantity" ? fixedQty : strategy.equity * riskPct / 100 / (risk * syminfo.pointvalue)
+                    id  = s.name + (dir == 1 ? " Long" : " Short")
+                    useLimit = entryMode == "Retest level"
+                    if useLimit
+                        strategy.entry(id, dir == 1 ? strategy.long : strategy.short, qty = qty, limit = e, comment = s.name + " " + how)
+                    else
+                        strategy.entry(id, dir == 1 ? strategy.long : strategy.short, qty = qty, comment = s.name + " " + how)
+                    strategy.exit(id + " exit", from_entry = id, stop = stop, limit = target, comment_loss = "SL", comment_profit = "TP " + str.tostring(rr) + "R")
+                    activeIdx    := si
+                    activeId     := id
+                    orderBar     := bar_index
+                    isLimit      := useLimit
+                    closedBefore := strategy.closedtrades
+
+                    if dir == 1
+                        longSig := true
+                        longWho := s.name
+                    else
+                        shortSig := true
+                        shortWho := s.name
+                    regLabel(label.new(time, dir == 1 ? low : high, (dir == 1 ? "LONG" : "SHORT") + " · " + s.name + "\n" + s.lvlName + "\n" + how, xloc = xloc.bar_time,
+                                       style = dir == 1 ? label.style_label_up : label.style_label_down,
+                                       color = dir == 1 ? C_TP : C_SL, textcolor = color.white, size = size.small))
+                    if showTrade
+                        x1 = time
+                        x2 = math.max(math.min(time + tradeBars * tfMs, s.lvlEnd), time + tfMs)
+                        regLine(line.new(x1, e,      x2, e,      xloc = xloc.bar_time, color = C_ENTRY, width = 2))
+                        regLine(line.new(x1, stop,   x2, stop,   xloc = xloc.bar_time, color = C_SL,    width = 2))
+                        regLine(line.new(x1, target, x2, target, xloc = xloc.bar_time, color = C_TP,    width = 2))
+                        regLabel(label.new(x2, e, "Entry " + str.tostring(e, format.mintick), xloc = xloc.bar_time, style = label.style_label_left,
+                                           color = color.new(C_ENTRY, 20), textcolor = color.white, size = size.tiny))
+                        regLabel(label.new(x2, stop, "SL " + str.tostring(stop, format.mintick), xloc = xloc.bar_time, style = label.style_label_left,
+                                           color = color.new(C_SL, 20), textcolor = color.white, size = size.tiny))
+                        regLabel(label.new(x2, target, "TP " + str.tostring(rr) + "R " + str.tostring(target, format.mintick), xloc = xloc.bar_time, style = label.style_label_left,
+                                           color = color.new(C_TP, 20), textcolor = color.white, size = size.tiny))
+                    alert(tkr + " ORB " + s.name + ": " + (dir == 1 ? "LONG" : "SHORT") + " @ " + str.tostring(e, format.mintick) + " | " + s.lvlName + " " + how +
+                          " | SL " + str.tostring(stop, format.mintick) + " | TP " + str.tostring(target, format.mintick), alert.freq_once_per_bar_close)
+
+
+alertcondition(longSig,  "ORB Sessions Long",  "ORB Sessions: LONG entry confirmed on retest")
+alertcondition(shortSig, "ORB Sessions Short", "ORB Sessions: SHORT entry confirmed on retest")
+
+// ───────────────────────────── Info table ─────────────────────────────
+var table tb = table.new(position.top_right, 5, 6, bgcolor = color.new(color.black, 20), border_width = 1, border_color = color.new(color.gray, 70))
+if barstate.isfirst
+    table.merge_cells(tb, 0, 5, 4, 5)
+if showTable and barstate.islast
+    txt = color.white
+    table.cell(tb, 0, 0, "Session", text_color = txt, text_size = size.small)
+    table.cell(tb, 1, 0, "High",    text_color = txt, text_size = size.small)
+    table.cell(tb, 2, 0, "50%",     text_color = txt, text_size = size.small)
+    table.cell(tb, 3, 0, "Low",     text_color = txt, text_size = size.small)
+    table.cell(tb, 4, 0, "Status",  text_color = txt, text_size = size.small)
+    for [i, s] in sessions
+        r   = i + 1
+        has = s.ready
+        status = not s.on ? "off" :
+                 not orbOK ? "chart TF too high" :
+                 s.building ? "building range…" :
+                 not has ? "waiting for open" :
+                 s.state == 1 ? (s.dir == 1 ? "↑ " : "↓ ") + s.lvlName + " broken — wait retest" :
+                 s.state == 2 ? (s.dir == 1 ? "LONG" : "SHORT") + (strategy.position_size == 0 ? " order" : "") + " | SL " + str.tostring(s.sl, format.mintick) + " | TP " + str.tostring(s.tp, format.mintick) :
+                 time >= s.sigEnd ? "signals closed" :
+                 s.trades >= maxTrades ? "locked (" + str.tostring(s.trades) + "/" + str.tostring(maxTrades) + ")" :
+                 "watching"
+        table.cell(tb, 0, r, s.name, text_color = s.col, text_size = size.small)
+        table.cell(tb, 1, r, has ? str.tostring(s.hi,    format.mintick) : "–", text_color = txt, text_size = size.small)
+        table.cell(tb, 2, r, has ? str.tostring(s.mid(), format.mintick) : "–", text_color = txt, text_size = size.small)
+        table.cell(tb, 3, r, has ? str.tostring(s.lo,    format.mintick) : "–", text_color = txt, text_size = size.small)
+        table.cell(tb, 4, r, status, text_color = txt, text_size = size.small)
+    table.cell(tb, 0, 5, str.tostring(orbMins) + "m ORB · max " + str.tostring(maxTrades) + " signal(s) per session", text_color = color.gray, text_size = size.tiny)
